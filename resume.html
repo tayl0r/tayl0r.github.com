@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+	<style type="text/css">
+		* { margin: 0; padding: 0; }
+        body { font: 14px Helvetica, Sans-Serif; line-height: 22px;
+			background: fixed url(http://dl.dropbox.com/u/59304/noise.jpg); }
+        .clear { clear: both; }
+        #TaylorSteilResume { width: 800px; margin: 40px auto 60px; }
+        #pic { float: right; margin: -30px 0 0 0; }
+        h1 { margin: 0 0 16px 0; padding: 0 0 16px 0; font-size: 42px; font-weight: bold;
+			letter-spacing: -2px; border-bottom: 1px solid #999; }
+        h2 { font-size: 20px; margin: 0 0 6px 0; position: relative; }
+        h2 span { position: absolute; bottom: 0; right: 0; font-style: italic; font-family: Georgia, Serif;
+			font-size: 16px; color: #999; font-weight: normal; }
+        p { margin: 0 0 16px 0; }
+        a { color: #999; text-decoration: none; border-bottom: 1px dotted #999; }
+        a:hover { border-bottom-style: solid; color: black; }
+        ul { margin: 0 0 32px 17px; }
+        #objective { width: 500px; float: left; }
+        #objective p { font-family: Georgia, Serif; font-style: italic; color: #666; }
+        dt { font-style: italic; font-weight: bold; font-size: 18px; text-align: right; padding: 0 26px 0 0;
+			width: 100px; float: left; height: 100px; border-right: 1px solid #999;  }
+        dd { width: 650px; float: right; }
+        dd.clear { float: none; margin: 0; height: 15px; }
+		.keyword { font-weight: bold; }
+		canvas { position: fixed; }
+		#FPS { position: fixed; left: 0; top: 0; }
+		.topleft { left: 0px; top: 0px; }
+		.invisible { visibility: hidden; }
+		.cube { position: fixed; left: 0px; top: 0px; }
+		.transformHX { -webkit-transform: matrix(1.42,0,0,0.71,0,0) rotate(45deg); -moz-transform: matrix(1.42,0,0,0.71,0,0) rotate(45deg); }
+		.transformVZ { -webkit-transform: matrix(1,  -0.5,0,1, 0,0) rotate(0deg); -moz-transform: matrix(1,  -0.5,0,1, 0,0); }
+		.transformVX { -webkit-transform: matrix(1,   0.5,0,1, 0,0) rotate(0deg); -moz-transform: matrix(1,   0.5,0,1, 0,0); }
+	</style>
+</head>
+<body>
+<script type="text/javascript">
+	window.onload = function() {
+
+		// ##################################################################
+		// class tObj
+		// objects for use by the tLL/tLoop class
+		var tObj = function() {
+			var that = {};
+			that.next = undefined;
+			that.prev = undefined;
+			that.update = function() {};
+			that.draw = function() {};
+			that.clearScreen = function() {};
+			return that;
+		};
+
+		// ##################################################################
+		// class tLL (linked list)
+		var tLL = function() {
+			var that = {};
+			that.firstObj = undefined;
+			that.lastObj = undefined;
+			that.cnt = 0;
+
+			that.getCount = function() {
+				return that.cnt;
+			};
+			that.getFirst = function() {
+				return that.firstObj;
+			};
+			that.getLast = function() {
+				return that.lastObj;
+			};
+
+			that.add = function(obj) {
+				that.cnt += 1;
+				obj.next = undefined;
+				obj.prev = undefined;
+				
+				if (that.firstObj === undefined) {
+					that.firstObj = obj;
+				}
+				else if (that.lastObj === undefined) {
+					that.lastObj = obj;
+					that.lastObj.prev = that.firstObj;
+					that.firstObj.next = that.lastObj;
+				}
+				else {
+					that.lastObj.next = obj;
+					obj.prev = that.lastObj;
+					that.lastObj = obj;
+				}
+				return that;
+			};
+			
+			that.remove = function(obj) {
+				that.cnt -= 1;
+				var prev = obj.prev;
+				var next = obj.next;
+				if (prev !== undefined && next !== undefined) {
+					prev.next = next;
+					next.prev = prev;
+				}
+				else if (prev !== undefined) {
+					//we're the last object
+					prev.next = undefined;
+					that.lastObj = prev;
+				}
+				else if (next !== undefined) {
+					//we're the first object
+					next.prev = undefined;
+					that.firstObj = next;
+				}
+				else {
+					that.firstObj = undefined;
+					that.lastObj = undefined;
+				}
+				obj.prev = undefined;
+				obj.next = undefined;
+				return that;
+			};
+			
+			
+			return that;
+		};
+		
+		// ##################################################################
+		// class tLoop
+		// sets up a game loop that runs every X ms
+		// register objects with it and their update() and draw() methods will be called every tick
+		var tLoop = function(refreshRateSeconds, canvas, objectClass, statusPanel) {
+			var that = {};
+			that.activeObjects = new tLL();
+			that.retiredObjects = new tLL();
+			that.lastTime = undefined;
+			that.frames = 0;
+			that.totalTime = 0;
+			that.refreshRate = 1 / refreshRateSeconds * 1000;
+			that.cvas = canvas; //html5 canvas
+			that.ctx = canvas.obj.getContext('2d'); //html5 2d drawing context
+			that.objectClass = objectClass //class of objects we're going to manage
+			that.statusPanel = statusPanel; //tDomObj
+			
+			//setup some interesting drawing options
+			that.ctx.globalAlpha = 0.7;
+			that.ctx.globalCompositeOperation = "xor";
+			
+			// create canvas buffer
+			// this is supposed to solve "flickering" but i dont experience this so i'm not going to use it
+			/*that.cvasBuffer = canvas.getParent().addChild("canvas", undefined, undefined, "invisible");
+			that.cvasBuffer.obj.width = that.cvas.obj.width;
+			that.cvasBuffer.obj.height = that.cvas.obj.height;
+			that.ctxBuffer = that.cvasBuffer.obj.getContext('2d');*/
+			
+			// setup the status panel
+			// object count
+			that.statusPanel.addChild("span", "Object Count: ");
+			that.objectCount = that.statusPanel.addChild("span");
+			// separator
+			that.statusPanel.addChild("br");
+			// FPS
+			that.statusPanel.addChild("span", "FPS: ");
+			that.FPS = that.statusPanel.addChild("span");
+			
+			//this runs every tick
+			that.tick = function() {
+				//clear screen # VERY SLOW!! changed to only clear what is necessary
+				//that.ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+				//that.cvas.obj.width = window.innerWidth;
+				
+				
+				//calculate elapsed time
+				var curTime = new Date().getTime();
+				var diffTime = (curTime - that.lastTime); // number of MS elapsed since last update
+				
+				//calculate FPS
+				that.totalTime += diffTime;
+				that.frames += 1;
+				that.FPS.html(Math.round(  (that.frames / (that.totalTime/1000)) * 100 ) / 100);
+
+				diffTime = diffTime / 1000; // percent of a second that has elapased
+				that.lastTime = curTime;
+				
+				// loop through all objects
+				var obj;
+				
+				// clear the screen where they were at the last frame
+				obj = that.activeObjects.getFirst();
+				while (obj !== undefined) {
+					//obj.clearScreen(that.ctxBuffer);
+					obj.clearScreen(that.ctx);
+					obj = obj.next;
+				}
+				
+				// call their update functions
+				// remove if update returns false
+				obj = that.activeObjects.getFirst();
+				var i = 0;
+				while (obj !== undefined) {
+					var next = obj.next;
+					if (obj.update(diffTime) === false) {
+						//console.log(i + " removed object: " + obj.name + ", " + that.cnt + ", " + next);
+						that.remove(obj);
+					}
+					i += 1;
+					obj = next;
+				}
+
+				// draw everything
+				obj = that.activeObjects.getFirst();
+				while (obj !== undefined) {
+					//obj.draw(that.ctxBuffer);
+					obj.draw(that.ctx);
+					obj = obj.next;
+				}
+				
+				//copy the buffer into the real context, disabled for now
+				//that.ctx.drawImage(that.cvasBuffer.obj, 0, 0);
+				
+				//update the status panel
+				that.objectCount.html(that.activeObjects.getCount() + ", " + that.retiredObjects.getCount());
+				
+				setTimeout(that.tick, that.refreshRate);
+			};
+			
+			that.getObjectCount = function() {
+				return that.activeObjects.getCount(); 
+			};
+			
+			that.add = function(name) {
+				//see if we have any retired objects
+				var obj = that.retiredObjects.getFirst();
+				if (obj) {
+					that.retiredObjects.remove(obj);
+					obj.init();
+				}
+				else {
+					obj = new that.objectClass();
+				}
+				obj.name = name;
+				that.activeObjects.add(obj);
+			};
+			
+			that.remove = function(obj) {
+				that.activeObjects.remove(obj);
+				that.retiredObjects.add(obj);
+			};
+					
+			//start the loop timer
+			that.start = function() {
+				that.lastTime = new Date().getTime();
+				//that.interval = setInterval(that.tick, 1 / that.refreshRate * 1000);
+				that.tick();
+				return that;
+			};
+			
+			//end the loop timer
+			that.end = function() {
+				clearInterval(that.interval);
+				return that;
+			};
+			
+			return that;			
+		};
+		
+		// ##################################################################
+		// class tPoint
+		// basic point class
+		var tPoint = function(x, y) {
+			var that = {};
+			that.x = x || 0;
+			that.y = y || 0;
+			that.toString = function() {
+				return Math.round(that.x) + "," + Math.round(that.y);
+			}
+			that.randomize = function(a, b, c, d) {
+				that.x = (b||0) + Math.random() * (a||0);
+				that.y = (d||0) + Math.random() * (c||0);
+				return that;
+			}
+			return that;
+		};
+		
+		// ##################################################################
+		// class tParticle
+		// particle !!
+		var tParticle = function() {
+			var that = new tObj();
+			that.size = new tPoint(),
+			that.speed = new tPoint(),
+			that.loc = new tPoint(),
+			that.gravity,
+			that.bounce,
+			that.friction,
+			that.killed,
+			
+			that.init = function() {
+				that.size.randomize(45, 5);
+				that.speed.randomize(-400, 200)
+				that.loc.randomize(window.innerWidth, 0, 0, that.size.x * -1);
+				that.gravity = 500;
+				that.bounce = Math.random() * .5 + .2;
+				that.friction = .999;
+				that.killed = false;
+				
+				//that.loc.x = 1199;
+				//that.speed.x = 0;
+			}
+			
+			that.update = function(dt) {
+				if (that.killed) {
+					// we fell off the bottom
+					if ((that.loc.y-that.size.x/2) > window.innerHeight) {
+						return false;
+					}
+				}
+				else if (that.loc.x + that.size.x/2 < 0 || that.loc.x - that.size.x/2 > window.innerWidth) {
+					// we're outside the horizontal edges of the window
+					return false;
+				}
+
+				// apply speed to location
+				that.loc.x += (that.speed.x * dt);
+				that.loc.y += (that.speed.y * dt);
+				
+				// apply drag & friction to speed
+				that.speed.x *= that.friction;
+				that.speed.y *= that.friction;
+				
+				// apply gravity to speed
+				that.speed.y += (that.gravity * dt);
+
+				//see if we're touching the bottom of the window
+				if (that.killed === false && that.loc.y + that.size.x/2 > window.innerHeight) {
+					//see if we're below the window, if so, move us so that 1 pixel is showing above the bottom
+					if (that.loc.y-that.size.x/2 >= window.innerHeight) {
+						that.loc.y = window.innerHeight + that.size.x/2 + 1;
+					}
+					// bounce!
+					that.speed.y = -Math.abs(that.speed.y);
+					that.speed.y *= that.bounce;
+					//console.log(that.toString());
+
+					// see if this is the last time we should bounce
+					if (Math.abs(that.speed.y) <= 120) {
+						that.killed = true;
+					}
+				}
+
+				return true;
+			};
+			
+			that.draw = function(ctx) {
+				ctx.beginPath();
+				ctx.arc(that.loc.x, that.loc.y, that.size.x / 2, 0, Math.PI * 2, true);
+				ctx.closePath();
+				//ctx.stroke(); //we dont want to stroke here since stroke is OUTSIDE the bounds of the arc
+				ctx.fill();
+			};
+			
+			that.clearScreen = function(ctx) {
+				ctx.clearRect(that.loc.x - that.size.x/2 - 1, that.loc.y - that.size.x/2 - 1, that.size.x + 2, that.size.x + 2);
+			};
+			
+			that.toString = function() {
+				return that.name + ": loc(" + that.loc.toString() + ") speed(" + that.speed.toString() + ") size(" + that.size.toString() + ")";
+			}
+			
+			that.init();
+			return that;
+		};
+		
+		
+		// ##################################################################
+		//function findById
+		//returns a tDomObj
+		var findById = function(inId) {
+			var obj = document.getElementById(inId);
+			var rv = new tDomObj();
+			rv.obj = obj;
+			return rv;
+		};
+
+		// ##################################################################
+		// class tTimer
+		// class for easily scheduling functions
+		var tTimer = function() {
+			//setup self
+			var that = {};
+			that.stack = []; //keeps a stack of the scheduled jobs
+
+			//add a job
+			that.add = function(inFunc, inMs, inCallback) {
+				that.stack.unshift({func: inFunc, ms: inMs, callback: inCallback});
+				return that;
+			};
+
+			//runs the next job on the stack after its timeout
+			//doesn't do anything if no jobs
+			that.run = function() {
+				if (that.stack.length === 0) {
+					return that;
+				}
+				var currentJob = that.stack.pop();
+				that.currentJob = setTimeout(function() {
+					currentJob.func();
+					if (currentJob.callback !== undefined) { currentJob.callback(); }
+					that.run();
+				}, currentJob.ms);
+				return that;
+			};
+
+			//return self
+			return that;
+		};
+
+		// ##################################################################
+		// class tDomObj
+		// my "object oriented" object
+		// type can be either the name of the HTML type you want created,
+		//  or the html object itself
+		var tDomObj = function(inType, inHtml, inId, inClass, inParent) {
+			//that is "this" but without confusing scope
+			//that.obj is the HTML dom object
+			var that = {};
+			that.obj = undefined;
+
+			//public methods
+
+			//function addChild
+			//creates a new tDomObj, adds it to this one, and returns the new obj
+			that.addChild = function(inType, inHtml, inId, inClass) {
+				var rv = new tDomObj(inType, inHtml, inId, inClass, that);
+				that.obj.appendChild(rv.obj);
+				return rv;
+			};
+
+			that.hide = function() {
+				that.oHeight = that.obj.height;
+				that.obj.height = 0;
+			};
+
+			that.show = function() {
+				that.obj.height = that.oHeight;
+			}
+
+			//function getParent
+			that.getParent = function() {
+				return that.myParent;
+			}
+			
+			//function attr
+			//calls setAttribute on the html object
+			that.attr = function(key, value) {
+				that.obj.setAttribute(key, value);
+				return that;
+			}
+
+			//function html
+			//sets the innerHTML of the html object
+			that.html = function(inHtml) {
+				that.obj.innerHTML = inHtml;//.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+				return that;
+			}
+
+
+			//constructor code
+			if (inType !== undefined) {
+				if (typeof(inType) === "string") {
+					that.obj = document.createElement(inType);
+				}
+				else {
+					that.obj = inType;
+				}
+			}
+			if (inClass !== undefined) { that.obj.className = inClass; }
+			if (inId !== undefined) { that.obj.id = inId; }
+			if (inHtml !== undefined) { that.html(inHtml); }
+			if (inParent !== undefined) { that.myParent = inParent; }
+			//return the new object we just created and added methods to
+			return that;
+		};
+		
+		// ##################################################################
+		var data = {
+			name: "Taylor Steil",
+			email: "tsteil@gmail.com",
+			phone: "+1 619-302-2665",
+			address1: "630 8th St. Apt 2",
+			address2: "San Francisco, CA 94103",
+			photo: "http://dl.dropbox.com/u/59304/taylor_suit_photo_233x286.png",
+			
+			objectives: [
+				'I love creating <span class="keyword">games</span>, <span class="keyword">web applications</span> and <span class="keyword">tools</span> using the latest in <span class="keyword">Flash</span>, <span class="keyword">HTML5</span>, <span class="keyword">javascript</span>, <span class="keyword">native code</span>, and <span class="keyword">Cloud</span> tech.',
+				'My <span class="keyword">SQL</span> skills are unrivaled; no query is beyond my ability.',
+				'I have a great passion for <span class="keyword">data visualization</span> and <span class="keyword">business intelligence</span>.',
+				'<span class="keyword">Travelling</span> is my #1 hobby; I long for new experiences, cultures, ideas, and food.'
+				//'I am an aspiring teacher with a lot of knowledge to share with others.'
+			],
+
+			skills: [
+				"Senior level: Flash & actionscript, javascript, PHP, GNU utilities (shell, bash, awk, grep, etc), SQL, perl",
+				"Intermediate level: Obj-C, C++, C#, Unity, python, HTML5, CSS, source control (p4, svn, git), *nix, iOS development, Lua, Oracle"
+			],
+			
+			experience: [
+				{
+					title: "Indie Game Developer",
+					company: undefined,
+					date: "2008-Present",
+					location: undefined,
+					bullets: [
+						'Created a 3D Unity game prototype, <a href="http://taylorsteil.com/gridecho">Grid Echo</a>, in 10 days for the Unity sponsored "Flash in a Flash" contest',
+						'Published three titles to the Apple App Store, with more in development',
+						'<a href="https://www.facebook.com/jonfoxbook">Jon Fox (2011)</a>, an interactive children\'s e-book',
+						'<a href="http://rivercrossweb.appspot.com/media">RiverCross (2009)</a>, a logic puzzle game',
+						'<a href="http://istoryweb.appspot.com/">iStory (2009)</a>, a choose your own adventure game Creator and Player',
+						'Responsiblities: product design and programming; most art is outsourced',
+						'Over ten thousand total paid downloads to date'
+					]
+				},
+				{
+					title: "Senior & Lead Programmer - Mafia Wars 2",
+					company: "Zynga",
+					date: "2011-2012",
+					location: "SF, CA",
+					bullets: [
+						'Full stack developer, implemented features in AS3 and PHP',
+						'Increased team programmer productivity by automating the dev application setup (from multiple hours down to just a few seconds)',
+						'Designed and implemented features for the MW2 content management system and become the primary developer on that project, utilizing PHP, HTML5, SQL, and javascript',
+						'Took over as Lead Programmer after the game was launched, and now manage all technical development of the project'
+					]
+				},
+				{
+					title: "Programmer - FreeRealms & CloneWars",
+					company: "Sony",
+					date: "2008-2011",
+					location: "San Diego, CA",
+					bullets: [
+						'Led team in charge of internal tools and game business intelligence',
+						'Key accomplishment: increased player membership conversion by 33% by identifying the best play experience for new players',
+						//'Developed robust job launching system and log parsing scripts in Perl',
+						'Architected and developed game Data Warehouse in Oracle',
+						'Designed and developed reporting front end web app in Python with Django, Javascript, Protovis, and the HTML5 canvas',
+						'Developed tools to manage release notes, monitor game servers, and manage XML data',
+						'Created pieces of the user interface using Flash, ActionScript 2.0, and Lua',
+						'Designed and implemented in-game systems such as High Scores, Leaderboards, and Matchmaking',
+						'Produced the Soccer and Fishing minigames with an external development group'
+					]
+				},
+				{
+					title: "Lead, Business Intelligence",
+					company: "Sony",
+					date: "2006-2008",
+					location: "San Diego, CA",
+					bullets: [
+						'Led business intelligence initiative for the Playstation 3 Network Platform',
+						//'Led team responsible for the accuracy and credibility of the Sony Online Entertainment and Playstation 3 Network Platform data',
+						'Assembled, supervised, and mentored team of 4 people',
+						'Taught a 10 week comprehensive "perl 101" course for coworkers',
+						//'Researched new ways to organize and present data',
+						'Worked closely with executive management to ensure their questions about the business were being answered',
+						'Installed and configured new system for business intelligence – Cognos 8',
+						'Re-architected and consolidated a large portion of the existing data warehouse',
+						'Created and delivered presentations on our reporting capabilities to external and internal groups',
+						//'Designed and coded several perl scripts to export data from the data warehouse and deliver to internal/external FTP sites',
+						//'Engineered system to import data from 3rd parties into the Playstation 3 Network Platform production database',
+						'Implemented proof of concept data warehouse database and business intelligence website using Enterprise DB and Cognos 8'
+					]
+				},
+				{
+					title: "Data Warehouse Developer & BI Analyst",
+					company: "Sony",
+					date: "2004-2006",
+					location: "San Diego, CA",
+					bullets: [
+						'Created and updated reports in bash, perl, SQL, and Excel',
+						'Collected reporting business requirements from other departments',
+						'Designed and maintained ETL processes for updating the data warehouse',
+						//'Wrote perl and SQL scripts to pull data in from many various sources',
+						'Created automated processes to check for data errors in the warehouse',
+						'Identified, reported on, and fixed errors in customer records from multiple production databases',
+						'Designed and coded a C# .net Windows application to pull data from a web service and present it in tables and charts to employees across the organization, also designed and coded the web service in perl'
+					]
+				},
+				{
+					title: "Associate Programmer - Platform",
+					company: "Sony",
+					date: "2002-2004",
+					location: "San Diego, CA",
+					bullets: [
+						'Wrote several web based tools in perl for internal support of the billing system',
+						'Parsed billing and session system log files to find errors, statistics, and customer activity',
+						'Setup RRDtool based reporting site, using perl scripts to gather data'
+					]
+				},
+				{
+					title: "QA Analyst",
+					company: "Sony",
+					date: "2001-2002",
+					location: "San Diego, CA",
+					bullets: [
+						'Tested PC games, web based games, billing and account management system, web sites',
+						'Wrote perl scripts for log parsing to aide in testing changes to EverQuest'
+					]
+				},
+				{
+					title: "PC Support Technician",
+					company: "The Boone Insurance Agency",
+					date: "2000-2001",
+					location: "Austin, TX",
+					bullets: [
+						'Setup new desktops with Windows 98 and standard software set',
+						'Setup new servers with Windows NT 4.0, MS SQL Server, Exchange Server',
+						'Assisted other employees with computer software and hardware support'
+					]
+				}
+			],
+			
+			education: [
+				{
+					school: "University of California San Diego Extension",
+					date: "2002-Present",
+					location: "San Diego, CA",
+					bullets: [
+						'Took classes in business finance, C#, Oracle, C, C++'
+					]
+				},
+				{
+					school: "University of Florida",
+					date: "1999-2000",
+					location: "Gainesville, FL",
+					bullets: [
+						'Major: Computer Science'
+					]
+				}
+			],
+
+			hobbies: ["Scuba Diving", "Securities and Options Trading", "Vehicles with 2 wheels", "Travelling", "Camping", "Data Visualisation", "Programming", "Video Games", "Skiing & Snowboarding"]
+		};
+
+
+
+
+		// ##################################################################
+		// personal information and picture
+		var addPI = function() {
+			//add section for personal info
+			var divPi = divResume.addChild("div", undefined, "personalInfo");
+
+			// these add whitespace to the top, needed because sometimes when you print -> pdf the top is cut off
+			//divPi.attr("height", "0px");
+			divPi.addChild("div", "&nbsp;");
+			//divPi.addChild("div", "&nbsp;");
+
+			//add the picture first
+			var img = divPi.addChild("img", undefined, "pic").attr("src", data.photo).attr("alt", "Me!");
+			//name
+			divPi.addChild("h1", data.name, "name");
+			sectionPI = divPi.addChild("p");
+			//phone
+			sectionPI.addChild("span", "Phone: ");
+			sectionPI.addChild("span", data.phone, undefined, "tel");
+			sectionPI.addChild("br");
+			//email
+			sectionPI.addChild("span", "Email: ");
+			sectionPI.addChild("a", data.email, undefined, "email").attr("href", "mailto:" + data.email);
+			return [img, divPi];
+		};
+
+
+		// ##################################################################
+		// objectives
+		var addObjectives = function() {
+			var divObjectives = divResume.addChild("div", undefined, "objective").addChild("p", data.objectives.join('&nbsp;&nbsp;'));
+			divResume.addChild("div", undefined, undefined, "clear");
+			return [divResume];
+		};
+
+
+		// ##################################################################
+		// skills
+		var addSkills = function() {
+			sectionSplit = divResume.addChild("dl");
+			sectionSplit.addChild("dd", undefined, undefined, "clear");
+			sectionSplit.addChild("dt", "Skills");
+			var skills = sectionSplit.addChild("dd");
+			for (var n in data.skills) {
+				var skill = data.skills[n];
+				skills.addChild("p", skill);
+			}
+		};
+
+
+		// ##################################################################
+		// experience
+		var addExperience = function() {
+			sectionSplit.addChild("dd", undefined, undefined, "clear");
+			sectionSplit.addChild("dt", "Experience");
+			var experience = sectionSplit.addChild("dd");
+			for (var n in data.experience) {
+				//keys: title company location date bullets
+				var job = data.experience[n];
+
+				//some data is undefined so we need to filter it out
+				var tempArray = [];
+				var keys = ["company", "location", "date"];
+				for (var i in keys) {
+					var key = keys[i];
+					if (job[key] !== undefined) {
+						tempArray.push(job[key]);
+					}
+				}
+
+				experience.addChild("h2", job.title + " ").addChild("span", tempArray.join(", "));
+				var ul = experience.addChild("ul");
+				for (var i in job.bullets) {
+					var bp = job.bullets[i];
+					ul.addChild("li", bp);
+				}
+			}
+		};
+
+
+		// ##################################################################
+		// education
+		var addEducation = function() {
+			sectionSplit.addChild("dd", undefined, undefined, "clear");
+			sectionSplit.addChild("dt", "Education");
+			var education = sectionSplit.addChild("dd");
+			for (var n in data.education) {
+				//keys: school date location bullets
+				var school = data.education[n];
+
+				var tempArray = [school.location, school.date];
+				education.addChild("h2", school.school + " ").addChild("span", tempArray.join(", "));
+				var ul = education.addChild("ul");
+				for (var i in school.bullets) {
+					var bp = school.bullets[i];
+					ul.addChild("li", bp);
+				}
+			}
+		};
+
+
+		// ##################################################################
+		// hobbies
+		var addHobbies = function() {
+			// hobbies
+			sectionSplit.addChild("dd", undefined, undefined, "clear");
+			sectionSplit.addChild("dt", "Hobbies");
+			var hobbies = sectionSplit.addChild("dd", data.hobbies.join(", "));
+
+			sectionSplit.addChild("dd", undefined, undefined, "clear");
+			divResume.addChild("div", undefined, undefined, "clear");
+		};
+
+
+
+		// ##################################################################
+		//start of actual code
+		
+		var divResume = new tDomObj(document.getElementById("TaylorSteilResume"));
+		var sectionPI, sectionSplit;
+		var timer = tTimer();
+		timer.add(function() {
+			//divResume.html("");
+			addPI();
+		}, 400);
+		timer.add(addObjectives, 400);
+		timer.add(addSkills, 400);
+		timer.add(addExperience, 400);
+		timer.add(addEducation, 400);
+		timer.add(addHobbies, 400);
+		timer.run();
+		
+
+//		var rootCanvas = new tDomObj(document.getElementById("canvas"));
+//
+//		//setup a canvas
+//		var cvas = rootCanvas.addChild("canvas", undefined, undefined, "topleft");
+//		cvas.obj.width = window.innerWidth;
+//		cvas.obj.height = window.innerHeight;
+//
+//		var statusPanel = cvas.getParent().addChild("div", undefined, "FPS");
+//
+//		//setup main loop
+//		var mainLoop = new tLoop(30, cvas, tParticle, statusPanel);
+//		mainLoop.start();
+//
+//		var particleId = 0;
+//		setInterval(function() {
+//			if (mainLoop.getObjectCount() < 5) {
+//				particleId += 1;
+//				mainLoop.add(particleId);
+//			}
+//		}, 1000);
+
+
+	};
+</script>
+<div id="canvas"></div>
+<div id="TaylorSteilResume"></div>
+</body>
+</html>
