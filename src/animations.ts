@@ -97,6 +97,8 @@ interface CycleState {
 	cycleColor: THREE.Color;
 	letterColors: THREE.Color[];
 	nextCycleColor: THREE.Color;
+	startPositions: THREE.Vector3[];
+	endPositions: THREE.Vector3[];
 }
 
 let cycleState: CycleState | null = null;
@@ -124,33 +126,75 @@ function pickUniqueColors(count: number): THREE.Color[] {
 
 const MAX_Z_OFFSET = 4; // moves letters from Z=0 towards camera at Z=12, ~50% larger at max
 
-function newCycleState(letterCount: number, cycleColor: THREE.Color): CycleState {
+function computeSwappedPositions(letters: LetterMesh[]): THREE.Vector3[] {
+	// Collect the unique Y values per row
+	const rowYs = new Map<number, number>();
+	for (const letter of letters) {
+		if (!rowYs.has(letter.row)) {
+			rowYs.set(letter.row, letter.homePosition.y);
+		}
+	}
+	const y0 = rowYs.get(0) ?? 0;
+	const y1 = rowYs.get(1) ?? 0;
+
+	return letters.map((letter) => {
+		const swappedY = letter.row === 0 ? y1 : y0;
+		return new THREE.Vector3(
+			letter.homePosition.x,
+			swappedY,
+			letter.homePosition.z,
+		);
+	});
+}
+
+function newCycleState(
+	letters: LetterMesh[],
+	cycleColor: THREE.Color,
+): CycleState {
 	const motionIndices: number[] = [];
 	const rotationTargets: RotationTarget[] = [];
 	const zOffsets: number[] = [];
-	for (let i = 0; i < letterCount; i++) {
+	for (let i = 0; i < letters.length; i++) {
 		motionIndices.push(Math.floor(Math.random() * MOTION_FUNCTIONS.length));
 		rotationTargets.push(randomRotationTarget());
 		zOffsets.push(Math.random() * MAX_Z_OFFSET);
 	}
+
+	const startPositions = letters.map((l) => l.homePosition.clone());
+	const endPositions = computeSwappedPositions(letters);
 
 	return {
 		motionIndices,
 		rotationTargets,
 		zOffsets,
 		cycleColor: cycleColor.clone(),
-		letterColors: pickUniqueColors(letterCount),
+		letterColors: pickUniqueColors(letters.length),
 		nextCycleColor: new THREE.Color(pickRandom(TARGET_PALETTE)),
+		startPositions,
+		endPositions,
 	};
 }
 
 const HALF_ANIM = ANIM_DURATION / 2;
 
+function applySwap(letters: LetterMesh[], state: CycleState): void {
+	for (let i = 0; i < letters.length; i++) {
+		letters[i].homePosition.copy(state.endPositions[i]);
+	}
+	for (const letter of letters) {
+		letter.row = letter.row === 0 ? 1 : 0;
+	}
+}
+
 export function updateLetters(letters: LetterMesh[], timeSec: number): void {
 	if (cycleState === null) {
-		cycleState = newCycleState(letters.length, currentCycleColor);
+		cycleState = newCycleState(letters, currentCycleColor);
 		// First cycle: override nextCycleColor to orange so the pause shows orange
 		cycleState.nextCycleColor = INITIAL_COLOR.clone();
+		// First cycle: no swap, start and end are the same
+		for (let i = 0; i < letters.length; i++) {
+			cycleState.endPositions[i].copy(cycleState.startPositions[i]);
+		}
 		// Start in the pause phase
 		cycleStartTime = timeSec - ANIM_DURATION;
 	}
@@ -159,8 +203,9 @@ export function updateLetters(letters: LetterMesh[], timeSec: number): void {
 
 	// Check if we need a new cycle
 	if (elapsed >= CYCLE_DURATION) {
+		applySwap(letters, cycleState);
 		currentCycleColor = cycleState.nextCycleColor.clone();
-		cycleState = newCycleState(letters.length, currentCycleColor);
+		cycleState = newCycleState(letters, currentCycleColor);
 		cycleStartTime = timeSec;
 		updateLetters(letters, timeSec);
 		return;
@@ -172,19 +217,27 @@ export function updateLetters(letters: LetterMesh[], timeSec: number): void {
 		const letter = letters[i];
 
 		if (animating) {
-			// Sine envelope for position: 0 → 1 → 0 over ANIM_DURATION
-			const posT = (elapsed / ANIM_DURATION) * Math.PI;
-			const envelope = Math.sin(posT);
+			// Linear progress 0→1 for the position swap
+			const swapT = elapsed / ANIM_DURATION;
+			// Sine envelope for chaotic motion: peaks in the middle
+			const envelope = Math.sin(swapT * Math.PI);
 
-			// Position
+			// Base position: lerp from start to end (the row swap)
+			const start = cycleState.startPositions[i];
+			const end = cycleState.endPositions[i];
+			const baseX = start.x + (end.x - start.x) * swapT;
+			const baseY = start.y + (end.y - start.y) * swapT;
+			const baseZ = start.z + (end.z - start.z) * swapT;
+
+			// Chaotic motion offset
 			const motionFn = MOTION_FUNCTIONS[cycleState.motionIndices[i]];
-			const normalizedTime = (elapsed / ANIM_DURATION) * Math.PI * 2;
+			const normalizedTime = swapT * Math.PI * 2;
 			const offset = motionFn(normalizedTime);
 
 			letter.mesh.position.set(
-				letter.homePosition.x + offset.x * envelope,
-				letter.homePosition.y + offset.y * envelope,
-				letter.homePosition.z + offset.z * envelope + cycleState.zOffsets[i] * envelope,
+				baseX + offset.x * envelope,
+				baseY + offset.y * envelope,
+				baseZ + offset.z * envelope + cycleState.zOffsets[i] * envelope,
 			);
 
 			// Rotation
@@ -197,17 +250,19 @@ export function updateLetters(letters: LetterMesh[], timeSec: number): void {
 
 			// Color: two-phase linear tween
 			if (elapsed < HALF_ANIM) {
-				// 0-5s: cycleColor -> letterColor
 				const t = elapsed / HALF_ANIM;
-				letter.material.color.copy(cycleState.cycleColor).lerp(cycleState.letterColors[i], t);
+				letter.material.color
+					.copy(cycleState.cycleColor)
+					.lerp(cycleState.letterColors[i], t);
 			} else {
-				// 5-10s: letterColor -> nextCycleColor
 				const t = (elapsed - HALF_ANIM) / HALF_ANIM;
-				letter.material.color.copy(cycleState.letterColors[i]).lerp(cycleState.nextCycleColor, t);
+				letter.material.color
+					.copy(cycleState.letterColors[i])
+					.lerp(cycleState.nextCycleColor, t);
 			}
 		} else {
-			// Pause: home position, no rotation, next cycle color
-			letter.mesh.position.copy(letter.homePosition);
+			// Pause: at end position, no rotation, next cycle color
+			letter.mesh.position.copy(cycleState.endPositions[i]);
 			letter.mesh.rotation.set(0, 0, 0);
 			letter.material.color.copy(cycleState.nextCycleColor);
 		}

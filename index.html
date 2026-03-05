@@ -11,24 +11,31 @@
       background: linear-gradient(180deg, #0a1628 0%, #060d18 100%);
     }
     canvas { display: block; }
-    .github-link {
+    .bottom-links {
       position: fixed;
       bottom: 24px;
       left: 50%;
       transform: translateX(-50%);
+      display: flex;
+      gap: 24px;
+      z-index: 10;
+    }
+    .bottom-links a {
       color: rgba(255, 255, 255, 0.5);
       text-decoration: none;
       font-family: system-ui, -apple-system, sans-serif;
       font-size: 14px;
       letter-spacing: 0.05em;
       transition: color 0.2s;
-      z-index: 10;
     }
-    .github-link:hover { color: rgba(255, 255, 255, 0.85); }
+    .bottom-links a:hover { color: rgba(255, 255, 255, 0.85); }
   </style>
 </head>
 <body>
-  <a class="github-link" href="http://github.com/tayl0r" target="_blank" rel="noopener">GitHub</a>
+  <div class="bottom-links">
+    <a href="https://github.com/tayl0r" target="_blank" rel="noopener">GitHub</a>
+    <a href="/3d-bingo-ball-picker/">Bingo</a>
+  </div>
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

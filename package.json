@@ -1,5 +1,6 @@
 {
 	"name": "taylorsteil-com",
+	"packageManager": "pnpm@10.29.3",
 	"private": true,
 	"version": "1.0.0",
 	"type": "module",
@@ -7,6 +8,7 @@
 		"dev": "vite --port 4100",
 		"build": "tsc && vite build",
 		"preview": "vite preview --port 4100",
+		"test": "tsc --noEmit && biome check .",
 		"check": "biome check .",
 		"format": "biome format --write ."
 	},
