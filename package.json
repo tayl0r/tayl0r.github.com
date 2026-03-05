@@ -1,0 +1,22 @@
+{
+	"name": "taylorsteil-com",
+	"private": true,
+	"version": "1.0.0",
+	"type": "module",
+	"scripts": {
+		"dev": "vite --port 4100",
+		"build": "tsc && vite build",
+		"preview": "vite preview --port 4100",
+		"check": "biome check .",
+		"format": "biome format --write ."
+	},
+	"dependencies": {
+		"three": "^0.183.2"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.4.4",
+		"@types/three": "^0.183.1",
+		"typescript": "^5.9.3",
+		"vite": "^7.3.1"
+	}
+}
