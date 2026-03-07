@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Taylor Steil - AI Software Development</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Space+Grotesk:wght@400;500;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  @page {
+    size: letter;
+    margin: 0;
+  }
+
+  body {
+    width: 8.5in;
+    height: 11in;
+    margin: 0 auto;
+    font-family: 'Inter', sans-serif;
+    background: #0a0a1a;
+    color: #ffffff;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .page {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    padding: 0.4in 0.55in 0.35in;
+  }
+
+  /* Animated gradient background */
+  .bg-gradient {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background:
+      radial-gradient(ellipse at 20% 0%, rgba(0, 210, 255, 0.15) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 100%, rgba(138, 43, 226, 0.2) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, rgba(0, 255, 136, 0.05) 0%, transparent 60%),
+      linear-gradient(160deg, #0a0a1a 0%, #0d1130 40%, #150a2e 70%, #0a0a1a 100%);
+    z-index: 0;
+  }
+
+  /* Grid pattern overlay */
+  .grid-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image:
+      linear-gradient(rgba(0, 210, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 210, 255, 0.03) 1px, transparent 1px);
+    background-size: 30px 30px;
+    z-index: 1;
+  }
+
+  /* Decorative glowing orbs */
+  .orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(60px);
+    z-index: 1;
+  }
+  .orb-1 {
+    width: 250px; height: 250px;
+    background: rgba(0, 210, 255, 0.12);
+    top: -50px; right: -30px;
+  }
+  .orb-2 {
+    width: 200px; height: 200px;
+    background: rgba(138, 43, 226, 0.15);
+    bottom: 100px; left: -60px;
+  }
+  .orb-3 {
+    width: 150px; height: 150px;
+    background: rgba(0, 255, 136, 0.08);
+    top: 50%; right: 10%;
+  }
+
+  .content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  /* Top accent line */
+  .accent-line {
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg, #00d2ff, #7b2ff7, #00ff88, #00d2ff);
+    border-radius: 2px;
+    margin-bottom: 0.25in;
+  }
+
+  /* Header section */
+  .header {
+    text-align: center;
+    margin-bottom: 0.2in;
+  }
+
+  .header-question {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15pt;
+    font-weight: 500;
+    color: #a0c4ff;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+
+  .header-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 32pt;
+    font-weight: 900;
+    line-height: 1.1;
+    background: linear-gradient(135deg, #00d2ff 0%, #7b2ff7 50%, #00ff88 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 6px;
+  }
+
+  .header-sub {
+    font-size: 13pt;
+    font-weight: 600;
+    color: #c0c0d0;
+    letter-spacing: 0.3px;
+  }
+
+  /* Divider */
+  .divider {
+    width: 60%;
+    height: 1px;
+    margin: 0.12in auto;
+    background: linear-gradient(90deg, transparent, rgba(0, 210, 255, 0.4), rgba(138, 43, 226, 0.4), transparent);
+  }
+
+  /* Pain points section */
+  .pain-points {
+    margin-bottom: 0.15in;
+  }
+
+  .pain-point {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 10px;
+    padding: 8px 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-left: 3px solid #00d2ff;
+    border-radius: 8px;
+  }
+
+  .pain-icon {
+    font-size: 18pt;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .pain-text {
+    font-size: 11.5pt;
+    line-height: 1.45;
+    color: #d0d0e0;
+  }
+
+  .pain-text strong {
+    color: #ffffff;
+  }
+
+  /* Big stat callout */
+  .stat-callout {
+    text-align: center;
+    margin: 0.1in 0 0.15in;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, rgba(0, 210, 255, 0.08), rgba(123, 47, 247, 0.08));
+    border: 1px solid rgba(0, 210, 255, 0.15);
+    border-radius: 12px;
+  }
+
+  .stat-number {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 32pt;
+    font-weight: 900;
+    background: linear-gradient(135deg, #00d2ff, #00ff88);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 13pt;
+    color: #a0c4ff;
+    font-weight: 600;
+    margin-top: 2px;
+  }
+
+  /* Specialties section */
+  .specialties {
+    text-align: center;
+    margin-bottom: 0.15in;
+  }
+
+  .specialties-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 10pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #7b9ec4;
+    margin-bottom: 10px;
+  }
+
+  .specialties-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+
+  .specialty-tag {
+    font-size: 9.5pt;
+    font-weight: 600;
+    color: #ffffff;
+    padding: 5px 14px;
+    background: rgba(0, 210, 255, 0.08);
+    border: 1px solid rgba(0, 210, 255, 0.2);
+    border-radius: 20px;
+    white-space: nowrap;
+    text-align: center;
+  }
+
+  /* About section */
+  .about {
+    text-align: center;
+    margin-bottom: 0.15in;
+  }
+
+  .about-name {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 20pt;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 4px;
+  }
+
+  .about-title {
+    font-size: 10.5pt;
+    color: #7b2ff7;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+  }
+
+  .about-text {
+    font-size: 11.5pt;
+    line-height: 1.55;
+    color: #c0c0d0;
+    max-width: 5.5in;
+    margin: 0 auto;
+  }
+
+  .about-text strong {
+    color: #00ff88;
+    font-weight: 700;
+  }
+
+  /* Spacer to push contact to bottom */
+  .spacer { flex: 1; }
+
+  /* Contact section */
+  .contact-section {
+    margin-top: auto;
+  }
+
+  .contact-divider {
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0, 210, 255, 0.3), rgba(138, 43, 226, 0.3), transparent);
+    margin-bottom: 0.15in;
+  }
+
+  .contact-grid {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+  }
+
+  .contact-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .contact-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12pt;
+    color: #d0d0e0;
+  }
+
+  .contact-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 210, 255, 0.1);
+    border: 1px solid rgba(0, 210, 255, 0.2);
+    border-radius: 8px;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .contact-value {
+    font-weight: 600;
+    color: #ffffff;
+  }
+
+  .qr-area {
+    text-align: center;
+  }
+
+  .qr-box {
+    width: 105px;
+    height: 105px;
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .qr-box img {
+    width: 100%;
+    height: 100%;
+  }
+
+  .qr-label {
+    font-size: 8.5pt;
+    color: #7b9ec4;
+    margin-top: 5px;
+    font-weight: 500;
+  }
+
+  /* CTA */
+  .cta-banner {
+    text-align: center;
+    margin-top: 0.1in;
+    padding: 7px 16px;
+    background: linear-gradient(135deg, rgba(0, 255, 136, 0.1), rgba(0, 210, 255, 0.1));
+    border: 1px solid rgba(0, 255, 136, 0.2);
+    border-radius: 8px;
+  }
+
+  .cta-text {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 12.5pt;
+    font-weight: 700;
+    color: #00ff88;
+    letter-spacing: 0.5px;
+  }
+
+  /* Bottom accent */
+  .bottom-accent {
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg, #00ff88, #7b2ff7, #00d2ff, #00ff88);
+    border-radius: 2px;
+    margin-top: 0.1in;
+  }
+
+  @media print {
+    body {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="bg-gradient"></div>
+  <div class="grid-overlay"></div>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <div class="content">
+    <div class="accent-line"></div>
+
+    <div class="header">
+      <div class="header-question">Need software built for your business?</div>
+      <div class="header-title">Custom Solutions.<br>Affordable Prices.</div>
+      <div class="header-sub">AI-accelerated development for small businesses.</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="pain-points">
+      <div class="pain-point">
+        <div class="pain-icon">💸</div>
+        <div class="pain-text"><strong>Paying too much for software development?</strong> I use AI to build apps dramatically faster — and pass those savings directly to you.</div>
+      </div>
+      <div class="pain-point">
+        <div class="pain-icon">🌍</div>
+        <div class="pain-text"><strong>Burned by offshore teams?</strong> No more missed deadlines, blown budgets, or communication headaches. One local developer, start to finish.</div>
+      </div>
+      <div class="pain-point">
+        <div class="pain-icon">🚀</div>
+        <div class="pain-text"><strong>Have a project you've been putting off?</strong> A custom app, an internal tool, a workflow you want automated — let's make it happen.</div>
+      </div>
+    </div>
+
+    <div class="stat-callout">
+      <div class="stat-number">Built at the Speed of AI.</div>
+      <div class="stat-label">Software solutions delivered in days, not months</div>
+    </div>
+
+    <div class="specialties">
+      <div class="specialties-label">What I Build</div>
+      <div class="specialties-grid">
+        <span class="specialty-tag">Internal Tools</span>
+        <span class="specialty-tag">Automation</span>
+        <span class="specialty-tag">Dashboards & Analytics</span>
+        <span class="specialty-tag">E-Commerce</span>
+        <span class="specialty-tag">Customer Portals</span>
+        <span class="specialty-tag">Booking Systems</span>
+        <span class="specialty-tag">Integrations</span>
+        <span class="specialty-tag">Mobile Apps</span>
+      </div>
+    </div>
+
+    <div class="about">
+      <div class="about-name">Taylor Steil</div>
+      <div class="about-title">Software Developer · 25 Years Experience · Local</div>
+      <div class="about-text">
+        I combine <strong>decades of engineering expertise</strong> with cutting-edge AI tools to deliver web and mobile applications in days, not months — at a <strong>fraction of the traditional cost</strong>.
+      </div>
+    </div>
+
+    <div class="spacer"></div>
+
+    <div class="contact-section">
+      <div class="contact-divider"></div>
+      <div class="contact-grid">
+        <div class="contact-info">
+          <div class="contact-item">
+            <div class="contact-icon">📧</div>
+            <span class="contact-value">tsteil@gmail.com</span>
+          </div>
+          <div class="contact-item">
+            <div class="contact-icon">📱</div>
+            <span class="contact-value">360-481-5967</span>
+          </div>
+          <div class="contact-item">
+            <div class="contact-icon">🌐</div>
+            <span class="contact-value">taylorsteil.com</span>
+          </div>
+        </div>
+        <div class="qr-area">
+          <div class="qr-box">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://taylorsteil.com&format=svg" alt="QR Code - taylorsteil.com" />
+          </div>
+          <div class="qr-label">Scan to visit my site</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cta-banner">
+      <div class="cta-text">Let's talk about your next project — free consultation!</div>
+    </div>
+
+    <div class="bottom-accent"></div>
+  </div>
+</div>
+</body>
+</html>
