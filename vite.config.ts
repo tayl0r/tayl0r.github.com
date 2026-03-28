@@ -8,7 +8,6 @@ export default defineConfig({
 		rollupOptions: {
 			input: {
 				main: resolve(__dirname, "index.html"),
-				"3d-text-demo": resolve(__dirname, "3d-text-demo/index.html"),
 				flyers: resolve(__dirname, "flyers/index.html"),
 				"flyers-minimal": resolve(__dirname, "flyers/minimal/index.html"),
 				"flyers-oktoberfest": resolve(
