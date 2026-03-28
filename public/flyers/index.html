@@ -247,6 +247,11 @@
     opacity:0.6;
   }
 
+  .flyer-card:focus-visible{
+    outline:2px solid var(--cyan);
+    outline-offset:2px;
+  }
+
   .flyer-card:active{
     transform:translateY(0) scale(0.995);
     transition-duration:0.1s;
@@ -304,6 +309,7 @@
 
   /* ── Footer ── */
   .footer{
+    position:relative;
     margin-top:64px;
     padding:32px 0;
     width:100%;
@@ -331,6 +337,11 @@
     letter-spacing:0.01em;
     transition:color 0.2s ease;
     position:relative;
+  }
+
+  .footer-link:focus-visible{
+    outline:1px solid var(--cyan);
+    outline-offset:2px;
   }
 
   .footer-link:hover{
@@ -390,9 +401,9 @@
 
     <div class="flyer-list">
       <a href="/flyers/oktoberfest-sep-2026/" class="flyer-card">
-        <span class="flyer-date">Sep 2026</span>
+        <time class="flyer-date" datetime="2026-09">Sep 2026</time>
         <span class="flyer-title">Oktoberfest</span>
-        <span class="flyer-arrow">&#8594;</span>
+        <span class="flyer-arrow" aria-hidden="true">&#8594;</span>
       </a>
     </div>
 
