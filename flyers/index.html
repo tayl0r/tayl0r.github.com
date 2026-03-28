@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flyers — Taylor Steil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+  :root{
+    --cyan:#00d2ff;
+    --purple:#7b2ff7;
+    --green:#00ff88;
+    --navy-1:#0a1628;
+    --navy-2:#060d18;
+    --text-primary:#e8ecf4;
+    --text-muted:#7b8fad;
+  }
+
+  html{
+    font-size:16px;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+  }
+
+  body{
+    font-family:'Inter',sans-serif;
+    background:var(--navy-2);
+    color:var(--text-primary);
+    min-height:100vh;
+    overflow-x:hidden;
+    position:relative;
+  }
+
+  /* ── Deep space background ── */
+  .cosmos{
+    position:fixed;
+    inset:0;
+    z-index:0;
+    background:
+      radial-gradient(ellipse at 25% 0%,rgba(0,210,255,0.10) 0%,transparent 55%),
+      radial-gradient(ellipse at 75% 100%,rgba(138,43,226,0.12) 0%,transparent 55%),
+      radial-gradient(ellipse at 50% 50%,rgba(0,255,136,0.04) 0%,transparent 60%),
+      linear-gradient(175deg,var(--navy-1) 0%,#0d1230 35%,#110a28 65%,var(--navy-2) 100%);
+  }
+
+  /* Grid overlay */
+  .cosmos::after{
+    content:'';
+    position:absolute;
+    inset:0;
+    background-image:
+      linear-gradient(rgba(0,210,255,0.025) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(0,210,255,0.025) 1px,transparent 1px);
+    background-size:48px 48px;
+    mask-image:radial-gradient(ellipse at 50% 30%,black 20%,transparent 75%);
+    -webkit-mask-image:radial-gradient(ellipse at 50% 30%,black 20%,transparent 75%);
+  }
+
+  /* Floating orbs */
+  .orb{
+    position:fixed;
+    border-radius:50%;
+    filter:blur(80px);
+    z-index:0;
+    pointer-events:none;
+  }
+  .orb--cyan{
+    width:340px;height:340px;
+    background:rgba(0,210,255,0.12);
+    top:-80px;right:-40px;
+    animation:drift-a 18s ease-in-out infinite alternate;
+  }
+  .orb--purple{
+    width:280px;height:280px;
+    background:rgba(138,43,226,0.15);
+    bottom:60px;left:-90px;
+    animation:drift-b 22s ease-in-out infinite alternate;
+  }
+  .orb--green{
+    width:200px;height:200px;
+    background:rgba(0,255,136,0.08);
+    top:45%;right:8%;
+    animation:drift-c 15s ease-in-out infinite alternate;
+  }
+
+  @keyframes drift-a{
+    0%{transform:translate(0,0)}
+    100%{transform:translate(-30px,40px)}
+  }
+  @keyframes drift-b{
+    0%{transform:translate(0,0)}
+    100%{transform:translate(40px,-30px)}
+  }
+  @keyframes drift-c{
+    0%{transform:translate(0,0)}
+    100%{transform:translate(-20px,-25px)}
+  }
+
+  /* ── Layout shell ── */
+  .page{
+    position:relative;
+    z-index:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    min-height:100vh;
+    padding:0 24px;
+  }
+
+  /* ── Top accent bar ── */
+  .accent-bar{
+    width:100%;
+    height:3px;
+    background:linear-gradient(90deg,var(--cyan),var(--purple),var(--green));
+    flex-shrink:0;
+  }
+
+  /* ── Main content ── */
+  .content{
+    width:100%;
+    max-width:640px;
+    display:flex;
+    flex-direction:column;
+    flex:1;
+    padding:80px 0 48px;
+  }
+
+  /* ── Title ── */
+  .page-title{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:clamp(2.8rem,6vw,4.2rem);
+    letter-spacing:-0.03em;
+    line-height:1;
+    background:linear-gradient(135deg,var(--cyan) 0%,var(--purple) 50%,var(--green) 100%);
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+    background-clip:text;
+    margin-bottom:12px;
+  }
+
+  .page-subtitle{
+    font-family:'Inter',sans-serif;
+    font-size:0.95rem;
+    font-weight:400;
+    color:var(--text-muted);
+    letter-spacing:0.01em;
+    margin-bottom:48px;
+  }
+
+  /* ── Divider ── */
+  .divider{
+    width:100%;
+    height:1px;
+    background:linear-gradient(90deg,transparent,rgba(0,210,255,0.25),rgba(138,43,226,0.25),transparent);
+    margin-bottom:32px;
+  }
+
+  /* ── Flyer list ── */
+  .flyer-list{
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+    margin-bottom:auto;
+  }
+
+  /* ── Flyer card ── */
+  .flyer-card{
+    display:flex;
+    align-items:center;
+    gap:20px;
+    padding:20px 24px;
+    text-decoration:none;
+    color:inherit;
+    border-radius:14px;
+    background:
+      linear-gradient(135deg,
+        rgba(0,210,255,0.04) 0%,
+        rgba(138,43,226,0.03) 50%,
+        rgba(0,255,136,0.02) 100%);
+    border:1px solid rgba(255,255,255,0.06);
+    position:relative;
+    transition:
+      transform 0.3s cubic-bezier(0.16,1,0.3,1),
+      border-color 0.3s ease,
+      box-shadow 0.3s ease;
+  }
+
+  .flyer-card::before{
+    content:'';
+    position:absolute;
+    inset:-1px;
+    border-radius:15px;
+    background:linear-gradient(135deg,var(--cyan),var(--purple),var(--green));
+    opacity:0;
+    transition:opacity 0.3s ease;
+    z-index:-1;
+    mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    mask-composite:exclude;
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite:xor;
+    padding:1px;
+  }
+
+  .flyer-card:hover{
+    transform:translateY(-2px) scale(1.015);
+    border-color:transparent;
+    box-shadow:
+      0 0 24px rgba(0,210,255,0.12),
+      0 0 48px rgba(138,43,226,0.08),
+      0 8px 32px rgba(0,0,0,0.3);
+  }
+
+  .flyer-card:hover::before{
+    opacity:0.6;
+  }
+
+  .flyer-card:focus-visible{
+    outline:2px solid var(--cyan);
+    outline-offset:2px;
+  }
+
+  .flyer-card:active{
+    transform:translateY(0) scale(0.995);
+    transition-duration:0.1s;
+  }
+
+  /* Date badge */
+  .flyer-date{
+    flex-shrink:0;
+    font-family:'Space Grotesk',sans-serif;
+    font-size:0.75rem;
+    font-weight:600;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    color:var(--cyan);
+    background:rgba(0,210,255,0.08);
+    border:1px solid rgba(0,210,255,0.18);
+    border-radius:20px;
+    padding:6px 14px;
+    white-space:nowrap;
+    transition:background 0.3s ease,border-color 0.3s ease;
+  }
+
+  .flyer-card:hover .flyer-date{
+    background:rgba(0,210,255,0.14);
+    border-color:rgba(0,210,255,0.35);
+  }
+
+  /* Flyer info block */
+  .flyer-info{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    min-width:0;
+  }
+
+  .flyer-title{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:1.25rem;
+    font-weight:600;
+    letter-spacing:-0.01em;
+    color:var(--text-primary);
+    transition:color 0.3s ease;
+  }
+
+  .flyer-card:hover .flyer-title{
+    color:#ffffff;
+  }
+
+  .flyer-time{
+    font-family:'Inter',sans-serif;
+    font-size:0.8rem;
+    font-weight:400;
+    color:var(--text-muted);
+    letter-spacing:0.01em;
+  }
+
+  /* Arrow indicator */
+  .flyer-arrow{
+    margin-left:auto;
+    flex-shrink:0;
+    color:var(--text-muted);
+    font-size:1.1rem;
+    transition:transform 0.3s cubic-bezier(0.16,1,0.3,1),color 0.3s ease;
+  }
+
+  .flyer-card:hover .flyer-arrow{
+    transform:translateX(4px);
+    color:var(--cyan);
+  }
+
+  /* Alternate theme links */
+  .flyer-alternates{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:6px 24px 0;
+  }
+
+  .flyer-alt-link{
+    font-family:'Inter',sans-serif;
+    font-size:0.75rem;
+    font-weight:500;
+    color:var(--text-muted);
+    text-decoration:none;
+    letter-spacing:0.02em;
+    transition:color 0.2s ease;
+  }
+
+  .flyer-alt-link:hover{
+    color:var(--text-primary);
+  }
+
+  .flyer-alt-link:focus-visible{
+    outline:1px solid var(--cyan);
+    outline-offset:2px;
+  }
+
+  .flyer-alt-link--active{
+    color:var(--cyan);
+  }
+
+  .flyer-alt-sep{
+    color:var(--text-muted);
+    font-size:0.6rem;
+    opacity:0.5;
+  }
+
+  /* ── Footer ── */
+  .footer{
+    position:relative;
+    margin-top:64px;
+    padding:32px 0;
+    width:100%;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+
+  .footer::before{
+    content:'';
+    position:absolute;
+    left:0;right:0;
+    height:1px;
+    background:linear-gradient(90deg,transparent,rgba(0,210,255,0.15),rgba(138,43,226,0.15),transparent);
+    transform:translateY(-32px);
+  }
+
+  .footer-link{
+    font-family:'Inter',sans-serif;
+    font-size:0.85rem;
+    font-weight:500;
+    color:var(--text-muted);
+    text-decoration:none;
+    letter-spacing:0.01em;
+    transition:color 0.2s ease;
+    position:relative;
+  }
+
+  .footer-link:focus-visible{
+    outline:1px solid var(--cyan);
+    outline-offset:2px;
+  }
+
+  .footer-link:hover{
+    color:var(--text-primary);
+  }
+
+  .footer-link--home::before{
+    content:'← ';
+  }
+
+  .footer-link--minimal::after{
+    content:' →';
+  }
+
+  /* ── Responsive ── */
+  @media(max-width:480px){
+    .content{
+      padding:56px 0 36px;
+    }
+
+    .flyer-card{
+      padding:16px 18px;
+      gap:14px;
+    }
+
+    .flyer-title{
+      font-size:1.1rem;
+    }
+
+    .flyer-date{
+      font-size:0.7rem;
+      padding:5px 11px;
+    }
+
+    .footer{
+      margin-top:48px;
+      padding:24px 0;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="cosmos"></div>
+<div class="orb orb--cyan"></div>
+<div class="orb orb--purple"></div>
+<div class="orb orb--green"></div>
+
+<div class="page">
+  <div class="accent-bar"></div>
+
+  <div class="content">
+    <h1 class="page-title">Flyers</h1>
+    <p class="page-subtitle">Event flyers and announcements.</p>
+
+    <div class="divider"></div>
+
+    <div class="flyer-list">
+      <a href="/flyers/oktoberfest-sep-2026/" class="flyer-card">
+        <time class="flyer-date" datetime="2026-09-12">Sat Sep 12</time>
+        <div class="flyer-info">
+          <span class="flyer-title">Oktoberfest Steil 2026</span>
+          <span class="flyer-time">3:30 PM - ??</span>
+        </div>
+        <span class="flyer-arrow" aria-hidden="true">&#8594;</span>
+      </a>
+      <div class="flyer-alternates">
+        <a href="/flyers/oktoberfest-sep-2026/" class="flyer-alt-link flyer-alt-link--active">bavarian</a>
+        <span class="flyer-alt-sep" aria-hidden="true">&middot;</span>
+        <a href="/flyers/oktoberfest-sep-2026/vintage/" class="flyer-alt-link">vintage</a>
+      </div>
+    </div>
+
+    <div class="footer">
+      <a href="/" class="footer-link footer-link--home">Home</a>
+      <a href="/flyers/minimal/" class="footer-link footer-link--minimal">minimal view</a>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
