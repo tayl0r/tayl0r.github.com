@@ -15,9 +15,9 @@ export default defineConfig({
 					__dirname,
 					"flyers/oktoberfest-sep-2026/index.html",
 				),
-				"flyers-oktoberfest-vintage": resolve(
+				"flyers-oktoberfest-bavarian": resolve(
 					__dirname,
-					"flyers/oktoberfest-sep-2026/vintage/index.html",
+					"flyers/oktoberfest-sep-2026/bavarian/index.html",
 				),
 			},
 		},

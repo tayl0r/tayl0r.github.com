@@ -3,24 +3,28 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Oktoberfest Steil 2026 — Steil Family 7th Annual Potluck</title>
-<meta name="description" content="Steil Family 7th Annual Potluck Oktoberfest — Saturday, September 12, 2026 at 3:30 PM. Food, Music, Beer, Karaoke!">
+<title>Oktoberfest Steil 2026 — Vintage Beer Hall Edition</title>
+<meta name="description" content="Steil Family 7th Annual Potluck Oktoberfest — Saturday, September 12, 2026 at 3:30 PM. Food, Music, Beer, Karaoke! Vintage beer hall edition.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Lato:wght@300;400;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=Cormorant+Garamond:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
   :root {
-    --blue: #0066b3;
-    --blue-dark: #004a82;
-    --blue-deeper: #003461;
-    --blue-light: #3399d4;
-    --white: #ffffff;
-    --cream: #f5f0e8;
+    --parchment: #f5e6c8;
+    --parchment-light: #faf3e6;
+    --parchment-dark: #e8d4a8;
+    --brown: #3a2a1a;
+    --brown-light: #5c4a32;
+    --brown-mid: #6b5539;
+    --brown-faded: #8a7560;
     --gold: #c8a84e;
-    --gold-light: #e8d590;
-    --brown: #5c3a1e;
+    --gold-dark: #b8860b;
+    --gold-rich: #a07828;
+    --amber: #d4a030;
+    --red-dark: #8b2500;
+    --cream: #fdf8ef;
   }
 
   html {
@@ -30,217 +34,286 @@
   }
 
   body {
-    font-family: 'Lato', sans-serif;
-    background: var(--cream);
-    color: var(--blue-dark);
+    font-family: 'Crimson Text', Georgia, serif;
+    background: var(--brown);
+    color: var(--brown);
     min-height: 100vh;
     display: flex;
     flex-direction: column;
     align-items: center;
     overflow-x: hidden;
-  }
-
-  /* ── Bavarian Diamond Pattern (used in multiple places) ── */
-  .bavarian-check {
+    /* Dark wood-paneled wall behind the poster */
     background-image:
-      linear-gradient(45deg, var(--blue) 25%, transparent 25%),
-      linear-gradient(-45deg, var(--blue) 25%, transparent 25%),
-      linear-gradient(45deg, transparent 75%, var(--blue) 75%),
-      linear-gradient(-45deg, transparent 75%, var(--blue) 75%);
-    background-size: 20px 20px;
-    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-    background-color: var(--white);
+      repeating-linear-gradient(
+        90deg,
+        rgba(0,0,0,0.03) 0px,
+        rgba(0,0,0,0.03) 1px,
+        transparent 1px,
+        transparent 60px
+      ),
+      linear-gradient(180deg, #2a1a0e 0%, #3a2818 50%, #2a1a0e 100%);
   }
 
-  /* ── Outer Frame ── */
-  .flyer-frame {
+  /* ── Aged Paper / Poster ── */
+  .poster {
     width: 100%;
-    max-width: 680px;
-    margin: clamp(12px, 3vw, 40px) clamp(8px, 2vw, 24px);
+    max-width: 660px;
+    margin: clamp(16px, 4vw, 48px) clamp(8px, 2vw, 24px);
+    position: relative;
+    /* Parchment background with layered aging effect */
+    background:
+      /* Noise / grain texture via SVG data URI */
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E"),
+      /* Subtle aged spots */
+      radial-gradient(ellipse at 20% 30%, rgba(160,120,40,0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 75% 60%, rgba(160,120,40,0.06) 0%, transparent 40%),
+      radial-gradient(ellipse at 40% 80%, rgba(140,100,30,0.05) 0%, transparent 45%),
+      /* Base parchment gradient */
+      linear-gradient(170deg, #f7ebd0 0%, var(--parchment) 30%, #eedcb8 60%, var(--parchment) 80%, #f0dfc0 100%);
+    background-color: var(--parchment);
+    /* Vignette via box-shadow inset */
+    box-shadow:
+      inset 0 0 80px rgba(58,42,26,0.15),
+      inset 0 0 200px rgba(58,42,26,0.08),
+      /* Drop shadow for poster-on-wall effect */
+      0 8px 40px rgba(0,0,0,0.5),
+      0 2px 8px rgba(0,0,0,0.3);
+  }
+
+  /* ── Ornate Border System ── */
+  .poster-border {
+    border: clamp(3px, 0.6vw, 5px) solid var(--brown);
+    margin: clamp(10px, 2vw, 20px);
     position: relative;
   }
 
-  /* Blue outer border */
-  .flyer-outer {
-    border: clamp(6px, 1.2vw, 10px) solid var(--blue);
-    border-radius: 6px;
-    position: relative;
-    overflow: hidden;
-  }
-
-  /* Bavarian check inner border band */
-  .flyer-check-border {
-    padding: clamp(6px, 1vw, 10px);
-  }
-
-  .flyer-inner {
-    background: var(--white);
-    border: 3px solid var(--blue);
-    border-radius: 2px;
-    overflow: hidden;
-  }
-
-  /* ── Pennant Banner ── */
-  .pennant-strip {
-    width: 100%;
-    height: clamp(36px, 6vw, 52px);
-    background: var(--blue);
-    position: relative;
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    overflow: visible;
-  }
-
-  .pennant-strip::after {
+  /* Double rule effect: inner border */
+  .poster-border::before {
     content: '';
     position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: var(--gold);
+    inset: clamp(4px, 0.8vw, 7px);
+    border: 2px solid var(--brown);
+    pointer-events: none;
   }
 
-  .pennants {
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    width: 100%;
-    padding: 0 4px;
+  /* Decorative inner line */
+  .poster-border::after {
+    content: '';
     position: absolute;
-    top: 4px;
+    inset: clamp(8px, 1.2vw, 12px);
+    border: 1px solid var(--gold-rich);
+    opacity: 0.5;
+    pointer-events: none;
   }
 
-  .pennant {
-    flex: 1;
-    max-width: 30px;
-    min-width: 14px;
+  /* ── Corner Flourishes ── */
+  .corner-flourish {
+    position: absolute;
+    width: clamp(36px, 8vw, 60px);
+    height: clamp(36px, 8vw, 60px);
+    z-index: 2;
   }
 
-  .pennant svg {
+  .corner-flourish.tl { top: clamp(12px, 2vw, 22px); left: clamp(12px, 2vw, 22px); }
+  .corner-flourish.tr { top: clamp(12px, 2vw, 22px); right: clamp(12px, 2vw, 22px); transform: scaleX(-1); }
+  .corner-flourish.bl { bottom: clamp(12px, 2vw, 22px); left: clamp(12px, 2vw, 22px); transform: scaleY(-1); }
+  .corner-flourish.br { bottom: clamp(12px, 2vw, 22px); right: clamp(12px, 2vw, 22px); transform: scale(-1, -1); }
+
+  .corner-flourish svg {
     width: 100%;
-    height: auto;
-    display: block;
+    height: 100%;
   }
 
-  /* ── Main Content ── */
+  /* ── Content Area ── */
   .content {
-    padding: clamp(20px, 4vw, 40px) clamp(16px, 4vw, 48px);
+    padding: clamp(28px, 6vw, 56px) clamp(20px, 5vw, 52px);
     text-align: center;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 0;
+    position: relative;
   }
 
-  /* ── Subtitle / Family line ── */
+  /* ── Ornamental Rule (horizontal dividers) ── */
+  .ornamental-rule {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(6px, 1.5vw, 12px);
+    width: 100%;
+    max-width: 400px;
+    margin: clamp(8px, 1.5vw, 14px) 0;
+  }
+
+  .ornamental-rule .rule-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--brown), transparent);
+    opacity: 0.4;
+  }
+
+  .ornamental-rule .rule-diamond {
+    width: 6px;
+    height: 6px;
+    background: var(--gold-dark);
+    transform: rotate(45deg);
+    flex-shrink: 0;
+    opacity: 0.7;
+  }
+
+  /* ── Family Line ── */
   .family-line {
-    font-family: 'Lato', sans-serif;
-    font-weight: 700;
-    font-size: clamp(0.65rem, 1.8vw, 0.85rem);
-    letter-spacing: 0.28em;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 600;
+    font-size: clamp(0.7rem, 2vw, 0.95rem);
+    letter-spacing: 0.3em;
     text-transform: uppercase;
-    color: var(--blue);
-    margin-bottom: clamp(4px, 1vw, 8px);
-    font-variant: small-caps;
+    color: var(--brown-mid);
+    margin-bottom: clamp(2px, 0.5vw, 6px);
   }
 
   /* ── OKTOBERFEST Title ── */
   .title-oktoberfest {
-    font-family: 'Abril Fatface', serif;
-    font-size: clamp(2.6rem, 10vw, 5.4rem);
-    line-height: 0.95;
-    color: var(--blue);
+    font-family: 'UnifrakturMaguntia', cursive;
+    font-size: clamp(3rem, 12vw, 6.5rem);
+    line-height: 0.9;
+    color: var(--brown);
     letter-spacing: 0.02em;
     text-shadow:
-      2px 2px 0 rgba(0, 102, 179, 0.15),
-      0 0 40px rgba(0, 102, 179, 0.08);
-    margin-bottom: clamp(12px, 2.5vw, 24px);
+      2px 2px 0 rgba(200,168,78,0.25),
+      0 0 20px rgba(200,168,78,0.08);
+    margin-bottom: clamp(4px, 1vw, 10px);
     position: relative;
   }
 
-  /* Decorative line under title */
-  .title-rule {
-    width: clamp(100px, 40%, 240px);
-    height: 3px;
-    background: linear-gradient(90deg, transparent, var(--gold), transparent);
-    margin-bottom: clamp(16px, 3vw, 28px);
-    border: none;
+  /* ── Subtitle Jahr/Year ── */
+  .year-line {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 300;
+    font-size: clamp(1rem, 3vw, 1.5rem);
+    letter-spacing: 0.4em;
+    color: var(--gold-dark);
+    margin-bottom: clamp(8px, 1.5vw, 14px);
   }
 
-  /* ── Beer Steins SVG Section ── */
+  /* ── Beer Stein Section ── */
   .steins-section {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: clamp(4px, 2vw, 16px);
-    margin-bottom: clamp(16px, 3vw, 28px);
+    gap: clamp(0px, 1vw, 8px);
+    margin: clamp(8px, 2vw, 18px) 0;
     width: 100%;
-    max-width: 420px;
+    max-width: 440px;
   }
 
   .stein-svg {
-    width: clamp(70px, 18vw, 120px);
+    width: clamp(70px, 18vw, 115px);
     height: auto;
     flex-shrink: 0;
   }
 
-  .wheat-svg {
-    width: clamp(32px, 8vw, 56px);
+  .hop-svg {
+    width: clamp(28px, 7vw, 48px);
     height: auto;
     flex-shrink: 0;
   }
 
-  /* ── Date Ribbon ── */
-  .date-ribbon {
-    background: var(--blue);
-    color: var(--white);
-    padding: clamp(10px, 2vw, 16px) clamp(24px, 6vw, 64px);
-    font-family: 'Lato', sans-serif;
-    font-weight: 700;
-    font-size: clamp(0.9rem, 2.5vw, 1.25rem);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+  /* ── Date Banner / Ribbon ── */
+  .date-banner {
     position: relative;
-    margin-bottom: clamp(16px, 3vw, 28px);
-    clip-path: polygon(8px 0%, calc(100% - 8px) 0%, 100% 50%, calc(100% - 8px) 100%, 8px 100%, 0% 50%);
+    background: var(--brown);
+    color: var(--parchment-light);
+    padding: clamp(10px, 2vw, 16px) clamp(32px, 8vw, 72px);
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 600;
+    font-size: clamp(1.1rem, 3.2vw, 1.5rem);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin: clamp(6px, 1.5vw, 14px) 0;
     min-width: 70%;
+  }
+
+  /* Ribbon notched ends */
+  .date-banner::before,
+  .date-banner::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: clamp(12px, 2.5vw, 20px);
+    background: var(--brown);
+  }
+
+  .date-banner::before {
+    left: calc(-1 * clamp(10px, 2vw, 16px));
+    clip-path: polygon(100% 0%, 0% 50%, 100% 100%);
+  }
+
+  .date-banner::after {
+    right: calc(-1 * clamp(10px, 2vw, 16px));
+    clip-path: polygon(0% 0%, 100% 50%, 0% 100%);
+  }
+
+  /* Gold border on banner */
+  .date-banner-inner {
+    border-top: 1px solid var(--gold);
+    border-bottom: 1px solid var(--gold);
+    padding: clamp(2px, 0.5vw, 4px) 0;
+    opacity: 0.85;
   }
 
   /* ── Activities Line ── */
   .activities {
-    font-family: 'Lato', sans-serif;
-    font-weight: 900;
-    font-size: clamp(1rem, 3vw, 1.45rem);
-    letter-spacing: 0.12em;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 700;
+    font-size: clamp(1rem, 3vw, 1.4rem);
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: var(--blue);
-    margin-bottom: clamp(20px, 3.5vw, 32px);
+    color: var(--brown);
+    margin: clamp(8px, 1.5vw, 14px) 0;
+  }
+
+  /* Calendar link */
+  .cal-link {
+    display: inline-block;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(0.8rem, 2vw, 0.95rem);
+    font-weight: 600;
+    color: var(--gold-dark);
+    text-decoration: none;
+    letter-spacing: 0.06em;
+    border: 1px solid var(--gold);
+    border-radius: 4px;
+    padding: 6px 18px;
+    margin: clamp(6px, 1.5vw, 12px) 0;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+
+  .cal-link:hover {
+    background: var(--gold);
+    color: var(--cream);
+  }
+
+  .cal-link:focus-visible {
+    outline: 2px solid var(--gold-dark);
+    outline-offset: 2px;
   }
 
   .activities .dot {
     display: inline-block;
-    margin: 0 clamp(4px, 1vw, 10px);
-    color: var(--gold);
+    margin: 0 clamp(6px, 1.5vw, 14px);
+    color: var(--gold-dark);
     font-weight: 400;
-  }
-
-  /* ── Divider ── */
-  .section-divider {
-    width: clamp(60px, 30%, 180px);
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--blue-light), transparent);
-    margin-bottom: clamp(16px, 3vw, 28px);
-    border: none;
   }
 
   /* ── Events Section ── */
   .events {
     display: flex;
     justify-content: center;
-    gap: clamp(20px, 5vw, 56px);
-    margin-bottom: clamp(16px, 3vw, 28px);
+    gap: clamp(20px, 5vw, 52px);
+    margin: clamp(6px, 1.5vw, 14px) 0;
     flex-wrap: wrap;
   }
 
@@ -248,76 +321,104 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
   }
 
-  .event-icon {
-    font-size: clamp(1.8rem, 5vw, 2.6rem);
-    line-height: 1;
+  .event-icon-wrap {
+    width: clamp(48px, 10vw, 68px);
+    height: clamp(48px, 10vw, 68px);
+    border: 2px solid var(--brown);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 4px;
+    background: rgba(200,168,78,0.08);
+  }
+
+  .event-icon-wrap svg {
+    width: 55%;
+    height: 55%;
   }
 
   .event-name {
-    font-family: 'Lato', sans-serif;
+    font-family: 'Cormorant Garamond', Georgia, serif;
     font-weight: 700;
     font-size: clamp(0.85rem, 2.2vw, 1.05rem);
-    color: var(--blue-dark);
+    color: var(--brown);
     letter-spacing: 0.04em;
   }
 
   .event-desc {
-    font-size: clamp(0.7rem, 1.6vw, 0.8rem);
-    color: #7a8a9a;
+    font-family: 'Crimson Text', Georgia, serif;
+    font-size: clamp(0.7rem, 1.6vw, 0.82rem);
+    color: var(--brown-faded);
     font-style: italic;
   }
 
   /* ── Camping Callout ── */
   .camping-callout {
-    background: linear-gradient(135deg, rgba(0, 102, 179, 0.06), rgba(0, 102, 179, 0.03));
-    border: 2px dashed var(--blue-light);
-    border-radius: 10px;
-    padding: clamp(12px, 2.5vw, 18px) clamp(16px, 4vw, 32px);
-    margin-bottom: clamp(14px, 2.5vw, 24px);
-    font-size: clamp(0.85rem, 2.2vw, 1rem);
-    color: var(--blue-dark);
+    border: 1px solid var(--brown);
+    border-left: 3px solid var(--gold-dark);
+    border-right: 3px solid var(--gold-dark);
+    padding: clamp(10px, 2vw, 16px) clamp(16px, 4vw, 28px);
+    margin: clamp(6px, 1.5vw, 14px) 0;
+    font-family: 'Crimson Text', Georgia, serif;
+    font-size: clamp(0.88rem, 2.2vw, 1.02rem);
+    color: var(--brown);
     max-width: 420px;
+    line-height: 1.5;
+    background: rgba(200,168,78,0.05);
   }
 
-  .camping-callout .tent {
-    font-size: 1.3em;
-    margin-right: 6px;
+  .camping-callout strong {
+    font-weight: 700;
+    color: var(--brown);
   }
 
   /* ── RSVP ── */
   .rsvp {
-    font-family: 'Lato', sans-serif;
-    font-weight: 900;
-    font-size: clamp(1rem, 2.8vw, 1.3rem);
-    letter-spacing: 0.1em;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 700;
+    font-size: clamp(1.05rem, 2.8vw, 1.35rem);
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--blue);
-    margin-bottom: clamp(6px, 1vw, 10px);
+    color: var(--brown);
+    margin-top: clamp(4px, 1vw, 10px);
   }
 
   /* ── Potluck Note ── */
   .potluck-note {
-    font-family: 'Lato', sans-serif;
-    font-weight: 300;
-    font-size: clamp(0.8rem, 2vw, 0.95rem);
-    color: #5a6a7a;
-    line-height: 1.5;
+    font-family: 'Crimson Text', Georgia, serif;
+    font-size: clamp(0.82rem, 2vw, 0.95rem);
+    color: var(--brown-mid);
+    line-height: 1.55;
     max-width: 380px;
-    margin-bottom: clamp(16px, 3vw, 28px);
+    margin-bottom: clamp(4px, 1vw, 10px);
   }
 
   .potluck-note strong {
     font-weight: 700;
-    color: var(--blue-dark);
+    color: var(--brown);
   }
 
-  /* ── Bottom Bavarian Check Band ── */
-  .bottom-check {
+  /* ── Bottom Decorative Band ── */
+  .bottom-band {
+    width: calc(100% + clamp(40px, 10vw, 104px));
+    margin-left: calc(-1 * clamp(20px, 5vw, 52px));
+    margin-right: calc(-1 * clamp(20px, 5vw, 52px));
+    height: clamp(24px, 4vw, 36px);
+    margin-top: clamp(8px, 1.5vw, 14px);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .bottom-band svg {
     width: 100%;
-    height: clamp(14px, 2.5vw, 22px);
+    height: 100%;
   }
 
   /* ── Footer Links ── */
@@ -329,17 +430,17 @@
     margin-top: clamp(10px, 2vw, 18px);
     margin-bottom: clamp(16px, 3vw, 32px);
     width: 100%;
-    max-width: 680px;
+    max-width: 660px;
     padding: 0 clamp(8px, 2vw, 24px);
   }
 
   .footer-link {
-    font-family: 'Lato', sans-serif;
-    font-size: clamp(0.75rem, 1.8vw, 0.85rem);
-    color: var(--blue);
+    font-family: 'Crimson Text', Georgia, serif;
+    font-size: clamp(0.78rem, 1.8vw, 0.88rem);
+    color: var(--parchment-dark);
     text-decoration: none;
-    letter-spacing: 0.02em;
-    opacity: 0.6;
+    letter-spacing: 0.04em;
+    opacity: 0.7;
     transition: opacity 0.2s ease;
   }
 
@@ -348,242 +449,394 @@
     text-decoration: underline;
   }
 
+  /* ── Wheat/Hop Decorative Separator ── */
+  .wheat-separator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(4px, 1vw, 10px);
+    width: 100%;
+    max-width: 320px;
+    margin: clamp(6px, 1vw, 10px) 0;
+  }
+
+  .wheat-separator .sep-line {
+    flex: 1;
+    height: 1px;
+    background: var(--brown);
+    opacity: 0.2;
+  }
+
+  .wheat-separator svg {
+    width: clamp(20px, 5vw, 32px);
+    height: auto;
+    flex-shrink: 0;
+  }
+
   /* ── Responsive ── */
   @media (max-width: 480px) {
     .events {
-      gap: 24px 32px;
+      gap: 20px 28px;
     }
 
-    .date-ribbon {
-      min-width: 85%;
+    .date-banner {
+      min-width: 80%;
     }
+
+    .poster {
+      margin: 12px 6px;
+    }
+
+    .poster-border {
+      margin: 8px;
+    }
+
+    .corner-flourish {
+      width: 28px;
+      height: 28px;
+    }
+
+    .corner-flourish.tl { top: 10px; left: 10px; }
+    .corner-flourish.tr { top: 10px; right: 10px; }
+    .corner-flourish.bl { bottom: 10px; left: 10px; }
+    .corner-flourish.br { bottom: 10px; right: 10px; }
   }
 
   @media (min-width: 768px) {
     .content {
-      padding: 44px 56px;
+      padding: 52px 60px;
     }
   }
 </style>
 </head>
 <body>
 
-<div class="flyer-frame">
-  <div class="flyer-outer">
-    <div class="flyer-check-border bavarian-check">
-      <div class="flyer-inner">
+<div class="poster">
+  <div class="poster-border">
 
-        <!-- ═══ Pennant Banner ═══ -->
-        <div class="pennant-strip">
-          <div class="pennants">
-            <!-- Repeating blue/white pennant triangles via inline SVG -->
-            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff"/></svg></div>
-            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff" opacity="0.4"/></svg></div>
-            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff"/></svg></div>
-            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff" opacity="0.4"/></svg></div>
-            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff"/></svg></div>
-            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff" opacity="0.4"/></svg></div>
-            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff"/></svg></div>
-            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff" opacity="0.4"/></svg></div>
-            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff"/></svg></div>
-            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff" opacity="0.4"/></svg></div>
-            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff"/></svg></div>
-            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff" opacity="0.4"/></svg></div>
-            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff"/></svg></div>
-            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff" opacity="0.4"/></svg></div>
-            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff"/></svg></div>
-            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff" opacity="0.4"/></svg></div>
-            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff"/></svg></div>
-            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff" opacity="0.4"/></svg></div>
-            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff"/></svg></div>
-            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff" opacity="0.4"/></svg></div>
-            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff"/></svg></div>
-            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff" opacity="0.4"/></svg></div>
-            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff"/></svg></div>
-            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff" opacity="0.4"/></svg></div>
-          </div>
+    <!-- ═══ Corner Flourishes ═══ -->
+    <div class="corner-flourish tl">
+      <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <g fill="none" stroke="#3a2a1a" stroke-width="1.5" opacity="0.6">
+          <!-- Outer curl -->
+          <path d="M2,2 C2,30 10,40 30,42 C20,42 10,38 6,28 C4,22 4,14 8,8"/>
+          <!-- Inner curl -->
+          <path d="M8,8 C12,4 20,4 24,10 C28,16 26,26 18,30 C14,32 10,30 10,26 C10,22 14,20 18,22"/>
+          <!-- Leaf flourish -->
+          <path d="M30,42 C36,36 42,34 50,36 C44,32 36,32 30,36"/>
+          <path d="M2,2 C8,8 8,16 4,24 C6,16 6,10 2,6" stroke-width="1"/>
+        </g>
+        <circle cx="10" cy="10" r="2" fill="#c8a84e" opacity="0.5"/>
+      </svg>
+    </div>
+    <div class="corner-flourish tr">
+      <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <g fill="none" stroke="#3a2a1a" stroke-width="1.5" opacity="0.6">
+          <path d="M2,2 C2,30 10,40 30,42 C20,42 10,38 6,28 C4,22 4,14 8,8"/>
+          <path d="M8,8 C12,4 20,4 24,10 C28,16 26,26 18,30 C14,32 10,30 10,26 C10,22 14,20 18,22"/>
+          <path d="M30,42 C36,36 42,34 50,36 C44,32 36,32 30,36"/>
+          <path d="M2,2 C8,8 8,16 4,24 C6,16 6,10 2,6" stroke-width="1"/>
+        </g>
+        <circle cx="10" cy="10" r="2" fill="#c8a84e" opacity="0.5"/>
+      </svg>
+    </div>
+    <div class="corner-flourish bl">
+      <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <g fill="none" stroke="#3a2a1a" stroke-width="1.5" opacity="0.6">
+          <path d="M2,2 C2,30 10,40 30,42 C20,42 10,38 6,28 C4,22 4,14 8,8"/>
+          <path d="M8,8 C12,4 20,4 24,10 C28,16 26,26 18,30 C14,32 10,30 10,26 C10,22 14,20 18,22"/>
+          <path d="M30,42 C36,36 42,34 50,36 C44,32 36,32 30,36"/>
+          <path d="M2,2 C8,8 8,16 4,24 C6,16 6,10 2,6" stroke-width="1"/>
+        </g>
+        <circle cx="10" cy="10" r="2" fill="#c8a84e" opacity="0.5"/>
+      </svg>
+    </div>
+    <div class="corner-flourish br">
+      <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <g fill="none" stroke="#3a2a1a" stroke-width="1.5" opacity="0.6">
+          <path d="M2,2 C2,30 10,40 30,42 C20,42 10,38 6,28 C4,22 4,14 8,8"/>
+          <path d="M8,8 C12,4 20,4 24,10 C28,16 26,26 18,30 C14,32 10,30 10,26 C10,22 14,20 18,22"/>
+          <path d="M30,42 C36,36 42,34 50,36 C44,32 36,32 30,36"/>
+          <path d="M2,2 C8,8 8,16 4,24 C6,16 6,10 2,6" stroke-width="1"/>
+        </g>
+        <circle cx="10" cy="10" r="2" fill="#c8a84e" opacity="0.5"/>
+      </svg>
+    </div>
+
+    <!-- ═══ Main Content ═══ -->
+    <div class="content">
+
+      <!-- Top ornamental rule -->
+      <div class="ornamental-rule">
+        <span class="rule-line"></span>
+        <span class="rule-diamond"></span>
+        <span class="rule-diamond"></span>
+        <span class="rule-diamond"></span>
+        <span class="rule-line"></span>
+      </div>
+
+      <!-- Family line -->
+      <p class="family-line">Steil Family 7th Annual Potluck</p>
+
+      <!-- Ornamental rule -->
+      <div class="ornamental-rule">
+        <span class="rule-line"></span>
+        <span class="rule-diamond"></span>
+        <span class="rule-line"></span>
+      </div>
+
+      <!-- OKTOBERFEST -->
+      <h1 class="title-oktoberfest">Oktoberfest</h1>
+
+      <!-- Year -->
+      <p class="year-line">&#x2726; 2026 &#x2726;</p>
+
+      <!-- ═══ Beer Steins — Woodcut Style ═══ -->
+      <div class="steins-section">
+
+        <!-- Left hop cone -->
+        <svg class="hop-svg" viewBox="0 0 40 80" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="transform: scaleX(-1);">
+          <g fill="none" stroke="#5c4a32" stroke-width="1.2">
+            <!-- Stem -->
+            <line x1="20" y1="80" x2="20" y2="18" stroke-width="1.5"/>
+            <!-- Hop cone petals -->
+            <ellipse cx="20" cy="20" rx="7" ry="5" fill="#8a9a4a" stroke="#5c4a32" opacity="0.7"/>
+            <ellipse cx="15" cy="28" rx="7" ry="5" fill="#7a8a3a" stroke="#5c4a32" opacity="0.65" transform="rotate(-10,15,28)"/>
+            <ellipse cx="25" cy="28" rx="7" ry="5" fill="#7a8a3a" stroke="#5c4a32" opacity="0.65" transform="rotate(10,25,28)"/>
+            <ellipse cx="14" cy="36" rx="7" ry="5" fill="#6a7a2a" stroke="#5c4a32" opacity="0.6" transform="rotate(-8,14,36)"/>
+            <ellipse cx="26" cy="36" rx="7" ry="5" fill="#6a7a2a" stroke="#5c4a32" opacity="0.6" transform="rotate(8,26,36)"/>
+            <ellipse cx="16" cy="44" rx="6" ry="4.5" fill="#5a6a1a" stroke="#5c4a32" opacity="0.55" transform="rotate(-5,16,44)"/>
+            <ellipse cx="24" cy="44" rx="6" ry="4.5" fill="#5a6a1a" stroke="#5c4a32" opacity="0.55" transform="rotate(5,24,44)"/>
+            <ellipse cx="20" cy="50" rx="5" ry="4" fill="#4a5a10" stroke="#5c4a32" opacity="0.5"/>
+            <!-- Leaf -->
+            <path d="M20,60 C14,56 10,48 12,42" stroke-width="1" opacity="0.4"/>
+            <path d="M12,42 C16,46 18,54 20,60" fill="#6a7a2a" opacity="0.25"/>
+          </g>
+        </svg>
+
+        <!-- Left stein — woodcut aesthetic -->
+        <svg class="stein-svg" viewBox="0 0 100 130" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="transform: rotate(8deg);">
+          <g stroke="#3a2a1a" fill="none">
+            <!-- Stein body -->
+            <rect x="15" y="32" width="52" height="75" rx="3" fill="#d4a030" stroke-width="2.5" opacity="0.85"/>
+            <!-- Wood/ceramic texture lines -->
+            <line x1="15" y1="50" x2="67" y2="50" stroke-width="0.5" opacity="0.3"/>
+            <line x1="15" y1="68" x2="67" y2="68" stroke-width="0.5" opacity="0.3"/>
+            <line x1="15" y1="86" x2="67" y2="86" stroke-width="0.5" opacity="0.3"/>
+            <!-- Beer fill -->
+            <rect x="19" y="42" width="44" height="60" rx="1" fill="#c8880a" opacity="0.5"/>
+            <!-- Decorative diamond on stein -->
+            <rect x="33" y="58" width="8" height="8" fill="none" stroke-width="1.5" transform="rotate(45,37,62)" opacity="0.5"/>
+            <rect x="43" y="58" width="8" height="8" fill="none" stroke-width="1.5" transform="rotate(45,47,62)" opacity="0.5"/>
+            <!-- Metal bands (hatched) -->
+            <rect x="13" y="40" width="56" height="5" rx="1" fill="none" stroke-width="1.5" opacity="0.6"/>
+            <line x1="14" y1="41" x2="68" y2="41" stroke-width="0.5" opacity="0.4"/>
+            <line x1="14" y1="43" x2="68" y2="43" stroke-width="0.5" opacity="0.4"/>
+            <rect x="13" y="100" width="56" height="5" rx="1" fill="none" stroke-width="1.5" opacity="0.6"/>
+            <line x1="14" y1="101" x2="68" y2="101" stroke-width="0.5" opacity="0.4"/>
+            <line x1="14" y1="103" x2="68" y2="103" stroke-width="0.5" opacity="0.4"/>
+            <!-- Handle -->
+            <path d="M67,42 C84,42 88,56 88,68 C88,80 84,96 67,96" fill="none" stroke-width="3.5" stroke-linecap="round"/>
+            <!-- Handle cross-hatching -->
+            <line x1="78" y1="50" x2="82" y2="54" stroke-width="0.8" opacity="0.3"/>
+            <line x1="80" y1="60" x2="84" y2="64" stroke-width="0.8" opacity="0.3"/>
+            <line x1="80" y1="70" x2="84" y2="74" stroke-width="0.8" opacity="0.3"/>
+            <line x1="78" y1="82" x2="82" y2="86" stroke-width="0.8" opacity="0.3"/>
+            <!-- Hinged lid -->
+            <rect x="10" y="28" width="60" height="7" rx="2" fill="none" stroke-width="2" opacity="0.7"/>
+            <!-- Lid hatch lines -->
+            <line x1="12" y1="30" x2="68" y2="30" stroke-width="0.5" opacity="0.3"/>
+            <line x1="12" y1="33" x2="68" y2="33" stroke-width="0.5" opacity="0.3"/>
+            <!-- Lid thumb lever -->
+            <rect x="32" y="24" width="18" height="6" rx="2" fill="none" stroke-width="1.5" opacity="0.6"/>
+            <!-- Foam peeking out -->
+            <path d="M16,32 C20,26 26,28 32,26 C38,24 44,27 50,25 C56,23 62,26 66,32" fill="#f5e6c8" stroke-width="1.5" opacity="0.7"/>
+            <circle cx="28" cy="28" r="3" fill="#f5e6c8" stroke-width="0.8" opacity="0.4"/>
+            <circle cx="46" cy="27" r="2.5" fill="#f5e6c8" stroke-width="0.8" opacity="0.35"/>
+          </g>
+        </svg>
+
+        <!-- Clinking splash — woodcut style -->
+        <svg viewBox="0 0 20 36" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width: clamp(10px, 2.5vw, 18px); margin: 0 clamp(-4px, -0.5vw, -2px);">
+          <g fill="none" stroke="#3a2a1a" stroke-width="1.2" opacity="0.5">
+            <line x1="10" y1="4" x2="10" y2="10"/>
+            <line x1="4" y1="8" x2="7" y2="12"/>
+            <line x1="16" y1="8" x2="13" y2="12"/>
+            <line x1="6" y1="16" x2="8" y2="18"/>
+            <line x1="14" y1="16" x2="12" y2="18"/>
+            <circle cx="10" cy="14" r="1.5" fill="#3a2a1a" opacity="0.3"/>
+            <circle cx="6" cy="20" r="1" fill="#3a2a1a" opacity="0.2"/>
+            <circle cx="14" cy="22" r="1" fill="#3a2a1a" opacity="0.2"/>
+          </g>
+        </svg>
+
+        <!-- Right stein — woodcut aesthetic (mirrored) -->
+        <svg class="stein-svg" viewBox="0 0 100 130" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="transform: rotate(-8deg) scaleX(-1);">
+          <g stroke="#3a2a1a" fill="none">
+            <rect x="15" y="32" width="52" height="75" rx="3" fill="#d4a030" stroke-width="2.5" opacity="0.85"/>
+            <line x1="15" y1="50" x2="67" y2="50" stroke-width="0.5" opacity="0.3"/>
+            <line x1="15" y1="68" x2="67" y2="68" stroke-width="0.5" opacity="0.3"/>
+            <line x1="15" y1="86" x2="67" y2="86" stroke-width="0.5" opacity="0.3"/>
+            <rect x="19" y="42" width="44" height="60" rx="1" fill="#c8880a" opacity="0.5"/>
+            <rect x="33" y="58" width="8" height="8" fill="none" stroke-width="1.5" transform="rotate(45,37,62)" opacity="0.5"/>
+            <rect x="43" y="58" width="8" height="8" fill="none" stroke-width="1.5" transform="rotate(45,47,62)" opacity="0.5"/>
+            <rect x="13" y="40" width="56" height="5" rx="1" fill="none" stroke-width="1.5" opacity="0.6"/>
+            <line x1="14" y1="41" x2="68" y2="41" stroke-width="0.5" opacity="0.4"/>
+            <line x1="14" y1="43" x2="68" y2="43" stroke-width="0.5" opacity="0.4"/>
+            <rect x="13" y="100" width="56" height="5" rx="1" fill="none" stroke-width="1.5" opacity="0.6"/>
+            <line x1="14" y1="101" x2="68" y2="101" stroke-width="0.5" opacity="0.4"/>
+            <line x1="14" y1="103" x2="68" y2="103" stroke-width="0.5" opacity="0.4"/>
+            <path d="M67,42 C84,42 88,56 88,68 C88,80 84,96 67,96" fill="none" stroke-width="3.5" stroke-linecap="round"/>
+            <line x1="78" y1="50" x2="82" y2="54" stroke-width="0.8" opacity="0.3"/>
+            <line x1="80" y1="60" x2="84" y2="64" stroke-width="0.8" opacity="0.3"/>
+            <line x1="80" y1="70" x2="84" y2="74" stroke-width="0.8" opacity="0.3"/>
+            <line x1="78" y1="82" x2="82" y2="86" stroke-width="0.8" opacity="0.3"/>
+            <rect x="10" y="28" width="60" height="7" rx="2" fill="none" stroke-width="2" opacity="0.7"/>
+            <line x1="12" y1="30" x2="68" y2="30" stroke-width="0.5" opacity="0.3"/>
+            <line x1="12" y1="33" x2="68" y2="33" stroke-width="0.5" opacity="0.3"/>
+            <rect x="32" y="24" width="18" height="6" rx="2" fill="none" stroke-width="1.5" opacity="0.6"/>
+            <path d="M16,32 C20,26 26,28 32,26 C38,24 44,27 50,25 C56,23 62,26 66,32" fill="#f5e6c8" stroke-width="1.5" opacity="0.7"/>
+            <circle cx="28" cy="28" r="3" fill="#f5e6c8" stroke-width="0.8" opacity="0.4"/>
+            <circle cx="46" cy="27" r="2.5" fill="#f5e6c8" stroke-width="0.8" opacity="0.35"/>
+          </g>
+        </svg>
+
+        <!-- Right hop cone -->
+        <svg class="hop-svg" viewBox="0 0 40 80" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <g fill="none" stroke="#5c4a32" stroke-width="1.2">
+            <line x1="20" y1="80" x2="20" y2="18" stroke-width="1.5"/>
+            <ellipse cx="20" cy="20" rx="7" ry="5" fill="#8a9a4a" stroke="#5c4a32" opacity="0.7"/>
+            <ellipse cx="15" cy="28" rx="7" ry="5" fill="#7a8a3a" stroke="#5c4a32" opacity="0.65" transform="rotate(-10,15,28)"/>
+            <ellipse cx="25" cy="28" rx="7" ry="5" fill="#7a8a3a" stroke="#5c4a32" opacity="0.65" transform="rotate(10,25,28)"/>
+            <ellipse cx="14" cy="36" rx="7" ry="5" fill="#6a7a2a" stroke="#5c4a32" opacity="0.6" transform="rotate(-8,14,36)"/>
+            <ellipse cx="26" cy="36" rx="7" ry="5" fill="#6a7a2a" stroke="#5c4a32" opacity="0.6" transform="rotate(8,26,36)"/>
+            <ellipse cx="16" cy="44" rx="6" ry="4.5" fill="#5a6a1a" stroke="#5c4a32" opacity="0.55" transform="rotate(-5,16,44)"/>
+            <ellipse cx="24" cy="44" rx="6" ry="4.5" fill="#5a6a1a" stroke="#5c4a32" opacity="0.55" transform="rotate(5,24,44)"/>
+            <ellipse cx="20" cy="50" rx="5" ry="4" fill="#4a5a10" stroke="#5c4a32" opacity="0.5"/>
+            <path d="M20,60 C26,56 30,48 28,42" stroke-width="1" opacity="0.4"/>
+            <path d="M28,42 C24,46 22,54 20,60" fill="#6a7a2a" opacity="0.25"/>
+          </g>
+        </svg>
+
+      </div>
+
+      <!-- ═══ Date Banner ═══ -->
+      <div class="date-banner">
+        <div class="date-banner-inner">
+          Saturday, September 12<br>3:30 PM
         </div>
+      </div>
 
-        <!-- ═══ Main Content ═══ -->
-        <div class="content">
+      <a href="/flyers/oktoberfest-sep-2026/oktoberfest-steil-2026.ics" class="cal-link" download>Add to Calendar</a>
 
-          <!-- Family line -->
-          <p class="family-line">Steil Family 7th Annual Potluck</p>
+      <!-- ═══ Activities ═══ -->
+      <p class="activities">
+        Food<span class="dot">&middot;</span>Music<span class="dot">&middot;</span>Beer<span class="dot">&middot;</span>Karaoke
+      </p>
 
-          <!-- OKTOBERFEST -->
-          <h1 class="title-oktoberfest">OKTOBERFEST</h1>
+      <!-- Wheat separator -->
+      <div class="wheat-separator">
+        <span class="sep-line"></span>
+        <svg viewBox="0 0 40 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <g fill="none" stroke="#c8a84e" stroke-width="1" stroke-linecap="round" opacity="0.6">
+            <!-- Left wheat -->
+            <line x1="4" y1="20" x2="14" y2="4"/>
+            <ellipse cx="12" cy="6" rx="3" ry="5" fill="#c8a84e" opacity="0.4" transform="rotate(-20,12,6)"/>
+            <ellipse cx="10" cy="12" rx="3" ry="4" fill="#c8a84e" opacity="0.35" transform="rotate(-15,10,12)"/>
+            <!-- Right wheat -->
+            <line x1="36" y1="20" x2="26" y2="4"/>
+            <ellipse cx="28" cy="6" rx="3" ry="5" fill="#c8a84e" opacity="0.4" transform="rotate(20,28,6)"/>
+            <ellipse cx="30" cy="12" rx="3" ry="4" fill="#c8a84e" opacity="0.35" transform="rotate(15,30,12)"/>
+            <!-- Center -->
+            <circle cx="20" cy="12" r="2" fill="#c8a84e" opacity="0.5"/>
+          </g>
+        </svg>
+        <span class="sep-line"></span>
+      </div>
 
-          <hr class="title-rule">
-
-          <!-- ═══ Beer Steins Clinking with Wheat ═══ -->
-          <div class="steins-section">
-
-            <!-- Left wheat stalk -->
-            <svg aria-hidden="true" class="wheat-svg" viewBox="0 0 40 120" xmlns="http://www.w3.org/2000/svg" style="transform: scaleX(-1);">
-              <g fill="none" stroke="#c8a84e" stroke-width="2" stroke-linecap="round">
-                <!-- Main stalk -->
-                <line x1="20" y1="120" x2="20" y2="20"/>
-                <!-- Grain kernels - alternating sides -->
-                <ellipse cx="14" cy="22" rx="5" ry="9" fill="#c8a84e" opacity="0.8" transform="rotate(-15,14,22)"/>
-                <ellipse cx="26" cy="30" rx="5" ry="9" fill="#c8a84e" opacity="0.8" transform="rotate(15,26,30)"/>
-                <ellipse cx="14" cy="38" rx="5" ry="9" fill="#c8a84e" opacity="0.7" transform="rotate(-15,14,38)"/>
-                <ellipse cx="26" cy="46" rx="5" ry="9" fill="#c8a84e" opacity="0.7" transform="rotate(15,26,46)"/>
-                <ellipse cx="14" cy="54" rx="5" ry="8" fill="#c8a84e" opacity="0.6" transform="rotate(-15,14,54)"/>
-                <ellipse cx="26" cy="62" rx="5" ry="8" fill="#c8a84e" opacity="0.6" transform="rotate(15,26,62)"/>
-                <!-- Top kernel -->
-                <ellipse cx="20" cy="14" rx="4" ry="8" fill="#c8a84e" opacity="0.9"/>
-                <!-- Awn whiskers -->
-                <line x1="20" y1="6" x2="18" y2="0" stroke-width="1" opacity="0.6"/>
-                <line x1="20" y1="6" x2="22" y2="0" stroke-width="1" opacity="0.6"/>
-                <line x1="20" y1="6" x2="20" y2="0" stroke-width="1" opacity="0.7"/>
+      <!-- ═══ Featured Events ═══ -->
+      <div class="events">
+        <div class="event-item">
+          <div class="event-icon-wrap">
+            <!-- Stein icon -->
+            <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <g fill="none" stroke="#3a2a1a" stroke-width="1.5" stroke-linecap="round">
+                <rect x="6" y="8" width="15" height="20" rx="2"/>
+                <path d="M21,12 C26,12 27,16 27,19 C27,22 26,26 21,26"/>
+                <rect x="6" y="5" width="15" height="4" rx="1.5"/>
+                <line x1="10" y1="14" x2="10" y2="24" opacity="0.3"/>
               </g>
             </svg>
-
-            <!-- Left stein (tilted right for clinking) -->
-            <svg aria-hidden="true" class="stein-svg" viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg" style="transform: rotate(12deg);">
-              <!-- Stein body -->
-              <rect x="15" y="30" width="55" height="70" rx="4" fill="#c8a84e" stroke="#8b6914" stroke-width="2"/>
-              <!-- Glass highlight -->
-              <rect x="22" y="35" width="41" height="60" rx="2" fill="#e8d590" opacity="0.5"/>
-              <!-- Beer fill -->
-              <rect x="22" y="40" width="41" height="55" rx="2" fill="#f0a820" opacity="0.7"/>
-              <!-- Bavarian diamond on stein -->
-              <g opacity="0.4">
-                <rect x="30" y="55" width="10" height="10" fill="#0066b3" transform="rotate(45,35,60)"/>
-                <rect x="45" y="55" width="10" height="10" fill="#0066b3" transform="rotate(45,50,60)"/>
-              </g>
-              <!-- Metal bands -->
-              <rect x="13" y="38" width="59" height="4" rx="1" fill="#8b6914" opacity="0.6"/>
-              <rect x="13" y="88" width="59" height="4" rx="1" fill="#8b6914" opacity="0.6"/>
-              <!-- Handle -->
-              <path d="M70,40 C88,40 92,55 92,65 C92,75 88,90 70,90" fill="none" stroke="#8b6914" stroke-width="5" stroke-linecap="round"/>
-              <!-- Lid -->
-              <rect x="10" y="26" width="62" height="8" rx="3" fill="#999" stroke="#777" stroke-width="1"/>
-              <rect x="30" y="22" width="22" height="6" rx="3" fill="#aaa" stroke="#888" stroke-width="1"/>
-              <!-- Foam -->
-              <ellipse cx="42" cy="30" rx="27" ry="6" fill="#fff" opacity="0.85"/>
-              <ellipse cx="35" cy="26" rx="8" ry="5" fill="#fff" opacity="0.7"/>
-              <ellipse cx="50" cy="27" rx="7" ry="4" fill="#fff" opacity="0.6"/>
-              <ellipse cx="42" cy="24" rx="5" ry="3" fill="#fff" opacity="0.5"/>
-            </svg>
-
-            <!-- Clinking splash -->
-            <svg aria-hidden="true" viewBox="0 0 24 40" xmlns="http://www.w3.org/2000/svg" style="width: clamp(12px, 3vw, 20px); margin: 0 -6px;">
-              <g fill="#f0a820" opacity="0.7">
-                <circle cx="12" cy="8" r="2"/>
-                <circle cx="8" cy="16" r="1.5"/>
-                <circle cx="16" cy="14" r="1.8"/>
-                <circle cx="12" cy="22" r="1.2"/>
-                <circle cx="6" cy="10" r="1"/>
-                <circle cx="18" cy="20" r="1"/>
-              </g>
-              <!-- Clink lines -->
-              <g stroke="#c8a84e" stroke-width="1.5" stroke-linecap="round" opacity="0.6">
-                <line x1="12" y1="2" x2="12" y2="6"/>
-                <line x1="4" y1="6" x2="7" y2="9"/>
-                <line x1="20" y1="6" x2="17" y2="9"/>
-              </g>
-            </svg>
-
-            <!-- Right stein (tilted left for clinking) -->
-            <svg aria-hidden="true" class="stein-svg" viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg" style="transform: rotate(-12deg) scaleX(-1);">
-              <!-- Stein body -->
-              <rect x="15" y="30" width="55" height="70" rx="4" fill="#c8a84e" stroke="#8b6914" stroke-width="2"/>
-              <!-- Glass highlight -->
-              <rect x="22" y="35" width="41" height="60" rx="2" fill="#e8d590" opacity="0.5"/>
-              <!-- Beer fill -->
-              <rect x="22" y="40" width="41" height="55" rx="2" fill="#f0a820" opacity="0.7"/>
-              <!-- Bavarian diamond on stein -->
-              <g opacity="0.4">
-                <rect x="30" y="55" width="10" height="10" fill="#0066b3" transform="rotate(45,35,60)"/>
-                <rect x="45" y="55" width="10" height="10" fill="#0066b3" transform="rotate(45,50,60)"/>
-              </g>
-              <!-- Metal bands -->
-              <rect x="13" y="38" width="59" height="4" rx="1" fill="#8b6914" opacity="0.6"/>
-              <rect x="13" y="88" width="59" height="4" rx="1" fill="#8b6914" opacity="0.6"/>
-              <!-- Handle -->
-              <path d="M70,40 C88,40 92,55 92,65 C92,75 88,90 70,90" fill="none" stroke="#8b6914" stroke-width="5" stroke-linecap="round"/>
-              <!-- Lid -->
-              <rect x="10" y="26" width="62" height="8" rx="3" fill="#999" stroke="#777" stroke-width="1"/>
-              <rect x="30" y="22" width="22" height="6" rx="3" fill="#aaa" stroke="#888" stroke-width="1"/>
-              <!-- Foam -->
-              <ellipse cx="42" cy="30" rx="27" ry="6" fill="#fff" opacity="0.85"/>
-              <ellipse cx="35" cy="26" rx="8" ry="5" fill="#fff" opacity="0.7"/>
-              <ellipse cx="50" cy="27" rx="7" ry="4" fill="#fff" opacity="0.6"/>
-              <ellipse cx="42" cy="24" rx="5" ry="3" fill="#fff" opacity="0.5"/>
-            </svg>
-
-            <!-- Right wheat stalk -->
-            <svg aria-hidden="true" class="wheat-svg" viewBox="0 0 40 120" xmlns="http://www.w3.org/2000/svg">
-              <g fill="none" stroke="#c8a84e" stroke-width="2" stroke-linecap="round">
-                <line x1="20" y1="120" x2="20" y2="20"/>
-                <ellipse cx="14" cy="22" rx="5" ry="9" fill="#c8a84e" opacity="0.8" transform="rotate(-15,14,22)"/>
-                <ellipse cx="26" cy="30" rx="5" ry="9" fill="#c8a84e" opacity="0.8" transform="rotate(15,26,30)"/>
-                <ellipse cx="14" cy="38" rx="5" ry="9" fill="#c8a84e" opacity="0.7" transform="rotate(-15,14,38)"/>
-                <ellipse cx="26" cy="46" rx="5" ry="9" fill="#c8a84e" opacity="0.7" transform="rotate(15,26,46)"/>
-                <ellipse cx="14" cy="54" rx="5" ry="8" fill="#c8a84e" opacity="0.6" transform="rotate(-15,14,54)"/>
-                <ellipse cx="26" cy="62" rx="5" ry="8" fill="#c8a84e" opacity="0.6" transform="rotate(15,26,62)"/>
-                <ellipse cx="20" cy="14" rx="4" ry="8" fill="#c8a84e" opacity="0.9"/>
-                <line x1="20" y1="6" x2="18" y2="0" stroke-width="1" opacity="0.6"/>
-                <line x1="20" y1="6" x2="22" y2="0" stroke-width="1" opacity="0.6"/>
-                <line x1="20" y1="6" x2="20" y2="0" stroke-width="1" opacity="0.7"/>
-              </g>
-            </svg>
-
           </div>
-
-          <!-- ═══ Date Ribbon ═══ -->
-          <div class="date-ribbon">Saturday, September 12 &middot; 3:30 PM</div>
-
-          <!-- ═══ Activities ═══ -->
-          <p class="activities">
-            Food<span class="dot">&middot;</span>Music<span class="dot">&middot;</span>Beer<span class="dot">&middot;</span>Karaoke
-          </p>
-
-          <hr class="section-divider">
-
-          <!-- ═══ Featured Events ═══ -->
-          <div class="events">
-            <div class="event-item">
-              <span class="event-icon">🍺💪</span>
-              <span class="event-name">Steinholding Competition</span>
-              <span class="event-desc">How long can you hold it?</span>
-            </div>
-            <div class="event-item">
-              <span class="event-icon">🔨🪵</span>
-              <span class="event-name">Hammerschlagen</span>
-              <span class="event-desc">Nail it in one swing!</span>
-            </div>
+          <span class="event-name">Steinholding Competition</span>
+          <span class="event-desc">How long can you hold it?</span>
+        </div>
+        <div class="event-item">
+          <div class="event-icon-wrap">
+            <!-- Hammer icon -->
+            <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <g fill="none" stroke="#3a2a1a" stroke-width="1.5" stroke-linecap="round">
+                <!-- Handle -->
+                <line x1="10" y1="26" x2="20" y2="10"/>
+                <!-- Head -->
+                <rect x="15" y="4" width="14" height="8" rx="1.5" transform="rotate(15,22,8)"/>
+                <!-- Cross line on head -->
+                <line x1="20" y1="6" x2="20" y2="12" opacity="0.3" transform="rotate(15,22,8)"/>
+              </g>
+            </svg>
           </div>
+          <span class="event-name">Hammerschlagen</span>
+          <span class="event-desc">Nail it in one swing!</span>
+        </div>
+      </div>
 
-          <hr class="section-divider">
+      <!-- Wheat separator -->
+      <div class="wheat-separator">
+        <span class="sep-line"></span>
+        <svg viewBox="0 0 40 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <g fill="none" stroke="#c8a84e" stroke-width="1" stroke-linecap="round" opacity="0.6">
+            <line x1="4" y1="20" x2="14" y2="4"/>
+            <ellipse cx="12" cy="6" rx="3" ry="5" fill="#c8a84e" opacity="0.4" transform="rotate(-20,12,6)"/>
+            <ellipse cx="10" cy="12" rx="3" ry="4" fill="#c8a84e" opacity="0.35" transform="rotate(-15,10,12)"/>
+            <line x1="36" y1="20" x2="26" y2="4"/>
+            <ellipse cx="28" cy="6" rx="3" ry="5" fill="#c8a84e" opacity="0.4" transform="rotate(20,28,6)"/>
+            <ellipse cx="30" cy="12" rx="3" ry="4" fill="#c8a84e" opacity="0.35" transform="rotate(15,30,12)"/>
+            <circle cx="20" cy="12" r="2" fill="#c8a84e" opacity="0.5"/>
+          </g>
+        </svg>
+        <span class="sep-line"></span>
+      </div>
 
-          <!-- ═══ Camping Callout ═══ -->
-          <div class="camping-callout">
-            <span class="tent">⛺</span>Don't want to drive home? <strong>Camp out here!</strong>
-          </div>
+      <!-- ═══ Camping Callout ═══ -->
+      <div class="camping-callout">
+        Don't want to drive home? <strong>Camp out here!</strong>
+      </div>
 
-          <!-- ═══ RSVP ═══ -->
-          <p class="rsvp">RSVP Taylor or Katrin</p>
+      <!-- ═══ RSVP ═══ -->
+      <p class="rsvp">RSVP Taylor or Katrin</p>
 
-          <!-- ═══ Potluck Note ═══ -->
-          <p class="potluck-note">
-            For the Potluck — <strong>German food is encouraged</strong> but not required!
-          </p>
+      <!-- ═══ Potluck Note ═══ -->
+      <p class="potluck-note">
+        For the Potluck &mdash; <strong>German food is encouraged</strong> but not required!
+      </p>
 
-          <!-- ═══ Bottom Check Band ═══ -->
-          <div class="bottom-check bavarian-check" style="height: clamp(14px, 2.5vw, 22px); width: calc(100% + clamp(32px, 8vw, 96px)); margin-left: calc(-1 * clamp(16px, 4vw, 48px)); margin-right: calc(-1 * clamp(16px, 4vw, 48px));"></div>
+      <!-- Bottom ornamental rule -->
+      <div class="ornamental-rule" style="margin-top: clamp(4px, 1vw, 8px);">
+        <span class="rule-line"></span>
+        <span class="rule-diamond"></span>
+        <span class="rule-diamond"></span>
+        <span class="rule-diamond"></span>
+        <span class="rule-line"></span>
+      </div>
 
-        </div><!-- .content -->
+    </div><!-- .content -->
 
-      </div><!-- .flyer-inner -->
-    </div><!-- .flyer-check-border -->
-  </div><!-- .flyer-outer -->
-</div><!-- .flyer-frame -->
+  </div><!-- .poster-border -->
+</div><!-- .poster -->
 
 <!-- ═══ Footer Links ═══ -->
 <nav class="flyer-footer">
-  <a href="/flyers/oktoberfest-sep-2026/vintage/" class="footer-link">View vintage version &rarr;</a>
+  <a href="/flyers/oktoberfest-sep-2026/bavarian/" class="footer-link">View bavarian version &rarr;</a>
   <a href="/flyers/" class="footer-link">&larr; Back to Flyers</a>
 </nav>
 

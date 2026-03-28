@@ -1,0 +1,11 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Steil Family//Oktoberfest 2026//EN
+BEGIN:VEVENT
+DTSTART;TZID=America/Los_Angeles:20260912T153000
+SUMMARY:Oktoberfest Steil 2026
+DESCRIPTION:Steil Family 7th Annual Potluck Oktoberfest. Food\, Music\, Beer\, Karaoke\, Steinholding Competition\, Hammerschlagen! German food encouraged but not required. RSVP Taylor or Katrin.
+LOCATION:7735 Delphi RD SW\, Olympia WA 98512
+URL:https://tsteil.com/flyers/oktoberfest-sep-2026/
+END:VEVENT
+END:VCALENDAR

@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oktoberfest Steil 2026 — Steil Family 7th Annual Potluck</title>
+<meta name="description" content="Steil Family 7th Annual Potluck Oktoberfest — Saturday, September 12, 2026 at 3:30 PM. Food, Music, Beer, Karaoke!">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Lato:wght@300;400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --blue: #0066b3;
+    --blue-dark: #004a82;
+    --blue-deeper: #003461;
+    --blue-light: #3399d4;
+    --white: #ffffff;
+    --cream: #f5f0e8;
+    --gold: #c8a84e;
+    --gold-light: #e8d590;
+    --brown: #5c3a1e;
+  }
+
+  html {
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: 'Lato', sans-serif;
+    background: var(--cream);
+    color: var(--blue-dark);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+  }
+
+  /* ── Bavarian Diamond Pattern (used in multiple places) ── */
+  .bavarian-check {
+    background-image:
+      linear-gradient(45deg, var(--blue) 25%, transparent 25%),
+      linear-gradient(-45deg, var(--blue) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, var(--blue) 75%),
+      linear-gradient(-45deg, transparent 75%, var(--blue) 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+    background-color: var(--white);
+  }
+
+  /* ── Outer Frame ── */
+  .flyer-frame {
+    width: 100%;
+    max-width: 680px;
+    margin: clamp(12px, 3vw, 40px) clamp(8px, 2vw, 24px);
+    position: relative;
+  }
+
+  /* Blue outer border */
+  .flyer-outer {
+    border: clamp(6px, 1.2vw, 10px) solid var(--blue);
+    border-radius: 6px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Bavarian check inner border band */
+  .flyer-check-border {
+    padding: clamp(6px, 1vw, 10px);
+  }
+
+  .flyer-inner {
+    background: var(--white);
+    border: 3px solid var(--blue);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  /* ── Pennant Banner ── */
+  .pennant-strip {
+    width: 100%;
+    height: clamp(36px, 6vw, 52px);
+    background: var(--blue);
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    overflow: visible;
+  }
+
+  .pennant-strip::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--gold);
+  }
+
+  .pennants {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    width: 100%;
+    padding: 0 4px;
+    position: absolute;
+    top: 4px;
+  }
+
+  .pennant {
+    flex: 1;
+    max-width: 30px;
+    min-width: 14px;
+  }
+
+  .pennant svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  /* ── Main Content ── */
+  .content {
+    padding: clamp(20px, 4vw, 40px) clamp(16px, 4vw, 48px);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  /* ── Subtitle / Family line ── */
+  .family-line {
+    font-family: 'Lato', sans-serif;
+    font-weight: 700;
+    font-size: clamp(0.65rem, 1.8vw, 0.85rem);
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--blue);
+    margin-bottom: clamp(4px, 1vw, 8px);
+    font-variant: small-caps;
+  }
+
+  /* ── OKTOBERFEST Title ── */
+  .title-oktoberfest {
+    font-family: 'Abril Fatface', serif;
+    font-size: clamp(2.6rem, 10vw, 5.4rem);
+    line-height: 0.95;
+    color: var(--blue);
+    letter-spacing: 0.02em;
+    text-shadow:
+      2px 2px 0 rgba(0, 102, 179, 0.15),
+      0 0 40px rgba(0, 102, 179, 0.08);
+    margin-bottom: clamp(12px, 2.5vw, 24px);
+    position: relative;
+  }
+
+  /* Decorative line under title */
+  .title-rule {
+    width: clamp(100px, 40%, 240px);
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    margin-bottom: clamp(16px, 3vw, 28px);
+    border: none;
+  }
+
+  /* ── Beer Steins SVG Section ── */
+  .steins-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(4px, 2vw, 16px);
+    margin-bottom: clamp(16px, 3vw, 28px);
+    width: 100%;
+    max-width: 420px;
+  }
+
+  .stein-svg {
+    width: clamp(70px, 18vw, 120px);
+    height: auto;
+    flex-shrink: 0;
+  }
+
+  .wheat-svg {
+    width: clamp(32px, 8vw, 56px);
+    height: auto;
+    flex-shrink: 0;
+  }
+
+  /* ── Date Ribbon ── */
+  .date-ribbon {
+    background: var(--blue);
+    color: var(--white);
+    padding: clamp(10px, 2vw, 16px) clamp(24px, 6vw, 64px);
+    font-family: 'Lato', sans-serif;
+    font-weight: 700;
+    font-size: clamp(0.9rem, 2.5vw, 1.25rem);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    position: relative;
+    margin-bottom: clamp(16px, 3vw, 28px);
+    clip-path: polygon(8px 0%, calc(100% - 8px) 0%, 100% 50%, calc(100% - 8px) 100%, 8px 100%, 0% 50%);
+    min-width: 70%;
+  }
+
+  /* ── Activities Line ── */
+  .activities {
+    font-family: 'Lato', sans-serif;
+    font-weight: 900;
+    font-size: clamp(1rem, 3vw, 1.45rem);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--blue);
+    margin-bottom: clamp(20px, 3.5vw, 32px);
+  }
+
+  .activities .dot {
+    display: inline-block;
+    margin: 0 clamp(4px, 1vw, 10px);
+    color: var(--gold);
+    font-weight: 400;
+  }
+
+  /* ── Divider ── */
+  .section-divider {
+    width: clamp(60px, 30%, 180px);
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--blue-light), transparent);
+    margin-bottom: clamp(16px, 3vw, 28px);
+    border: none;
+  }
+
+  /* ── Events Section ── */
+  .events {
+    display: flex;
+    justify-content: center;
+    gap: clamp(20px, 5vw, 56px);
+    margin-bottom: clamp(16px, 3vw, 28px);
+    flex-wrap: wrap;
+  }
+
+  .event-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .event-icon {
+    font-size: clamp(1.8rem, 5vw, 2.6rem);
+    line-height: 1;
+  }
+
+  .event-name {
+    font-family: 'Lato', sans-serif;
+    font-weight: 700;
+    font-size: clamp(0.85rem, 2.2vw, 1.05rem);
+    color: var(--blue-dark);
+    letter-spacing: 0.04em;
+  }
+
+  .event-desc {
+    font-size: clamp(0.7rem, 1.6vw, 0.8rem);
+    color: #7a8a9a;
+    font-style: italic;
+  }
+
+  /* ── Camping Callout ── */
+  .camping-callout {
+    background: linear-gradient(135deg, rgba(0, 102, 179, 0.06), rgba(0, 102, 179, 0.03));
+    border: 2px dashed var(--blue-light);
+    border-radius: 10px;
+    padding: clamp(12px, 2.5vw, 18px) clamp(16px, 4vw, 32px);
+    margin-bottom: clamp(14px, 2.5vw, 24px);
+    font-size: clamp(0.85rem, 2.2vw, 1rem);
+    color: var(--blue-dark);
+    max-width: 420px;
+  }
+
+  .camping-callout .tent {
+    font-size: 1.3em;
+    margin-right: 6px;
+  }
+
+  /* ── RSVP ── */
+  .rsvp {
+    font-family: 'Lato', sans-serif;
+    font-weight: 900;
+    font-size: clamp(1rem, 2.8vw, 1.3rem);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--blue);
+    margin-bottom: clamp(6px, 1vw, 10px);
+  }
+
+  /* ── Potluck Note ── */
+  .potluck-note {
+    font-family: 'Lato', sans-serif;
+    font-weight: 300;
+    font-size: clamp(0.8rem, 2vw, 0.95rem);
+    color: #5a6a7a;
+    line-height: 1.5;
+    max-width: 380px;
+    margin-bottom: clamp(16px, 3vw, 28px);
+  }
+
+  .potluck-note strong {
+    font-weight: 700;
+    color: var(--blue-dark);
+  }
+
+  /* ── Bottom Bavarian Check Band ── */
+  .bottom-check {
+    width: 100%;
+    height: clamp(14px, 2.5vw, 22px);
+  }
+
+  /* ── Footer Links ── */
+  .flyer-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin-top: clamp(10px, 2vw, 18px);
+    margin-bottom: clamp(16px, 3vw, 32px);
+    width: 100%;
+    max-width: 680px;
+    padding: 0 clamp(8px, 2vw, 24px);
+  }
+
+  .footer-link {
+    font-family: 'Lato', sans-serif;
+    font-size: clamp(0.75rem, 1.8vw, 0.85rem);
+    color: var(--blue);
+    text-decoration: none;
+    letter-spacing: 0.02em;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+  }
+
+  .footer-link:hover {
+    opacity: 1;
+    text-decoration: underline;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 480px) {
+    .events {
+      gap: 24px 32px;
+    }
+
+    .date-ribbon {
+      min-width: 85%;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .content {
+      padding: 44px 56px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="flyer-frame">
+  <div class="flyer-outer">
+    <div class="flyer-check-border bavarian-check">
+      <div class="flyer-inner">
+
+        <!-- ═══ Pennant Banner ═══ -->
+        <div class="pennant-strip">
+          <div class="pennants">
+            <!-- Repeating blue/white pennant triangles via inline SVG -->
+            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff"/></svg></div>
+            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff" opacity="0.4"/></svg></div>
+            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff"/></svg></div>
+            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff" opacity="0.4"/></svg></div>
+            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff"/></svg></div>
+            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff" opacity="0.4"/></svg></div>
+            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff"/></svg></div>
+            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff" opacity="0.4"/></svg></div>
+            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff"/></svg></div>
+            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff" opacity="0.4"/></svg></div>
+            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff"/></svg></div>
+            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff" opacity="0.4"/></svg></div>
+            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff"/></svg></div>
+            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff" opacity="0.4"/></svg></div>
+            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff"/></svg></div>
+            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff" opacity="0.4"/></svg></div>
+            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff"/></svg></div>
+            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff" opacity="0.4"/></svg></div>
+            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff"/></svg></div>
+            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff" opacity="0.4"/></svg></div>
+            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff"/></svg></div>
+            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff" opacity="0.4"/></svg></div>
+            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff"/></svg></div>
+            <div class="pennant"><svg aria-hidden="true" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 20,0 10,28" fill="#ffffff" opacity="0.4"/></svg></div>
+          </div>
+        </div>
+
+        <!-- ═══ Main Content ═══ -->
+        <div class="content">
+
+          <!-- Family line -->
+          <p class="family-line">Steil Family 7th Annual Potluck</p>
+
+          <!-- OKTOBERFEST -->
+          <h1 class="title-oktoberfest">OKTOBERFEST</h1>
+
+          <hr class="title-rule">
+
+          <!-- ═══ Beer Steins Clinking with Wheat ═══ -->
+          <div class="steins-section">
+
+            <!-- Left wheat stalk -->
+            <svg aria-hidden="true" class="wheat-svg" viewBox="0 0 40 120" xmlns="http://www.w3.org/2000/svg" style="transform: scaleX(-1);">
+              <g fill="none" stroke="#c8a84e" stroke-width="2" stroke-linecap="round">
+                <!-- Main stalk -->
+                <line x1="20" y1="120" x2="20" y2="20"/>
+                <!-- Grain kernels - alternating sides -->
+                <ellipse cx="14" cy="22" rx="5" ry="9" fill="#c8a84e" opacity="0.8" transform="rotate(-15,14,22)"/>
+                <ellipse cx="26" cy="30" rx="5" ry="9" fill="#c8a84e" opacity="0.8" transform="rotate(15,26,30)"/>
+                <ellipse cx="14" cy="38" rx="5" ry="9" fill="#c8a84e" opacity="0.7" transform="rotate(-15,14,38)"/>
+                <ellipse cx="26" cy="46" rx="5" ry="9" fill="#c8a84e" opacity="0.7" transform="rotate(15,26,46)"/>
+                <ellipse cx="14" cy="54" rx="5" ry="8" fill="#c8a84e" opacity="0.6" transform="rotate(-15,14,54)"/>
+                <ellipse cx="26" cy="62" rx="5" ry="8" fill="#c8a84e" opacity="0.6" transform="rotate(15,26,62)"/>
+                <!-- Top kernel -->
+                <ellipse cx="20" cy="14" rx="4" ry="8" fill="#c8a84e" opacity="0.9"/>
+                <!-- Awn whiskers -->
+                <line x1="20" y1="6" x2="18" y2="0" stroke-width="1" opacity="0.6"/>
+                <line x1="20" y1="6" x2="22" y2="0" stroke-width="1" opacity="0.6"/>
+                <line x1="20" y1="6" x2="20" y2="0" stroke-width="1" opacity="0.7"/>
+              </g>
+            </svg>
+
+            <!-- Left stein (tilted right for clinking) -->
+            <svg aria-hidden="true" class="stein-svg" viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg" style="transform: rotate(12deg);">
+              <!-- Stein body -->
+              <rect x="15" y="30" width="55" height="70" rx="4" fill="#c8a84e" stroke="#8b6914" stroke-width="2"/>
+              <!-- Glass highlight -->
+              <rect x="22" y="35" width="41" height="60" rx="2" fill="#e8d590" opacity="0.5"/>
+              <!-- Beer fill -->
+              <rect x="22" y="40" width="41" height="55" rx="2" fill="#f0a820" opacity="0.7"/>
+              <!-- Bavarian diamond on stein -->
+              <g opacity="0.4">
+                <rect x="30" y="55" width="10" height="10" fill="#0066b3" transform="rotate(45,35,60)"/>
+                <rect x="45" y="55" width="10" height="10" fill="#0066b3" transform="rotate(45,50,60)"/>
+              </g>
+              <!-- Metal bands -->
+              <rect x="13" y="38" width="59" height="4" rx="1" fill="#8b6914" opacity="0.6"/>
+              <rect x="13" y="88" width="59" height="4" rx="1" fill="#8b6914" opacity="0.6"/>
+              <!-- Handle -->
+              <path d="M70,40 C88,40 92,55 92,65 C92,75 88,90 70,90" fill="none" stroke="#8b6914" stroke-width="5" stroke-linecap="round"/>
+              <!-- Lid -->
+              <rect x="10" y="26" width="62" height="8" rx="3" fill="#999" stroke="#777" stroke-width="1"/>
+              <rect x="30" y="22" width="22" height="6" rx="3" fill="#aaa" stroke="#888" stroke-width="1"/>
+              <!-- Foam -->
+              <ellipse cx="42" cy="30" rx="27" ry="6" fill="#fff" opacity="0.85"/>
+              <ellipse cx="35" cy="26" rx="8" ry="5" fill="#fff" opacity="0.7"/>
+              <ellipse cx="50" cy="27" rx="7" ry="4" fill="#fff" opacity="0.6"/>
+              <ellipse cx="42" cy="24" rx="5" ry="3" fill="#fff" opacity="0.5"/>
+            </svg>
+
+            <!-- Clinking splash -->
+            <svg aria-hidden="true" viewBox="0 0 24 40" xmlns="http://www.w3.org/2000/svg" style="width: clamp(12px, 3vw, 20px); margin: 0 -6px;">
+              <g fill="#f0a820" opacity="0.7">
+                <circle cx="12" cy="8" r="2"/>
+                <circle cx="8" cy="16" r="1.5"/>
+                <circle cx="16" cy="14" r="1.8"/>
+                <circle cx="12" cy="22" r="1.2"/>
+                <circle cx="6" cy="10" r="1"/>
+                <circle cx="18" cy="20" r="1"/>
+              </g>
+              <!-- Clink lines -->
+              <g stroke="#c8a84e" stroke-width="1.5" stroke-linecap="round" opacity="0.6">
+                <line x1="12" y1="2" x2="12" y2="6"/>
+                <line x1="4" y1="6" x2="7" y2="9"/>
+                <line x1="20" y1="6" x2="17" y2="9"/>
+              </g>
+            </svg>
+
+            <!-- Right stein (tilted left for clinking) -->
+            <svg aria-hidden="true" class="stein-svg" viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg" style="transform: rotate(-12deg) scaleX(-1);">
+              <!-- Stein body -->
+              <rect x="15" y="30" width="55" height="70" rx="4" fill="#c8a84e" stroke="#8b6914" stroke-width="2"/>
+              <!-- Glass highlight -->
+              <rect x="22" y="35" width="41" height="60" rx="2" fill="#e8d590" opacity="0.5"/>
+              <!-- Beer fill -->
+              <rect x="22" y="40" width="41" height="55" rx="2" fill="#f0a820" opacity="0.7"/>
+              <!-- Bavarian diamond on stein -->
+              <g opacity="0.4">
+                <rect x="30" y="55" width="10" height="10" fill="#0066b3" transform="rotate(45,35,60)"/>
+                <rect x="45" y="55" width="10" height="10" fill="#0066b3" transform="rotate(45,50,60)"/>
+              </g>
+              <!-- Metal bands -->
+              <rect x="13" y="38" width="59" height="4" rx="1" fill="#8b6914" opacity="0.6"/>
+              <rect x="13" y="88" width="59" height="4" rx="1" fill="#8b6914" opacity="0.6"/>
+              <!-- Handle -->
+              <path d="M70,40 C88,40 92,55 92,65 C92,75 88,90 70,90" fill="none" stroke="#8b6914" stroke-width="5" stroke-linecap="round"/>
+              <!-- Lid -->
+              <rect x="10" y="26" width="62" height="8" rx="3" fill="#999" stroke="#777" stroke-width="1"/>
+              <rect x="30" y="22" width="22" height="6" rx="3" fill="#aaa" stroke="#888" stroke-width="1"/>
+              <!-- Foam -->
+              <ellipse cx="42" cy="30" rx="27" ry="6" fill="#fff" opacity="0.85"/>
+              <ellipse cx="35" cy="26" rx="8" ry="5" fill="#fff" opacity="0.7"/>
+              <ellipse cx="50" cy="27" rx="7" ry="4" fill="#fff" opacity="0.6"/>
+              <ellipse cx="42" cy="24" rx="5" ry="3" fill="#fff" opacity="0.5"/>
+            </svg>
+
+            <!-- Right wheat stalk -->
+            <svg aria-hidden="true" class="wheat-svg" viewBox="0 0 40 120" xmlns="http://www.w3.org/2000/svg">
+              <g fill="none" stroke="#c8a84e" stroke-width="2" stroke-linecap="round">
+                <line x1="20" y1="120" x2="20" y2="20"/>
+                <ellipse cx="14" cy="22" rx="5" ry="9" fill="#c8a84e" opacity="0.8" transform="rotate(-15,14,22)"/>
+                <ellipse cx="26" cy="30" rx="5" ry="9" fill="#c8a84e" opacity="0.8" transform="rotate(15,26,30)"/>
+                <ellipse cx="14" cy="38" rx="5" ry="9" fill="#c8a84e" opacity="0.7" transform="rotate(-15,14,38)"/>
+                <ellipse cx="26" cy="46" rx="5" ry="9" fill="#c8a84e" opacity="0.7" transform="rotate(15,26,46)"/>
+                <ellipse cx="14" cy="54" rx="5" ry="8" fill="#c8a84e" opacity="0.6" transform="rotate(-15,14,54)"/>
+                <ellipse cx="26" cy="62" rx="5" ry="8" fill="#c8a84e" opacity="0.6" transform="rotate(15,26,62)"/>
+                <ellipse cx="20" cy="14" rx="4" ry="8" fill="#c8a84e" opacity="0.9"/>
+                <line x1="20" y1="6" x2="18" y2="0" stroke-width="1" opacity="0.6"/>
+                <line x1="20" y1="6" x2="22" y2="0" stroke-width="1" opacity="0.6"/>
+                <line x1="20" y1="6" x2="20" y2="0" stroke-width="1" opacity="0.7"/>
+              </g>
+            </svg>
+
+          </div>
+
+          <!-- ═══ Date Ribbon ═══ -->
+          <div class="date-ribbon">Saturday, September 12 &middot; 3:30 PM</div>
+
+          <!-- ═══ Activities ═══ -->
+          <p class="activities">
+            Food<span class="dot">&middot;</span>Music<span class="dot">&middot;</span>Beer<span class="dot">&middot;</span>Karaoke
+          </p>
+
+          <hr class="section-divider">
+
+          <!-- ═══ Featured Events ═══ -->
+          <div class="events">
+            <div class="event-item">
+              <span class="event-icon">🍺💪</span>
+              <span class="event-name">Steinholding Competition</span>
+              <span class="event-desc">How long can you hold it?</span>
+            </div>
+            <div class="event-item">
+              <span class="event-icon">🔨🪵</span>
+              <span class="event-name">Hammerschlagen</span>
+              <span class="event-desc">Nail it in one swing!</span>
+            </div>
+          </div>
+
+          <hr class="section-divider">
+
+          <!-- ═══ Camping Callout ═══ -->
+          <div class="camping-callout">
+            <span class="tent">⛺</span>Don't want to drive home? <strong>Camp out here!</strong>
+          </div>
+
+          <!-- ═══ RSVP ═══ -->
+          <p class="rsvp">RSVP Taylor or Katrin</p>
+
+          <!-- ═══ Potluck Note ═══ -->
+          <p class="potluck-note">
+            For the Potluck — <strong>German food is encouraged</strong> but not required!
+          </p>
+
+          <!-- ═══ Bottom Check Band ═══ -->
+          <div class="bottom-check bavarian-check" style="height: clamp(14px, 2.5vw, 22px); width: calc(100% + clamp(32px, 8vw, 96px)); margin-left: calc(-1 * clamp(16px, 4vw, 48px)); margin-right: calc(-1 * clamp(16px, 4vw, 48px));"></div>
+
+        </div><!-- .content -->
+
+      </div><!-- .flyer-inner -->
+    </div><!-- .flyer-check-border -->
+  </div><!-- .flyer-outer -->
+</div><!-- .flyer-frame -->
+
+<!-- ═══ Footer Links ═══ -->
+<nav class="flyer-footer">
+  <a href="/flyers/oktoberfest-sep-2026/" class="footer-link">View vintage version &rarr;</a>
+  <a href="/flyers/" class="footer-link">&larr; Back to Flyers</a>
+</nav>
+
+</body>
+</html>
