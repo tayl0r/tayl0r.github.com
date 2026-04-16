@@ -6,14 +6,18 @@
 	"type": "module",
 	"scripts": {
 		"dev": "vite --port 4100",
-		"build": "tsc && vite build",
+		"build": "tsc && vite build && pnpm run build:games",
+		"build:games": "node scripts/build-games.mjs",
+		"new-game": "node nova-games/new.mjs",
 		"preview": "vite preview --port 4100",
 		"test": "tsc --noEmit && biome check .",
 		"check": "biome check .",
 		"format": "biome format --write ."
 	},
 	"dependencies": {
-		"three": "^0.183.2"
+		"gsap": "^3.14.2",
+		"three": "^0.183.2",
+		"troika-three-text": "^0.52.4"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.4",
