@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>phoenix-a-game</title>
+		<style>
+			html, body {
+				margin: 0;
+				padding: 0;
+				overflow: hidden;
+				background: #000;
+			}
+			canvas {
+				display: block;
+			}
+			#hud.hud-flash::before {
+				content: "";
+				position: absolute;
+				inset: 0;
+				background: rgba(255, 0, 0, 0.25);
+				pointer-events: none;
+			}
+			#start-overlay {
+				position: fixed;
+				inset: 0;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				background: rgba(0, 0, 0, 0.85);
+				color: #fff;
+				font-family: sans-serif;
+				font-size: 28px;
+				z-index: 10;
+				cursor: pointer;
+				letter-spacing: 0.02em;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="start-overlay">phoenix-a-game — click to begin</div>
+		<div id="hud" style="
+			position: fixed; inset: 0; pointer-events: none;
+			color: #fff; font-family: sans-serif; font-size: 20px;
+			text-shadow: 0 0 4px #000;
+		">
+			<div id="hud-health" style="position: absolute; top: 12px; left: 12px;"></div>
+			<div id="hud-stamina" style="position: absolute; top: 12px; left: 50%; transform: translateX(-50%);"></div>
+			<div id="hud-hunger" style="position: absolute; top: 12px; right: 12px;"></div>
+			<div id="hud-banner" style="
+				position: absolute; inset: 0; display: none;
+				align-items: center; justify-content: center;
+				background: rgba(0,0,0,0.6); font-size: 48px;
+			"></div>
+		</div>
+		<script type="module" src="/src/main.ts"></script>
+	</body>
+</html>
