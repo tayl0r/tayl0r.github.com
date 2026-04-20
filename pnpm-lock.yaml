@@ -59,16 +59,22 @@ importers:
 
   nova-games/case-retro-drifters:
     dependencies:
-      pixi.js:
-        specifier: ^8.6.6
-        version: 8.18.1
+      three:
+        specifier: ^0.164.0
+        version: 0.164.1
     devDependencies:
+      '@types/three':
+        specifier: ^0.164.0
+        version: 0.164.1
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
       vite:
         specifier: ^7.3.1
         version: 7.3.1
+      vitest:
+        specifier: ^1.6.0
+        version: 1.6.1
 
   nova-games/grant-centipede-run:
     dependencies:

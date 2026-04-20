@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Retro Drifters</title>
+		<style>
+			body { margin: 0; overflow: hidden; background: #0a0515;
+				font-family: system-ui, sans-serif; color: #e0b8ff; }
+			canvas { display: block; }
+			#menu-ui { position: fixed; inset: 0; display: flex; flex-direction: column;
+				align-items: center; justify-content: center; pointer-events: none; z-index: 10; }
+			#menu-title {
+				font-size: clamp(48px, 9vw, 120px); font-weight: 900;
+				letter-spacing: 0.08em; color: #e0b8ff;
+				text-shadow: 0 0 4px #c080ff, 0 0 14px #a040ff,
+					0 0 28px #7010cc, 0 0 50px #400080;
+				margin-bottom: 2rem;
+			}
+			#menu-start {
+				pointer-events: auto; background: transparent; color: #e0b8ff;
+				border: 2px solid #a040ff; border-radius: 8px;
+				padding: 0.9rem 3rem; font-size: 1.6rem; font-weight: 700;
+				letter-spacing: 0.2em; cursor: pointer;
+				box-shadow: 0 0 16px #a040ff, inset 0 0 8px #7010cc;
+				text-shadow: 0 0 6px #c080ff;
+			}
+			#menu-start:hover { background: rgba(160, 64, 255, 0.15); }
+
+			#race-hud { position: fixed; inset: 0; pointer-events: none;
+				z-index: 10; display: none; }
+			#race-hud.active { display: block; }
+
+			#hud-speed {
+				position: absolute; bottom: 24px; left: 24px;
+				width: 24px; height: 220px;
+				border: 2px solid #a040ff; border-radius: 6px;
+				box-shadow: 0 0 12px #a040ff;
+				background: rgba(20,10,40,0.6); overflow: hidden;
+			}
+			#hud-speed-fill {
+				position: absolute; bottom: 0; left: 0; right: 0;
+				background: linear-gradient(to top, #ff40c0, #a040ff, #4080ff);
+				box-shadow: 0 0 10px #a040ff; height: 0%;
+				transition: height 60ms linear;
+			}
+			#hud-lap {
+				position: absolute; top: 18px; left: 24px;
+				font-size: 22px; font-weight: 700; letter-spacing: 0.12em;
+				text-shadow: 0 0 8px #a040ff;
+			}
+			#hud-timer {
+				position: absolute; top: 18px; right: 24px; text-align: right;
+				font-variant-numeric: tabular-nums; text-shadow: 0 0 8px #a040ff;
+			}
+			#hud-timer-current { font-size: 20px; font-weight: 600; }
+			#hud-timer-best { display: block; font-size: 14px; opacity: 0.6; }
+			#hud-center {
+				position: absolute; top: 40%; left: 50%;
+				transform: translate(-50%, -50%);
+				font-size: 56px; font-weight: 900; letter-spacing: 0.08em;
+				color: #ffe0c0;
+				text-shadow: 0 0 12px #ff4080, 0 0 24px #a040ff;
+				opacity: 0; transition: opacity 300ms; text-align: center;
+				white-space: pre-line;
+			}
+			#hud-center.visible { opacity: 1; }
+			#hud-back {
+				position: absolute; bottom: 30px; right: 30px;
+				pointer-events: auto; background: transparent; color: #e0b8ff;
+				border: 2px solid #a040ff; border-radius: 8px;
+				padding: 0.6rem 1.4rem; font-size: 1rem;
+				text-shadow: 0 0 6px #c080ff; cursor: pointer;
+				box-shadow: 0 0 10px #a040ff;
+				opacity: 0; transition: opacity 300ms;
+			}
+			#hud-back.visible { opacity: 1; pointer-events: auto; }
+		</style>
+	</head>
+	<body>
+		<div id="menu-ui">
+			<div id="menu-title">RETRO DRIFTERS</div>
+			<button type="button" id="menu-start">START</button>
+		</div>
+		<div id="race-hud">
+			<div id="hud-speed"><div id="hud-speed-fill"></div></div>
+			<div id="hud-lap">LAP 1 / 3</div>
+			<div id="hud-timer">
+				<span id="hud-timer-current">00:00.000</span>
+				<span id="hud-timer-best">best --</span>
+			</div>
+			<div id="hud-center"></div>
+			<button type="button" id="hud-back">BACK TO MENU</button>
+		</div>
+		<script type="module" src="/src/main.ts"></script>
+	</body>
+</html>
