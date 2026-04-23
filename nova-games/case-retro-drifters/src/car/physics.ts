@@ -20,6 +20,12 @@ export const DRIFT_EXIT_LATERAL = 1.5;
 export const DRIFT_EXIT_DURATION = 0.15;
 export const DRIFT_EXIT_SPEED = DRIFT_SPEED_THRESHOLD * 0.6;
 export const COUNTERSTEER_DAMP = 0.94;
+// When drifting and the player releases steering, bleed lateral velocity
+// aggressively so the car settles and the auto-release timer can trip.
+// Load-bearing: with grip pinned at MIN_GRIP the default lateral friction
+// alone is too weak to bring |vLateral| below DRIFT_EXIT_LATERAL in the
+// DRIFT_EXIT_DURATION window.
+export const DRIFT_SETTLE_DAMP = 0.92;
 
 export function initialCarState(): CarState {
 	return {
@@ -113,7 +119,7 @@ export function updateCar(s: CarState, inp: CarInput, dt: number): CarState {
 	// When drifting and the driver isn't steering into the slide anymore,
 	// bleed lateral velocity aggressively so the car settles and auto-releases.
 	if (isDrifting && Math.abs(effectiveInput.steer) < 0.01) {
-		vLateral *= 0.92 ** (dt * 60);
+		vLateral *= DRIFT_SETTLE_DAMP ** (dt * 60);
 	}
 
 	const velocity: Vec2 = {
@@ -160,11 +166,7 @@ export function updateCar(s: CarState, inp: CarInput, dt: number): CarState {
 			driftExitTimer = 0;
 		}
 		const speedNow = Math.hypot(velocity.x, velocity.z);
-		if (
-			driftExitTimer >= DRIFT_EXIT_DURATION ||
-			speedNow < DRIFT_EXIT_SPEED ||
-			spinOutTimer > 0
-		) {
+		if (driftExitTimer >= DRIFT_EXIT_DURATION || speedNow < DRIFT_EXIT_SPEED) {
 			isDrifting = false;
 			driftExitTimer = 0;
 		}
