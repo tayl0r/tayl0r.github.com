@@ -26,6 +26,9 @@ const MAX_SPEED = 520; // px/s
 const GRAVITY = 1800; // px/s^2
 const JUMP_IMPULSE = 720; // px/s upward
 const CHUNK_WIDTH = 400;
+const TERRAIN_AMPLITUDE = 0; // will be bumped in Task 3
+const TERRAIN_RAMP_START = 0;
+const TERRAIN_RAMP_END = 2000;
 const INVINCIBILITY_SECONDS = 1;
 const HIGH_SCORE_KEY = "centipede-run:highscore";
 
@@ -59,6 +62,23 @@ app.stage.addChild(ui);
 
 function groundY(): number {
 	return app.screen.height - GROUND_Y_FROM_BOTTOM;
+}
+
+function groundHeightAt(worldX: number): number {
+	const base = groundY();
+	if (TERRAIN_AMPLITUDE <= 0) return base;
+	const rampT = Math.min(
+		1,
+		Math.max(
+			0,
+			(worldX - TERRAIN_RAMP_START) / (TERRAIN_RAMP_END - TERRAIN_RAMP_START),
+		),
+	);
+	const amp = TERRAIN_AMPLITUDE * rampT;
+	const h =
+		Math.sin(worldX * 0.004) * amp * 0.7 +
+		Math.sin(worldX * 0.011 + 1.3) * amp * 0.3;
+	return base - h;
 }
 
 type State = "menu" | "playing" | "gameover";
@@ -283,10 +303,10 @@ function spawnCentipede(): void {
 	for (const s of centipede.segments) s.g.destroy();
 	centipede.segments = [];
 	const startX = 120;
-	const y = groundY() - CENTIPEDE_RADIUS;
 	for (let i = 0; i < CENTIPEDE_SEG_COUNT; i++) {
 		const g = drawSegment(i === 0);
 		const x = startX - i * CENTIPEDE_SEG_SPACING;
+		const y = groundHeightAt(x) - CENTIPEDE_RADIUS;
 		g.position.set(x, y);
 		gameScene.addChild(g);
 		const legs = new Graphics();
@@ -470,7 +490,7 @@ app.ticker.add((time) => {
 
 	centipede.vy += GRAVITY * dt;
 	const newY = head.y + centipede.vy * dt;
-	const floorY = groundY() - CENTIPEDE_RADIUS;
+	const floorY = groundHeightAt(head.x) - CENTIPEDE_RADIUS;
 	if (newY >= floorY) {
 		head.y = floorY;
 		centipede.vy = 0;
@@ -493,7 +513,7 @@ app.ticker.add((time) => {
 		const prev = centipede.segments[i - 1];
 		const seg = centipede.segments[i];
 		seg.x = prev.x - CENTIPEDE_SEG_SPACING;
-		seg.y = prev.y;
+		seg.y = groundHeightAt(seg.x) - CENTIPEDE_RADIUS;
 	}
 
 	// Render: draw back-to-front so the head is on top.
