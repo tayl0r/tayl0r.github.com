@@ -137,7 +137,7 @@ function buildChunkGround(index: number): Graphics {
 	const startX = index * CHUNK_WIDTH;
 	const endX = startX + CHUNK_WIDTH;
 	const step = 8;
-	const bottom = groundY() + GROUND_Y_FROM_BOTTOM;
+	const bottom = app.screen.height;
 	g.moveTo(startX, bottom);
 	g.lineTo(startX, groundHeightAt(startX));
 	for (let x = startX + step; x <= endX; x += step) {
@@ -266,6 +266,14 @@ function layoutHUD(): void {
 }
 layoutHUD();
 window.addEventListener("resize", layoutHUD);
+
+window.addEventListener("resize", () => {
+	for (const chunk of chunks.values()) {
+		chunk.ground.destroy();
+		chunk.ground = buildChunkGround(chunk.index);
+		groundLayer.addChild(chunk.ground);
+	}
+});
 
 stepCounterText.visible = false;
 
