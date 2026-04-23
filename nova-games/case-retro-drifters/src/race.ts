@@ -1,9 +1,12 @@
 import {
 	AmbientLight,
+	Box3,
 	DirectionalLight,
 	type Group,
 	PerspectiveCamera,
+	Ray,
 	Scene,
+	Vector3,
 } from "three";
 import { buildCar } from "./car/geometry";
 import { initialCarState, updateCar } from "./car/physics";
@@ -28,6 +31,25 @@ export const createRaceScene: SceneFactory = (ctx: SceneContext): GameScene => {
 
 	const track = buildRoad(tokyoWaypoints);
 	scene.add(track.root);
+
+	const buildings = track.buildings;
+	// Make materials transparent-ready.
+	for (const b of buildings) {
+		const mat = b.material as {
+			transparent: boolean;
+			depthWrite: boolean;
+			opacity: number;
+		};
+		mat.transparent = true;
+		mat.depthWrite = false;
+		mat.opacity = 1;
+	}
+	const buildingBoxes = buildings.map((b) => new Box3().setFromObject(b));
+	const buildingTargetOpacity = new Float32Array(buildings.length).fill(1);
+	const occlusionRay = new Ray();
+	const camWorldPos = new Vector3();
+	const carWorldPos = new Vector3();
+	const rayHit = new Vector3();
 
 	const carMesh: Group = buildCar("skyline");
 	scene.add(carMesh);
@@ -204,6 +226,27 @@ export const createRaceScene: SceneFactory = (ctx: SceneContext): GameScene => {
 			camTargetZ += (car.position.z - camTargetZ) * lerp;
 			camera.position.set(camTargetX, 26, camTargetZ + 18);
 			camera.lookAt(camTargetX, 0, camTargetZ);
+
+			// Occlusion transparency for buildings between camera and car.
+			camWorldPos.copy(camera.position);
+			carWorldPos.set(car.position.x, 1, car.position.z);
+			occlusionRay.origin.copy(camWorldPos);
+			occlusionRay.direction.copy(carWorldPos).sub(camWorldPos).normalize();
+			const distToCar = camWorldPos.distanceTo(carWorldPos);
+			for (let i = 0; i < buildings.length; i++) {
+				const target = occlusionRay.intersectBox(buildingBoxes[i], rayHit);
+				let blocking = false;
+				if (target) {
+					const d = camWorldPos.distanceTo(rayHit);
+					if (d > 0.1 && d < distToCar) blocking = true;
+				}
+				buildingTargetOpacity[i] = blocking ? 0.25 : 1.0;
+			}
+			const opacityLerp = 1 - Math.exp(-dt / 0.3);
+			for (let i = 0; i < buildings.length; i++) {
+				const mat = buildings[i].material as { opacity: number };
+				mat.opacity += (buildingTargetOpacity[i] - mat.opacity) * opacityLerp;
+			}
 
 			carMesh.position.set(car.position.x, 0, car.position.z);
 			carMesh.rotation.y = car.heading;
