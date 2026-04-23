@@ -333,8 +333,8 @@ function drawLegs(legs: Graphics, phase: number): void {
 			.moveTo(hipX, 0)
 			.lineTo(footX, footY)
 			.stroke({ color: 0x222222, width: 3 });
-		// Boot: dark rounded rect pinned to the foot
-		legs.roundRect(footX - 5 * side - 1, footY - 1, 7, 5, 2).fill(0x3a2516);
+		// Boot: dark rounded rect centered on the foot
+		legs.roundRect(footX - 3.5, footY - 1, 7, 5, 2).fill(0x3a2516);
 	}
 }
 
