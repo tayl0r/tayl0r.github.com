@@ -18,6 +18,7 @@ export type TrackMeshes = {
 	root: Group;
 	road: Mesh;
 	sampled: TrackSample[];
+	buildings: Mesh[];
 };
 
 function buildLineStrip(
@@ -197,15 +198,30 @@ export function buildRoad(waypoints: Waypoint[]): TrackMeshes {
 		}
 	}
 
-	const buildingMat = new MeshStandardMaterial({
-		color: 0x1a0a3a,
-		emissive: 0x4020c0,
-		emissiveIntensity: 0.25,
-		metalness: 0.6,
-		roughness: 0.4,
-	});
-	for (let i = 0; i < 40; i++) {
-		const idx = Math.floor((i / 40) * sampled.length);
+	const buildingColors = [0x8a8a90, 0xa09888, 0x6a6a78, 0x7a6a5a];
+	const buildings: Mesh[] = [];
+
+	const distToTrack = (px: number, pz: number): number => {
+		let best = Number.POSITIVE_INFINITY;
+		for (let i = 0; i < sampled.length; i++) {
+			const a = sampled[i];
+			const b = sampled[(i + 1) % sampled.length];
+			const dx = b.x - a.x;
+			const dz = b.z - a.z;
+			const lenSq = dx * dx + dz * dz || 1;
+			let t = ((px - a.x) * dx + (pz - a.z) * dz) / lenSq;
+			t = Math.max(0, Math.min(1, t));
+			const cx = a.x + dx * t;
+			const cz = a.z + dz * t;
+			const d = Math.hypot(px - cx, pz - cz) - a.width / 2;
+			if (d < best) best = d;
+		}
+		return best;
+	};
+
+	const BUILDING_COUNT = 50;
+	for (let i = 0; i < BUILDING_COUNT; i++) {
+		const idx = Math.floor((i / BUILDING_COUNT) * sampled.length);
 		const s = sampled[idx];
 		const next = sampled[(idx + 1) % sampled.length];
 		const tx = next.x - s.x;
@@ -213,13 +229,32 @@ export function buildRoad(waypoints: Waypoint[]): TrackMeshes {
 		const len = Math.hypot(tx, tz) || 1;
 		const nx = -tz / len;
 		const nz = tx / len;
-		const offset = s.width / 2 + 4 + Math.random() * 8;
+		const side = Math.random() < 0.5 ? 1 : -1;
 		const h = 6 + Math.random() * 18;
 		const bw = 3 + Math.random() * 4;
-		const b = new Mesh(new BoxGeometry(bw, h, bw), buildingMat);
-		b.position.set(s.x + nx * offset, h / 2, s.z + nz * offset);
-		root.add(b);
+
+		let placed = false;
+		for (const attempt of [6 + Math.random() * 10, 10 + Math.random() * 8]) {
+			const offset = s.width / 2 + attempt;
+			const bx = s.x + nx * offset * side;
+			const bz = s.z + nz * offset * side;
+			const buildingRadius = (bw * Math.SQRT2) / 2;
+			if (distToTrack(bx, bz) - buildingRadius > 2) {
+				const mat = new MeshStandardMaterial({
+					color: buildingColors[i % buildingColors.length],
+					roughness: 0.85,
+					metalness: 0.1,
+				});
+				const b = new Mesh(new BoxGeometry(bw, h, bw), mat);
+				b.position.set(bx, h / 2, bz);
+				root.add(b);
+				buildings.push(b);
+				placed = true;
+				break;
+			}
+		}
+		if (!placed) continue;
 	}
 
-	return { root, road, sampled };
+	return { root, road, sampled, buildings };
 }
