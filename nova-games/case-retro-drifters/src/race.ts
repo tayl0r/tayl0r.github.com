@@ -145,14 +145,14 @@ export const createRaceScene: SceneFactory = (ctx: SceneContext): GameScene => {
 				carMesh.rotation.y = car.heading;
 				camTargetX = car.position.x;
 				camTargetZ = car.position.z;
-				camera.position.set(camTargetX, 18, camTargetZ + 10);
+				camera.position.set(camTargetX, 26, camTargetZ + 18);
 				camera.lookAt(camTargetX, 0, camTargetZ);
 				return;
 			}
 
 			if (finished) {
 				// Keep rendering but ignore input.
-				camera.position.set(camTargetX, 18, camTargetZ + 10);
+				camera.position.set(camTargetX, 26, camTargetZ + 18);
 				camera.lookAt(camTargetX, 0, camTargetZ);
 				return;
 			}
@@ -202,7 +202,7 @@ export const createRaceScene: SceneFactory = (ctx: SceneContext): GameScene => {
 			const lerp = Math.min(1, dt / lag);
 			camTargetX += (car.position.x - camTargetX) * lerp;
 			camTargetZ += (car.position.z - camTargetZ) * lerp;
-			camera.position.set(camTargetX, 18, camTargetZ + 10);
+			camera.position.set(camTargetX, 26, camTargetZ + 18);
 			camera.lookAt(camTargetX, 0, camTargetZ);
 
 			carMesh.position.set(car.position.x, 0, car.position.z);
