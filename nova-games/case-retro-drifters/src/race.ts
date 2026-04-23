@@ -13,8 +13,8 @@ import { initialCarState, updateCar } from "./car/physics";
 import { HUD } from "./hud";
 import { Input } from "./input";
 import type { GameScene, SceneContext, SceneFactory } from "./scene";
-import { nearestSegment, offTrack, segmentDirection } from "./track/collision";
 import { buildRoad } from "./track/geometry";
+import { resolveWallCollision } from "./track/walls";
 import { tokyoWaypoints } from "./track/waypoints";
 import type { CarInput, CarState } from "./types";
 
@@ -81,7 +81,6 @@ export const createRaceScene: SceneFactory = (ctx: SceneContext): GameScene => {
 	let bestLap: number | null = null;
 	let finished = false;
 	let halfwayReached = false;
-	let penaltyTimer = 0;
 
 	// Start line direction (used as forward direction AND to derive its
 	// left-perpendicular normal for side-of-line detection).
@@ -110,26 +109,6 @@ export const createRaceScene: SceneFactory = (ctx: SceneContext): GameScene => {
 		if (disposed) return;
 		const { createMenuScene } = await import("./menu");
 		ctx.switchTo(createMenuScene);
-	}
-
-	function applyOffTrackPenalty(): void {
-		const hit = nearestSegment(car.position, tokyoWaypoints);
-		const a = tokyoWaypoints[hit.segmentIndex].pos;
-		const b =
-			tokyoWaypoints[(hit.segmentIndex + 1) % tokyoWaypoints.length].pos;
-		const dir = segmentDirection(a, b);
-		car = {
-			...car,
-			position: { ...hit.closestPoint },
-			velocity: { x: dir.x * car.speed * 0.5, z: dir.z * car.speed * 0.5 },
-			heading: Math.atan2(dir.x, dir.z),
-			angularVelocity: 0,
-			speed: car.speed * 0.5,
-			isDrifting: false,
-			grip: 1,
-		};
-		penaltyTimer = 3;
-		hud.setCenter("OFF TRACK");
 	}
 
 	function detectLapCross(
@@ -179,19 +158,11 @@ export const createRaceScene: SceneFactory = (ctx: SceneContext): GameScene => {
 				return;
 			}
 
-			let inp: CarInput = input.readCar();
-			if (penaltyTimer > 0) {
-				inp = { throttle: 0, brake: 0, steer: 0, driftPress: false };
-				penaltyTimer -= dt;
-				if (penaltyTimer <= 0) hud.clearCenter();
-			}
+			const inp: CarInput = input.readCar();
 
 			const prev = { ...car.position };
 			car = updateCar(car, inp, dt);
-
-			if (penaltyTimer <= 0 && offTrack(car.position, tokyoWaypoints)) {
-				applyOffTrackPenalty();
-			}
+			car = resolveWallCollision(car, tokyoWaypoints);
 
 			raceTime += dt;
 			const lapTime = raceTime - lapStart;
