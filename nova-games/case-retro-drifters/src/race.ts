@@ -10,6 +10,7 @@ import {
 } from "three";
 import { buildCar } from "./car/geometry";
 import { initialCarState, updateCar } from "./car/physics";
+import { createSmoke } from "./fx/smoke";
 import { HUD } from "./hud";
 import { Input } from "./input";
 import { createStartLights } from "./race/lights";
@@ -39,6 +40,8 @@ export const createRaceScene: SceneFactory = (ctx: SceneContext): GameScene => {
 		track.startInfo.rightNormal,
 		track.startInfo.halfWidth,
 	);
+
+	const smoke = createSmoke(scene);
 
 	const buildings = track.buildings;
 	// Make materials transparent-ready.
@@ -228,6 +231,27 @@ export const createRaceScene: SceneFactory = (ctx: SceneContext): GameScene => {
 				mat.opacity += (buildingTargetOpacity[i] - mat.opacity) * opacityLerp;
 			}
 
+			smoke.update(dt);
+			if (car.isDrifting) {
+				const cos = Math.cos(car.heading);
+				const sin = Math.sin(car.heading);
+				const wheels: [number, number][] = [
+					[-0.95, -1.6],
+					[0.95, -1.6],
+				];
+				for (const [lx, lz] of wheels) {
+					const wx = car.position.x + sin * lz + cos * lx;
+					const wz = car.position.z + cos * lz - sin * lx;
+					for (let i = 0; i < 2; i++) {
+						const jitter = (Math.random() - 0.5) * 0.8;
+						const back = -2 - Math.random();
+						const vx = -sin * back + cos * jitter;
+						const vz = -cos * back - sin * jitter;
+						smoke.emit(wx, 0.3, wz, vx, 0.5 + Math.random(), vz);
+					}
+				}
+			}
+
 			carMesh.position.set(car.position.x, 0, car.position.z);
 			carMesh.rotation.y = car.heading;
 			hud.setSpeed(car.speed, car.isDrifting);
@@ -241,6 +265,7 @@ export const createRaceScene: SceneFactory = (ctx: SceneContext): GameScene => {
 			hud.hide();
 			hud.clearCenter();
 			lights.dispose();
+			smoke.dispose();
 			scene.traverse((obj) => {
 				const m = obj as {
 					geometry?: { dispose(): void };
