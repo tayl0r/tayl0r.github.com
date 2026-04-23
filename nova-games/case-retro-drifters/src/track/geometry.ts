@@ -340,7 +340,7 @@ export function buildRoad(waypoints: Waypoint[]): TrackMeshes {
 		startInfo: {
 			pos: startA,
 			dir: startDir,
-			rightNormal: { x: -startDir.z, z: startDir.x },
+			rightNormal: { x: startDir.z, z: -startDir.x },
 			halfWidth: waypoints[0].width / 2,
 		},
 	};
