@@ -400,18 +400,23 @@ const PHASE_PER_PX = STEP_PHASE / 120;
 let invincibleUntil = 0; // seconds elapsed
 let runTime = 0;
 
-interface Hazard {
-	kind: "spike" | "bug";
+type SpawnableKind = "sphere" | "fireball" | "blueMushroom" | "redMushroom";
+
+interface Spawnable {
+	kind: SpawnableKind;
 	g: Graphics;
 	x: number;
 	y: number;
+	vx?: number; // for fireball
+	vy?: number; // for fireball
 	width: number;
 	height: number;
+	alive: boolean;
 }
 
 interface Chunk {
 	index: number;
-	hazards: Hazard[];
+	spawns: Spawnable[];
 	ground: Graphics;
 }
 
@@ -420,60 +425,14 @@ const chunks = new Map<number, Chunk>();
 function generateChunk(index: number): Chunk {
 	const ground = buildChunkGround(index);
 	groundLayer.addChild(ground);
-	const chunk: Chunk = { index, hazards: [], ground };
+	const chunk: Chunk = { index, spawns: [], ground };
 	if (index <= 2) return chunk; // first few chunks are safe
-	const count = Math.random() < 0.5 ? 1 : Math.random() < 0.85 ? 2 : 0;
-	let cursor = 60;
-	for (let i = 0; i < count; i++) {
-		const gap = 120 + Math.floor(Math.random() * 180);
-		cursor += gap;
-		if (cursor > CHUNK_WIDTH - 40) break;
-		const worldX = index * CHUNK_WIDTH + cursor;
-		const isBug = Math.random() < 0.4;
-		if (isBug) {
-			chunk.hazards.push(makeBug(worldX));
-		} else {
-			chunk.hazards.push(makeSpike(worldX));
-		}
-	}
+	// Spawns are added in subsequent tasks (Tasks 6-9).
 	return chunk;
 }
 
-function makeBug(worldX: number): Hazard {
-	const w = 34;
-	const h = 24;
-	const g = new Graphics()
-		.ellipse(0, 0, w / 2, h / 2)
-		.fill(0x9b30ff)
-		.stroke({ color: 0x111111, width: 2 });
-	// Little wings
-	g.ellipse(-8, -10, 10, 5).fill(0xd8b4fe);
-	g.ellipse(8, -10, 10, 5).fill(0xd8b4fe);
-	// Fly at the peak of the jump arc — catches you only if you jump.
-	const jumpPeakY = groundY() - CENTIPEDE_RADIUS - 140;
-	g.position.set(worldX, jumpPeakY);
-	gameScene.addChild(g);
-	return { kind: "bug", g, x: worldX, y: jumpPeakY, width: w, height: h };
-}
-
-function makeSpike(worldX: number): Hazard {
-	const w = 30;
-	const h = 36;
-	const g = new Graphics()
-		.moveTo(-w / 2, 0)
-		.lineTo(w / 2, 0)
-		.lineTo(0, -h)
-		.closePath()
-		.fill(0x333333)
-		.stroke({ color: 0x111111, width: 2 });
-	const y = groundY();
-	g.position.set(worldX, y);
-	gameScene.addChild(g);
-	return { kind: "spike", g, x: worldX, y: y - h / 2, width: w, height: h };
-}
-
 function destroyChunk(chunk: Chunk): void {
-	for (const h of chunk.hazards) h.g.destroy();
+	for (const s of chunk.spawns) s.g.destroy();
 	chunk.ground.destroy();
 }
 
@@ -507,15 +466,6 @@ function startRun(): void {
 	stepCounterText.visible = true;
 	stepCounterText.text = "0";
 	setState("playing");
-}
-
-function segmentsCollideHazard(segX: number, segY: number, h: Hazard): boolean {
-	const dx = Math.abs(segX - h.x);
-	const dy = Math.abs(segY - h.y);
-	return (
-		dx < h.width / 2 + CENTIPEDE_RADIUS * 0.7 &&
-		dy < h.height / 2 + CENTIPEDE_RADIUS * 0.7
-	);
 }
 
 function loseSegment(): void {
@@ -632,11 +582,15 @@ app.ticker.add((time) => {
 	ensureChunks();
 
 	if (!invincible) {
-		const head = centipede.segments[0];
+		const h = centipede.segments[0];
 		outer: for (const chunk of chunks.values()) {
-			for (const h of chunk.hazards) {
-				if (segmentsCollideHazard(head.x, head.y, h)) {
-					loseSegment();
+			for (const s of chunk.spawns) {
+				if (!s.alive) continue;
+				if (
+					Math.abs(h.x - s.x) < s.width / 2 + CENTIPEDE_RADIUS * 0.7 &&
+					Math.abs(h.y - s.y) < s.height / 2 + CENTIPEDE_RADIUS * 0.7
+				) {
+					// handled per-kind in Tasks 6-9
 					break outer;
 				}
 			}
