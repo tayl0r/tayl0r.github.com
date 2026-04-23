@@ -280,6 +280,7 @@ stepCounterText.visible = false;
 interface Segment {
 	g: Graphics;
 	legs: Graphics;
+	antennae: Graphics | null;
 	x: number;
 	y: number;
 }
@@ -292,32 +293,82 @@ const centipede: { segments: Segment[]; vy: number; onGround: boolean } = {
 
 function drawSegment(isHead: boolean): Graphics {
 	const g = new Graphics();
-	// Shell (brown) on top half
-	g.ellipse(0, 0, CENTIPEDE_RADIUS, CENTIPEDE_RADIUS * 0.7).fill(0xffd64a); // yellow body
-	g.arc(0, 0, CENTIPEDE_RADIUS, Math.PI, 0).fill(0x7a4a1e); // brown shell dome
+	// Slightly rounder body
+	g.ellipse(0, 0, CENTIPEDE_RADIUS, CENTIPEDE_RADIUS * 0.8).fill(0xffd64a);
+	// Brown shell dome
+	g.arc(0, 0, CENTIPEDE_RADIUS, Math.PI, 0).fill(0x7a4a1e);
 	if (isHead) {
-		g.circle(CENTIPEDE_RADIUS * 0.55, -4, 4).fill(0xffffff);
-		g.circle(CENTIPEDE_RADIUS * 0.55, -4, 2).fill(0x000000);
-		g.circle(CENTIPEDE_RADIUS * 0.3, -10, 4).fill(0xffffff);
-		g.circle(CENTIPEDE_RADIUS * 0.3, -10, 2).fill(0x000000);
+		// Symmetric big eyes
+		const eyeY = -2;
+		const eyeX = CENTIPEDE_RADIUS * 0.45;
+		// Sclera
+		g.circle(eyeX, eyeY, 6).fill(0xffffff);
+		g.circle(-eyeX, eyeY, 6).fill(0xffffff);
+		// Pupils
+		g.circle(eyeX, eyeY, 3).fill(0x000000);
+		g.circle(-eyeX, eyeY, 3).fill(0x000000);
+		// Highlight glints
+		g.circle(eyeX + 1.2, eyeY - 1.5, 1).fill(0xffffff);
+		g.circle(-eyeX + 1.2, eyeY - 1.5, 1).fill(0xffffff);
+		// Rosy cheeks
+		g.circle(eyeX + 2, eyeY + 5, 2.5).fill(0xff9ab0);
+		g.circle(-eyeX + 2, eyeY + 5, 2.5).fill(0xff9ab0);
+		// Smile
+		g.arc(0, eyeY + 6, 3.5, 0.15 * Math.PI, 0.85 * Math.PI).stroke({
+			color: 0x3a2516,
+			width: 1.5,
+		});
 	}
 	return g;
 }
 
 function drawLegs(legs: Graphics, phase: number): void {
 	const swing = Math.sin(phase) * 10;
-	legs
-		.clear()
-		.moveTo(-8, 0)
-		.lineTo(-8 - swing, 18)
-		.stroke({ color: 0x222222, width: 3 })
-		.moveTo(8, 0)
-		.lineTo(8 + swing, 18)
-		.stroke({ color: 0x222222, width: 3 });
+	legs.clear();
+	for (const side of [-1, 1]) {
+		const hipX = 8 * side;
+		const footX = (8 + swing * side) * side;
+		const footY = 18;
+		legs
+			.moveTo(hipX, 0)
+			.lineTo(footX, footY)
+			.stroke({ color: 0x222222, width: 3 });
+		// Boot: dark rounded rect pinned to the foot
+		legs.roundRect(footX - 5 * side - 1, footY - 1, 7, 5, 2).fill(0x3a2516);
+	}
+}
+
+function drawAntennae(a: Graphics, phase: number): void {
+	const swing = Math.sin(phase * 0.8) * 4;
+	a.clear()
+		.moveTo(-6, -CENTIPEDE_RADIUS + 2)
+		.quadraticCurveTo(
+			-10 + swing,
+			-CENTIPEDE_RADIUS - 10,
+			-8 + swing,
+			-CENTIPEDE_RADIUS - 16,
+		)
+		.stroke({ color: 0x3a2516, width: 2 })
+		.circle(-8 + swing, -CENTIPEDE_RADIUS - 17, 2)
+		.fill(0x3a2516)
+		.moveTo(6, -CENTIPEDE_RADIUS + 2)
+		.quadraticCurveTo(
+			10 - swing,
+			-CENTIPEDE_RADIUS - 10,
+			8 - swing,
+			-CENTIPEDE_RADIUS - 16,
+		)
+		.stroke({ color: 0x3a2516, width: 2 })
+		.circle(8 - swing, -CENTIPEDE_RADIUS - 17, 2)
+		.fill(0x3a2516);
 }
 
 function spawnCentipede(): void {
-	for (const s of centipede.segments) s.g.destroy();
+	for (const s of centipede.segments) {
+		s.g.destroy();
+		s.legs.destroy();
+		s.antennae?.destroy();
+	}
 	centipede.segments = [];
 	const startX = 120;
 	for (let i = 0; i < CENTIPEDE_SEG_COUNT; i++) {
@@ -328,7 +379,12 @@ function spawnCentipede(): void {
 		gameScene.addChild(g);
 		const legs = new Graphics();
 		gameScene.addChild(legs);
-		centipede.segments.push({ g, legs, x, y });
+		let antennae: Graphics | null = null;
+		if (i === 0) {
+			antennae = new Graphics();
+			gameScene.addChild(antennae);
+		}
+		centipede.segments.push({ g, legs, antennae, x, y });
 	}
 	centipede.vy = 0;
 	centipede.onGround = true;
@@ -467,6 +523,7 @@ function loseSegment(): void {
 	if (tail) {
 		tail.g.destroy();
 		tail.legs.destroy();
+		tail.antennae?.destroy();
 	}
 	invincibleUntil = runTime + INVINCIBILITY_SECONDS;
 	if (centipede.segments.length === 0) {
@@ -537,6 +594,14 @@ app.ticker.add((time) => {
 		seg.y = groundHeightAt(seg.x) - CENTIPEDE_RADIUS;
 	}
 
+	// Body ripple: subtle vertical bob per segment so the centipede undulates.
+	for (let i = 0; i < centipede.segments.length; i++) {
+		const s = centipede.segments[i];
+		if (i === 0 && !centipede.onGround) continue;
+		const bob = Math.sin(phase + i * 0.9) * 2;
+		s.y += bob;
+	}
+
 	// Render: draw back-to-front so the head is on top.
 	for (let i = centipede.segments.length - 1; i >= 0; i--) {
 		const s = centipede.segments[i];
@@ -549,6 +614,13 @@ app.ticker.add((time) => {
 		const s = centipede.segments[i];
 		s.legs.position.set(s.x, s.y + CENTIPEDE_RADIUS * 0.4);
 		drawLegs(s.legs, phase + i * 0.8);
+	}
+
+	// Draw antennae for the head.
+	const headSeg = centipede.segments[0];
+	if (headSeg?.antennae) {
+		headSeg.antennae.position.set(headSeg.x, headSeg.y);
+		drawAntennae(headSeg.antennae, phase);
 	}
 
 	stepCounterText.text = String(stepCount);
