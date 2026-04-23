@@ -26,7 +26,7 @@ const MAX_SPEED = 520; // px/s
 const GRAVITY = 1800; // px/s^2
 const JUMP_IMPULSE = 720; // px/s upward
 const CHUNK_WIDTH = 400;
-const TERRAIN_AMPLITUDE = 0; // will be bumped in Task 3
+const TERRAIN_AMPLITUDE = 60;
 const TERRAIN_RAMP_START = 0;
 const TERRAIN_RAMP_END = 2000;
 const INVINCIBILITY_SECONDS = 1;
@@ -129,16 +129,25 @@ function makeButton(
 	return c;
 }
 
-// Placeholder so we can verify the page boots
-const ground = new Graphics()
-	.rect(-10000, 0, 20000, GROUND_Y_FROM_BOTTOM)
-	.fill(0x3a7d2c);
-ground.position.set(0, groundY());
-world.addChild(ground);
+const groundLayer = new Container();
+world.addChild(groundLayer);
 
-window.addEventListener("resize", () => {
-	ground.position.set(0, groundY());
-});
+function buildChunkGround(index: number): Graphics {
+	const g = new Graphics();
+	const startX = index * CHUNK_WIDTH;
+	const endX = startX + CHUNK_WIDTH;
+	const step = 8;
+	const bottom = groundY() + GROUND_Y_FROM_BOTTOM;
+	g.moveTo(startX, bottom);
+	g.lineTo(startX, groundHeightAt(startX));
+	for (let x = startX + step; x <= endX; x += step) {
+		g.lineTo(x, groundHeightAt(x));
+	}
+	g.lineTo(endX, bottom);
+	g.closePath();
+	g.fill(0x3a7d2c);
+	return g;
+}
 
 const title = new Text({
 	text: "Centipede Run!",
@@ -339,12 +348,15 @@ interface Hazard {
 interface Chunk {
 	index: number;
 	hazards: Hazard[];
+	ground: Graphics;
 }
 
 const chunks = new Map<number, Chunk>();
 
 function generateChunk(index: number): Chunk {
-	const chunk: Chunk = { index, hazards: [] };
+	const ground = buildChunkGround(index);
+	groundLayer.addChild(ground);
+	const chunk: Chunk = { index, hazards: [], ground };
 	if (index <= 2) return chunk; // first few chunks are safe
 	const count = Math.random() < 0.5 ? 1 : Math.random() < 0.85 ? 2 : 0;
 	let cursor = 60;
@@ -398,6 +410,7 @@ function makeSpike(worldX: number): Hazard {
 
 function destroyChunk(chunk: Chunk): void {
 	for (const h of chunk.hazards) h.g.destroy();
+	chunk.ground.destroy();
 }
 
 function ensureChunks(): void {
@@ -535,8 +548,6 @@ app.ticker.add((time) => {
 	// Camera tracks the head at ~1/3 screen width.
 	cameraX = head.x - app.screen.width / 3;
 	world.position.x = -cameraX;
-	// Ground rect is finite; re-center it on the camera so it always covers the viewport.
-	ground.position.x = cameraX;
 
 	ensureChunks();
 
