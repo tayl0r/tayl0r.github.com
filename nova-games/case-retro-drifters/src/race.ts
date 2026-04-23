@@ -159,7 +159,7 @@ export const createRaceScene: SceneFactory = (ctx: SceneContext): GameScene => {
 
 			let inp: CarInput = input.readCar();
 			if (penaltyTimer > 0) {
-				inp = { throttle: 0, brake: 0, steer: 0, driftBtn: false };
+				inp = { throttle: 0, brake: 0, steer: 0, driftPress: false };
 				penaltyTimer -= dt;
 				if (penaltyTimer <= 0) hud.clearCenter();
 			}
