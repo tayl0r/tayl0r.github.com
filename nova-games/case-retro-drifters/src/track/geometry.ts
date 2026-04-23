@@ -19,7 +19,69 @@ export type TrackMeshes = {
 	road: Mesh;
 	sampled: TrackSample[];
 	buildings: Mesh[];
+	startInfo: {
+		pos: { x: number; z: number };
+		dir: { x: number; z: number };
+		rightNormal: { x: number; z: number };
+		halfWidth: number;
+	};
 };
+
+function buildCheckerStrip(
+	startPos: { x: number; z: number },
+	dir: { x: number; z: number },
+	halfWidth: number,
+	depth: number,
+): Mesh {
+	const squareSize = 0.6;
+	const squaresAcross = Math.floor((halfWidth * 2) / squareSize);
+	const rows = Math.max(1, Math.floor(depth / squareSize));
+	const positions: number[] = [];
+	const colors: number[] = [];
+	const indices: number[] = [];
+	const nx = -dir.z;
+	const nz = dir.x;
+	let v = 0;
+	for (let r = 0; r < rows; r++) {
+		for (let c = 0; c < squaresAcross; c++) {
+			const white = (r + c) % 2 === 0;
+			const col = white ? 1 : 0.04;
+			const u0 = c * squareSize - halfWidth;
+			const u1 = u0 + squareSize;
+			const t0 = r * squareSize - depth / 2;
+			const t1 = t0 + squareSize;
+			for (const [u, t] of [
+				[u0, t0],
+				[u1, t0],
+				[u1, t1],
+				[u0, t1],
+			] as const) {
+				const x = startPos.x + nx * u + dir.x * t;
+				const z = startPos.z + nz * u + dir.z * t;
+				positions.push(x, 0.015, z);
+				colors.push(col, col, col);
+			}
+			indices.push(v, v + 1, v + 2, v, v + 2, v + 3);
+			v += 4;
+		}
+	}
+	const geo = new BufferGeometry();
+	geo.setAttribute(
+		"position",
+		new BufferAttribute(new Float32Array(positions), 3),
+	);
+	geo.setAttribute("color", new BufferAttribute(new Float32Array(colors), 3));
+	geo.setIndex(indices);
+	geo.computeVertexNormals();
+	return new Mesh(
+		geo,
+		new MeshStandardMaterial({
+			vertexColors: true,
+			roughness: 0.9,
+			side: DoubleSide,
+		}),
+	);
+}
 
 function buildLineStrip(
 	samples: { x: number; z: number }[],
@@ -168,6 +230,20 @@ export function buildRoad(waypoints: Waypoint[]): TrackMeshes {
 	root.add(leftEdge);
 	root.add(rightEdge);
 
+	const startA = waypoints[0].pos;
+	const startB = waypoints[1].pos;
+	const ddx = startB.x - startA.x;
+	const ddz = startB.z - startA.z;
+	const dlen = Math.hypot(ddx, ddz) || 1;
+	const startDir = { x: ddx / dlen, z: ddz / dlen };
+	const checker = buildCheckerStrip(
+		startA,
+		startDir,
+		waypoints[0].width / 2,
+		1.5,
+	);
+	root.add(checker);
+
 	const wallMat = new MeshStandardMaterial({
 		color: 0xb0b0b0,
 		roughness: 0.8,
@@ -256,5 +332,16 @@ export function buildRoad(waypoints: Waypoint[]): TrackMeshes {
 		if (!placed) continue;
 	}
 
-	return { root, road, sampled, buildings };
+	return {
+		root,
+		road,
+		sampled,
+		buildings,
+		startInfo: {
+			pos: startA,
+			dir: startDir,
+			rightNormal: { x: -startDir.z, z: startDir.x },
+			halfWidth: waypoints[0].width / 2,
+		},
+	};
 }

@@ -12,6 +12,7 @@ import { buildCar } from "./car/geometry";
 import { initialCarState, updateCar } from "./car/physics";
 import { HUD } from "./hud";
 import { Input } from "./input";
+import { createStartLights } from "./race/lights";
 import type { GameScene, SceneContext, SceneFactory } from "./scene";
 import { buildRoad } from "./track/geometry";
 import { resolveWallCollision } from "./track/walls";
@@ -31,6 +32,13 @@ export const createRaceScene: SceneFactory = (ctx: SceneContext): GameScene => {
 
 	const track = buildRoad(tokyoWaypoints);
 	scene.add(track.root);
+
+	const lights = createStartLights(
+		scene,
+		track.startInfo.pos,
+		track.startInfo.rightNormal,
+		track.startInfo.halfWidth,
+	);
 
 	const buildings = track.buildings;
 	// Make materials transparent-ready.
@@ -73,8 +81,7 @@ export const createRaceScene: SceneFactory = (ctx: SceneContext): GameScene => {
 	}
 
 	// Race progression.
-	let countdown = 3.0;
-	hud.setCenter("3");
+	let countdown = 4.0;
 	let raceTime = 0;
 	let lapStart = 0;
 	let lap = 1;
@@ -135,12 +142,14 @@ export const createRaceScene: SceneFactory = (ctx: SceneContext): GameScene => {
 			// Countdown: freeze car, just animate camera.
 			if (countdown > 0) {
 				countdown -= dt;
-				const n = Math.ceil(countdown);
-				if (countdown <= 0) {
+				if (countdown >= 3) lights.setState("red1");
+				else if (countdown >= 2) lights.setState("red2");
+				else if (countdown >= 1) lights.setState("red3");
+				else if (countdown > 0) lights.setState("green");
+				else {
+					lights.setState("off");
 					hud.flash("GO", 700);
 					countdown = 0;
-				} else {
-					hud.setCenter(String(n));
 				}
 				carMesh.position.set(car.position.x, 0, car.position.z);
 				carMesh.rotation.y = car.heading;
@@ -231,6 +240,7 @@ export const createRaceScene: SceneFactory = (ctx: SceneContext): GameScene => {
 			window.removeEventListener("keydown", onKey);
 			hud.hide();
 			hud.clearCenter();
+			lights.dispose();
 			scene.traverse((obj) => {
 				const m = obj as {
 					geometry?: { dispose(): void };
