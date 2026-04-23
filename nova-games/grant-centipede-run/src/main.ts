@@ -31,6 +31,9 @@ const TERRAIN_RAMP_START = 0;
 const TERRAIN_RAMP_END = 2000;
 const INVINCIBILITY_SECONDS = 1;
 const SPHERE_RADIUS = 28;
+const FIREBALL_RADIUS = 24;
+const FIREBALL_SPEED = 120; // px/s
+const FIREBALL_DESPAWN_BEHIND_PX = 150;
 const HIGH_SCORE_KEY = "centipede-run:highscore";
 
 function loadHighScore(): number {
@@ -453,13 +456,46 @@ function makeSphere(worldX: number): Spawnable {
 	};
 }
 
+function makeFireball(worldX: number): Spawnable {
+	const g = new Graphics();
+	// Outer flame
+	g.circle(0, 0, FIREBALL_RADIUS)
+		.fill(0xff5a1f)
+		.stroke({ color: 0x801800, width: 2 });
+	// Inner flicker
+	g.circle(-2, 2, FIREBALL_RADIUS * 0.6).fill(0xffc400);
+	// Single angry eye
+	g.circle(0, 0, 7).fill(0xffffff);
+	g.circle(0, 1, 3).fill(0x000000);
+	// Eyebrow (angled line above the eye)
+	g.moveTo(-8, -8).lineTo(8, -10).stroke({ color: 0x200800, width: 3 });
+	const y = groundHeightAt(worldX) - (180 + Math.random() * 80);
+	g.position.set(worldX, y);
+	gameScene.addChild(g);
+	return {
+		kind: "fireball",
+		g,
+		x: worldX,
+		y,
+		vx: 0,
+		vy: 0,
+		width: FIREBALL_RADIUS * 2,
+		height: FIREBALL_RADIUS * 2,
+		alive: true,
+	};
+}
+
 function generateChunk(index: number): Chunk {
 	const ground = buildChunkGround(index);
 	groundLayer.addChild(ground);
 	const chunk: Chunk = { index, spawns: [], ground };
 	if (index <= 2) return chunk; // first few chunks are safe
 	const worldX = index * CHUNK_WIDTH + 150 + Math.random() * 100;
-	chunk.spawns.push(makeSphere(worldX));
+	if (Math.random() < 0.5) {
+		chunk.spawns.push(makeSphere(worldX));
+	} else {
+		chunk.spawns.push(makeFireball(worldX));
+	}
 	return chunk;
 }
 
@@ -613,6 +649,26 @@ app.ticker.add((time) => {
 
 	ensureChunks();
 
+	// Update fireballs: home toward the head at a slow fixed speed.
+	for (const chunk of chunks.values()) {
+		for (const s of chunk.spawns) {
+			if (!s.alive) continue;
+			if (s.kind === "fireball") {
+				const head = centipede.segments[0];
+				const dxh = head.x - s.x;
+				const dyh = head.y - s.y;
+				const dist = Math.max(1, Math.hypot(dxh, dyh));
+				s.x += (dxh / dist) * FIREBALL_SPEED * dt;
+				s.y += (dyh / dist) * FIREBALL_SPEED * dt;
+				s.g.position.set(s.x, s.y);
+				if (s.x < head.x - FIREBALL_DESPAWN_BEHIND_PX) {
+					s.alive = false;
+					s.g.destroy();
+				}
+			}
+		}
+	}
+
 	if (!invincible) {
 		const h = centipede.segments[0];
 		outer: for (const chunk of chunks.values()) {
@@ -625,6 +681,12 @@ app.ticker.add((time) => {
 					dy < s.height / 2 + CENTIPEDE_RADIUS * 0.7
 				) {
 					if (s.kind === "sphere") {
+						s.alive = false;
+						s.g.destroy();
+						loseSegment();
+						break outer;
+					}
+					if (s.kind === "fireball") {
 						s.alive = false;
 						s.g.destroy();
 						loseSegment();
