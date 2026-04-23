@@ -30,6 +30,7 @@ const TERRAIN_AMPLITUDE = 60;
 const TERRAIN_RAMP_START = 0;
 const TERRAIN_RAMP_END = 2000;
 const INVINCIBILITY_SECONDS = 1;
+const SPHERE_RADIUS = 28;
 const HIGH_SCORE_KEY = "centipede-run:highscore";
 
 function loadHighScore(): number {
@@ -422,12 +423,43 @@ interface Chunk {
 
 const chunks = new Map<number, Chunk>();
 
+function makeSphere(worldX: number): Spawnable {
+	const g = new Graphics();
+	g.circle(0, 0, SPHERE_RADIUS)
+		.fill(0x8a2be2)
+		.stroke({ color: 0x3a0d5a, width: 2 });
+	// Angry eyes
+	g.circle(-10, -4, 4).fill(0xffffff);
+	g.circle(10, -4, 4).fill(0xffffff);
+	g.circle(-10, -3, 2).fill(0x000000);
+	g.circle(10, -3, 2).fill(0x000000);
+	// Angled eyebrows
+	g.moveTo(-16, -12).lineTo(-4, -8).stroke({ color: 0x1a0030, width: 3 });
+	g.moveTo(16, -12).lineTo(4, -8).stroke({ color: 0x1a0030, width: 3 });
+	// Two boots at the bottom
+	g.roundRect(-13, SPHERE_RADIUS - 4, 10, 6, 2).fill(0x3a2516);
+	g.roundRect(3, SPHERE_RADIUS - 4, 10, 6, 2).fill(0x3a2516);
+	const y = groundHeightAt(worldX) - SPHERE_RADIUS;
+	g.position.set(worldX, y);
+	gameScene.addChild(g);
+	return {
+		kind: "sphere",
+		g,
+		x: worldX,
+		y,
+		width: SPHERE_RADIUS * 2,
+		height: SPHERE_RADIUS * 2,
+		alive: true,
+	};
+}
+
 function generateChunk(index: number): Chunk {
 	const ground = buildChunkGround(index);
 	groundLayer.addChild(ground);
 	const chunk: Chunk = { index, spawns: [], ground };
 	if (index <= 2) return chunk; // first few chunks are safe
-	// Spawns are added in subsequent tasks (Tasks 6-9).
+	const worldX = index * CHUNK_WIDTH + 150 + Math.random() * 100;
+	chunk.spawns.push(makeSphere(worldX));
 	return chunk;
 }
 
@@ -586,12 +618,18 @@ app.ticker.add((time) => {
 		outer: for (const chunk of chunks.values()) {
 			for (const s of chunk.spawns) {
 				if (!s.alive) continue;
+				const dx = Math.abs(h.x - s.x);
+				const dy = Math.abs(h.y - s.y);
 				if (
-					Math.abs(h.x - s.x) < s.width / 2 + CENTIPEDE_RADIUS * 0.7 &&
-					Math.abs(h.y - s.y) < s.height / 2 + CENTIPEDE_RADIUS * 0.7
+					dx < s.width / 2 + CENTIPEDE_RADIUS * 0.7 &&
+					dy < s.height / 2 + CENTIPEDE_RADIUS * 0.7
 				) {
-					// handled per-kind in Tasks 6-9
-					break outer;
+					if (s.kind === "sphere") {
+						s.alive = false;
+						s.g.destroy();
+						loseSegment();
+						break outer;
+					}
 				}
 			}
 		}
