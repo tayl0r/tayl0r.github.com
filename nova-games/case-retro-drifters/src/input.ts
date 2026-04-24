@@ -38,7 +38,7 @@ export class Input {
 		const shiftNow = this.isDown("ShiftLeft") || this.isDown("ShiftRight");
 		const driftPress = shiftNow && !this.prevShift;
 		this.prevShift = shiftNow;
-		const steer = (left ? -1 : 0) + (right ? 1 : 0);
+		const steer = (left ? 1 : 0) + (right ? -1 : 0);
 		return { throttle, brake, steer, driftPress };
 	}
 }
