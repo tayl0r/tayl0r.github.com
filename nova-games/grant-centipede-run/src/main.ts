@@ -26,7 +26,17 @@ const MAX_SPEED = 520; // px/s
 const GRAVITY = 1800; // px/s^2
 const JUMP_IMPULSE = 720; // px/s upward
 const CHUNK_WIDTH = 400;
+const TERRAIN_AMPLITUDE = 60;
+const TERRAIN_RAMP_START = 0;
+const TERRAIN_RAMP_END = 2000;
 const INVINCIBILITY_SECONDS = 1;
+const POWERUP_INVINCIBILITY_SECONDS = 5;
+const SPHERE_RADIUS = 28;
+const FIREBALL_RADIUS = 24;
+const FIREBALL_SPEED = 120; // px/s
+const FIREBALL_DESPAWN_BEHIND_PX = 150;
+const MUSHROOM_HEIGHT = 34;
+const MUSHROOM_WIDTH = 30;
 const HIGH_SCORE_KEY = "centipede-run:highscore";
 
 function loadHighScore(): number {
@@ -59,6 +69,59 @@ app.stage.addChild(ui);
 
 function groundY(): number {
 	return app.screen.height - GROUND_Y_FROM_BOTTOM;
+}
+
+function hslToHex(h: number, s: number, l: number): number {
+	const c = (1 - Math.abs(2 * l - 1)) * s;
+	const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+	const m = l - c / 2;
+	let r = 0;
+	let g = 0;
+	let b = 0;
+	if (h < 60) {
+		r = c;
+		g = x;
+		b = 0;
+	} else if (h < 120) {
+		r = x;
+		g = c;
+		b = 0;
+	} else if (h < 180) {
+		r = 0;
+		g = c;
+		b = x;
+	} else if (h < 240) {
+		r = 0;
+		g = x;
+		b = c;
+	} else if (h < 300) {
+		r = x;
+		g = 0;
+		b = c;
+	} else {
+		r = c;
+		g = 0;
+		b = x;
+	}
+	const to = (v: number) => Math.round((v + m) * 255);
+	return (to(r) << 16) | (to(g) << 8) | to(b);
+}
+
+function groundHeightAt(worldX: number): number {
+	const base = groundY();
+	if (TERRAIN_AMPLITUDE <= 0) return base;
+	const rampT = Math.min(
+		1,
+		Math.max(
+			0,
+			(worldX - TERRAIN_RAMP_START) / (TERRAIN_RAMP_END - TERRAIN_RAMP_START),
+		),
+	);
+	const amp = TERRAIN_AMPLITUDE * rampT;
+	const h =
+		Math.sin(worldX * 0.004) * amp * 0.7 +
+		Math.sin(worldX * 0.011 + 1.3) * amp * 0.3;
+	return base - h;
 }
 
 type State = "menu" | "playing" | "gameover";
@@ -109,16 +172,25 @@ function makeButton(
 	return c;
 }
 
-// Placeholder so we can verify the page boots
-const ground = new Graphics()
-	.rect(-10000, 0, 20000, GROUND_Y_FROM_BOTTOM)
-	.fill(0x3a7d2c);
-ground.position.set(0, groundY());
-world.addChild(ground);
+const groundLayer = new Container();
+world.addChild(groundLayer);
 
-window.addEventListener("resize", () => {
-	ground.position.set(0, groundY());
-});
+function buildChunkGround(index: number): Graphics {
+	const g = new Graphics();
+	const startX = index * CHUNK_WIDTH;
+	const endX = startX + CHUNK_WIDTH;
+	const step = 8;
+	const bottom = app.screen.height;
+	g.moveTo(startX, bottom);
+	g.lineTo(startX, groundHeightAt(startX));
+	for (let x = startX + step; x <= endX; x += step) {
+		g.lineTo(x, groundHeightAt(x));
+	}
+	g.lineTo(endX, bottom);
+	g.closePath();
+	g.fill(0x3a7d2c);
+	return g;
+}
 
 const title = new Text({
 	text: "Centipede Run!",
@@ -238,11 +310,20 @@ function layoutHUD(): void {
 layoutHUD();
 window.addEventListener("resize", layoutHUD);
 
+window.addEventListener("resize", () => {
+	for (const chunk of chunks.values()) {
+		chunk.ground.destroy();
+		chunk.ground = buildChunkGround(chunk.index);
+		groundLayer.addChild(chunk.ground);
+	}
+});
+
 stepCounterText.visible = false;
 
 interface Segment {
 	g: Graphics;
 	legs: Graphics;
+	antennae: Graphics | null;
 	x: number;
 	y: number;
 }
@@ -255,43 +336,98 @@ const centipede: { segments: Segment[]; vy: number; onGround: boolean } = {
 
 function drawSegment(isHead: boolean): Graphics {
 	const g = new Graphics();
-	// Shell (brown) on top half
-	g.ellipse(0, 0, CENTIPEDE_RADIUS, CENTIPEDE_RADIUS * 0.7).fill(0xffd64a); // yellow body
-	g.arc(0, 0, CENTIPEDE_RADIUS, Math.PI, 0).fill(0x7a4a1e); // brown shell dome
+	// Slightly rounder body
+	g.ellipse(0, 0, CENTIPEDE_RADIUS, CENTIPEDE_RADIUS * 0.8).fill(0xffd64a);
+	// Brown shell dome
+	g.arc(0, 0, CENTIPEDE_RADIUS, Math.PI, 0).fill(0x7a4a1e);
 	if (isHead) {
-		g.circle(CENTIPEDE_RADIUS * 0.55, -4, 4).fill(0xffffff);
-		g.circle(CENTIPEDE_RADIUS * 0.55, -4, 2).fill(0x000000);
-		g.circle(CENTIPEDE_RADIUS * 0.3, -10, 4).fill(0xffffff);
-		g.circle(CENTIPEDE_RADIUS * 0.3, -10, 2).fill(0x000000);
+		// Symmetric big eyes
+		const eyeY = -2;
+		const eyeX = CENTIPEDE_RADIUS * 0.45;
+		// Sclera
+		g.circle(eyeX, eyeY, 6).fill(0xffffff);
+		g.circle(-eyeX, eyeY, 6).fill(0xffffff);
+		// Pupils
+		g.circle(eyeX, eyeY, 3).fill(0x000000);
+		g.circle(-eyeX, eyeY, 3).fill(0x000000);
+		// Highlight glints
+		g.circle(eyeX + 1.2, eyeY - 1.5, 1).fill(0xffffff);
+		g.circle(-eyeX + 1.2, eyeY - 1.5, 1).fill(0xffffff);
+		// Rosy cheeks
+		g.circle(eyeX + 2, eyeY + 5, 2.5).fill(0xff9ab0);
+		g.circle(-eyeX + 2, eyeY + 5, 2.5).fill(0xff9ab0);
+		// Smile
+		g.arc(0, eyeY + 6, 3.5, 0.15 * Math.PI, 0.85 * Math.PI).stroke({
+			color: 0x3a2516,
+			width: 1.5,
+		});
 	}
 	return g;
 }
 
 function drawLegs(legs: Graphics, phase: number): void {
 	const swing = Math.sin(phase) * 10;
-	legs
-		.clear()
-		.moveTo(-8, 0)
-		.lineTo(-8 - swing, 18)
-		.stroke({ color: 0x222222, width: 3 })
-		.moveTo(8, 0)
-		.lineTo(8 + swing, 18)
-		.stroke({ color: 0x222222, width: 3 });
+	legs.clear();
+	for (const side of [-1, 1]) {
+		const hipX = 8 * side;
+		const footX = (8 + swing * side) * side;
+		const footY = 18;
+		legs
+			.moveTo(hipX, 0)
+			.lineTo(footX, footY)
+			.stroke({ color: 0x222222, width: 3 });
+		// Boot: dark rounded rect centered on the foot
+		legs.roundRect(footX - 3.5, footY - 1, 7, 5, 2).fill(0x3a2516);
+	}
+}
+
+function drawAntennae(a: Graphics, phase: number): void {
+	const swing = Math.sin(phase * 0.8) * 4;
+	a.clear()
+		.moveTo(-6, -CENTIPEDE_RADIUS + 2)
+		.quadraticCurveTo(
+			-10 + swing,
+			-CENTIPEDE_RADIUS - 10,
+			-8 + swing,
+			-CENTIPEDE_RADIUS - 16,
+		)
+		.stroke({ color: 0x3a2516, width: 2 })
+		.circle(-8 + swing, -CENTIPEDE_RADIUS - 17, 2)
+		.fill(0x3a2516)
+		.moveTo(6, -CENTIPEDE_RADIUS + 2)
+		.quadraticCurveTo(
+			10 - swing,
+			-CENTIPEDE_RADIUS - 10,
+			8 - swing,
+			-CENTIPEDE_RADIUS - 16,
+		)
+		.stroke({ color: 0x3a2516, width: 2 })
+		.circle(8 - swing, -CENTIPEDE_RADIUS - 17, 2)
+		.fill(0x3a2516);
 }
 
 function spawnCentipede(): void {
-	for (const s of centipede.segments) s.g.destroy();
+	for (const s of centipede.segments) {
+		s.g.destroy();
+		s.legs.destroy();
+		s.antennae?.destroy();
+	}
 	centipede.segments = [];
 	const startX = 120;
-	const y = groundY() - CENTIPEDE_RADIUS;
 	for (let i = 0; i < CENTIPEDE_SEG_COUNT; i++) {
 		const g = drawSegment(i === 0);
 		const x = startX - i * CENTIPEDE_SEG_SPACING;
+		const y = groundHeightAt(x) - CENTIPEDE_RADIUS;
 		g.position.set(x, y);
 		gameScene.addChild(g);
 		const legs = new Graphics();
 		gameScene.addChild(legs);
-		centipede.segments.push({ g, legs, x, y });
+		let antennae: Graphics | null = null;
+		if (i === 0) {
+			antennae = new Graphics();
+			gameScene.addChild(antennae);
+		}
+		centipede.segments.push({ g, legs, antennae, x, y });
 	}
 	centipede.vy = 0;
 	centipede.onGround = true;
@@ -305,79 +441,174 @@ let lastStepPhase = 0;
 const STEP_PHASE = Math.PI * 2; // one full leg cycle per 120px of travel
 const PHASE_PER_PX = STEP_PHASE / 120;
 let invincibleUntil = 0; // seconds elapsed
+let powerupInvincibleUntil = 0;
 let runTime = 0;
 
-interface Hazard {
-	kind: "spike" | "bug";
+type SpawnableKind = "sphere" | "fireball" | "blueMushroom" | "redMushroom";
+
+interface Spawnable {
+	kind: SpawnableKind;
 	g: Graphics;
 	x: number;
 	y: number;
+	vx?: number; // for fireball
+	vy?: number; // for fireball
 	width: number;
 	height: number;
+	alive: boolean;
 }
 
 interface Chunk {
 	index: number;
-	hazards: Hazard[];
+	spawns: Spawnable[];
+	ground: Graphics;
 }
 
 const chunks = new Map<number, Chunk>();
 
+function drawMushroom(capColor: number): Graphics {
+	const g = new Graphics();
+	// Cap
+	g.arc(0, 0, MUSHROOM_WIDTH / 2, Math.PI, 0)
+		.fill(capColor)
+		.stroke({ color: 0x222222, width: 2 });
+	// Cap spots (lighter)
+	const spot = 0xffffff;
+	g.circle(-6, -6, 3).fill(spot);
+	g.circle(5, -3, 2).fill(spot);
+	g.circle(2, -10, 2).fill(spot);
+	// Stem
+	g.roundRect(-7, 0, 14, MUSHROOM_HEIGHT / 2, 3)
+		.fill(0xfff3d1)
+		.stroke({ color: 0x222222, width: 2 });
+	return g;
+}
+
+function makeBlueMushroom(worldX: number): Spawnable {
+	const g = drawMushroom(0x3aa0ff);
+	const y = groundHeightAt(worldX) - MUSHROOM_HEIGHT / 2;
+	g.position.set(worldX, y);
+	gameScene.addChild(g);
+	return {
+		kind: "blueMushroom",
+		g,
+		x: worldX,
+		y,
+		width: MUSHROOM_WIDTH,
+		height: MUSHROOM_HEIGHT,
+		alive: true,
+	};
+}
+
+function makeRedMushroom(worldX: number): Spawnable {
+	const g = drawMushroom(0xff3a3a);
+	const y = groundHeightAt(worldX) - MUSHROOM_HEIGHT / 2;
+	g.position.set(worldX, y);
+	gameScene.addChild(g);
+	return {
+		kind: "redMushroom",
+		g,
+		x: worldX,
+		y,
+		width: MUSHROOM_WIDTH,
+		height: MUSHROOM_HEIGHT,
+		alive: true,
+	};
+}
+
+function makeSphere(worldX: number): Spawnable {
+	const g = new Graphics();
+	g.circle(0, 0, SPHERE_RADIUS)
+		.fill(0x8a2be2)
+		.stroke({ color: 0x3a0d5a, width: 2 });
+	// Angry eyes
+	g.circle(-10, -4, 4).fill(0xffffff);
+	g.circle(10, -4, 4).fill(0xffffff);
+	g.circle(-10, -3, 2).fill(0x000000);
+	g.circle(10, -3, 2).fill(0x000000);
+	// Angled eyebrows
+	g.moveTo(-16, -12).lineTo(-4, -8).stroke({ color: 0x1a0030, width: 3 });
+	g.moveTo(16, -12).lineTo(4, -8).stroke({ color: 0x1a0030, width: 3 });
+	// Two boots at the bottom
+	g.roundRect(-13, SPHERE_RADIUS - 4, 10, 6, 2).fill(0x3a2516);
+	g.roundRect(3, SPHERE_RADIUS - 4, 10, 6, 2).fill(0x3a2516);
+	const y = groundHeightAt(worldX) - SPHERE_RADIUS;
+	g.position.set(worldX, y);
+	gameScene.addChild(g);
+	return {
+		kind: "sphere",
+		g,
+		x: worldX,
+		y,
+		width: SPHERE_RADIUS * 2,
+		height: SPHERE_RADIUS * 2,
+		alive: true,
+	};
+}
+
+function makeFireball(worldX: number): Spawnable {
+	const g = new Graphics();
+	// Outer flame
+	g.circle(0, 0, FIREBALL_RADIUS)
+		.fill(0xff5a1f)
+		.stroke({ color: 0x801800, width: 2 });
+	// Inner flicker
+	g.circle(-2, 2, FIREBALL_RADIUS * 0.6).fill(0xffc400);
+	// Single angry eye
+	g.circle(0, 0, 7).fill(0xffffff);
+	g.circle(0, 1, 3).fill(0x000000);
+	// Eyebrow (angled line above the eye)
+	g.moveTo(-8, -8).lineTo(8, -10).stroke({ color: 0x200800, width: 3 });
+	const y = groundHeightAt(worldX) - (180 + Math.random() * 80);
+	g.position.set(worldX, y);
+	gameScene.addChild(g);
+	return {
+		kind: "fireball",
+		g,
+		x: worldX,
+		y,
+		vx: 0,
+		vy: 0,
+		width: FIREBALL_RADIUS * 2,
+		height: FIREBALL_RADIUS * 2,
+		alive: true,
+	};
+}
+
 function generateChunk(index: number): Chunk {
-	const chunk: Chunk = { index, hazards: [] };
+	const ground = buildChunkGround(index);
+	groundLayer.addChild(ground);
+	const chunk: Chunk = { index, spawns: [], ground };
 	if (index <= 2) return chunk; // first few chunks are safe
-	const count = Math.random() < 0.5 ? 1 : Math.random() < 0.85 ? 2 : 0;
-	let cursor = 60;
-	for (let i = 0; i < count; i++) {
-		const gap = 120 + Math.floor(Math.random() * 180);
-		cursor += gap;
-		if (cursor > CHUNK_WIDTH - 40) break;
-		const worldX = index * CHUNK_WIDTH + cursor;
-		const isBug = Math.random() < 0.4;
-		if (isBug) {
-			chunk.hazards.push(makeBug(worldX));
-		} else {
-			chunk.hazards.push(makeSpike(worldX));
+	const slots: number[] = [];
+	const slot = () => 60 + slots.length * 140 + Math.random() * 40;
+	// Enemy rolls
+	const enemyRoll = Math.random();
+	const enemyCount = enemyRoll < 0.6 ? 1 : enemyRoll < 0.85 ? 2 : 0;
+	for (let i = 0; i < enemyCount; i++) {
+		const x = slot();
+		if (x > CHUNK_WIDTH - 40) break;
+		const worldX = index * CHUNK_WIDTH + x;
+		if (Math.random() < 0.65) chunk.spawns.push(makeSphere(worldX));
+		else chunk.spawns.push(makeFireball(worldX));
+		slots.push(x);
+	}
+	// Powerup roll
+	if (Math.random() < 0.35) {
+		const x = slot();
+		if (x <= CHUNK_WIDTH - 40) {
+			const worldX = index * CHUNK_WIDTH + x;
+			if (Math.random() < 0.7) chunk.spawns.push(makeBlueMushroom(worldX));
+			else chunk.spawns.push(makeRedMushroom(worldX));
+			slots.push(x);
 		}
 	}
 	return chunk;
 }
 
-function makeBug(worldX: number): Hazard {
-	const w = 34;
-	const h = 24;
-	const g = new Graphics()
-		.ellipse(0, 0, w / 2, h / 2)
-		.fill(0x9b30ff)
-		.stroke({ color: 0x111111, width: 2 });
-	// Little wings
-	g.ellipse(-8, -10, 10, 5).fill(0xd8b4fe);
-	g.ellipse(8, -10, 10, 5).fill(0xd8b4fe);
-	// Fly at the peak of the jump arc — catches you only if you jump.
-	const jumpPeakY = groundY() - CENTIPEDE_RADIUS - 140;
-	g.position.set(worldX, jumpPeakY);
-	gameScene.addChild(g);
-	return { kind: "bug", g, x: worldX, y: jumpPeakY, width: w, height: h };
-}
-
-function makeSpike(worldX: number): Hazard {
-	const w = 30;
-	const h = 36;
-	const g = new Graphics()
-		.moveTo(-w / 2, 0)
-		.lineTo(w / 2, 0)
-		.lineTo(0, -h)
-		.closePath()
-		.fill(0x333333)
-		.stroke({ color: 0x111111, width: 2 });
-	const y = groundY();
-	g.position.set(worldX, y);
-	gameScene.addChild(g);
-	return { kind: "spike", g, x: worldX, y: y - h / 2, width: w, height: h };
-}
-
 function destroyChunk(chunk: Chunk): void {
-	for (const h of chunk.hazards) h.g.destroy();
+	for (const s of chunk.spawns) s.g.destroy();
+	chunk.ground.destroy();
 }
 
 function ensureChunks(): void {
@@ -403,6 +634,7 @@ function startRun(): void {
 	stepCount = 0;
 	lastStepPhase = 0;
 	invincibleUntil = 0;
+	powerupInvincibleUntil = 0;
 	runTime = 0;
 	for (const c of chunks.values()) destroyChunk(c);
 	chunks.clear();
@@ -412,24 +644,32 @@ function startRun(): void {
 	setState("playing");
 }
 
-function segmentsCollideHazard(segX: number, segY: number, h: Hazard): boolean {
-	const dx = Math.abs(segX - h.x);
-	const dy = Math.abs(segY - h.y);
-	return (
-		dx < h.width / 2 + CENTIPEDE_RADIUS * 0.7 &&
-		dy < h.height / 2 + CENTIPEDE_RADIUS * 0.7
-	);
-}
-
 function loseSegment(): void {
 	const tail = centipede.segments.pop();
 	if (tail) {
 		tail.g.destroy();
 		tail.legs.destroy();
+		tail.antennae?.destroy();
 	}
 	invincibleUntil = runTime + INVINCIBILITY_SECONDS;
 	if (centipede.segments.length === 0) {
 		endRun();
+	}
+}
+
+function gainSegments(n: number): void {
+	if (state !== "playing") return;
+	const tail = centipede.segments[centipede.segments.length - 1];
+	const baseX = tail ? tail.x : 120;
+	for (let i = 0; i < n; i++) {
+		const g = drawSegment(false);
+		const x = baseX - (i + 1) * CENTIPEDE_SEG_SPACING;
+		const y = groundHeightAt(x) - CENTIPEDE_RADIUS;
+		g.position.set(x, y);
+		gameScene.addChild(g);
+		const legs = new Graphics();
+		gameScene.addChild(legs);
+		centipede.segments.push({ g, legs, antennae: null, x, y });
 	}
 }
 
@@ -458,10 +698,22 @@ app.ticker.add((time) => {
 
 	runTime += dt;
 	speed = Math.min(MAX_SPEED, BASE_SPEED + SPEED_ACCEL * runTime);
-	const invincible = runTime < invincibleUntil;
-	// Flash during invincibility
-	for (const s of centipede.segments) {
-		s.g.alpha = invincible ? 0.4 + 0.3 * Math.sin(runTime * 30) : 1;
+	const invincible =
+		runTime < invincibleUntil || runTime < powerupInvincibleUntil;
+	const powerupActive = runTime < powerupInvincibleUntil;
+	for (let i = 0; i < centipede.segments.length; i++) {
+		const s = centipede.segments[i];
+		if (powerupActive) {
+			const hue = (runTime * 300 + i * 40) % 360;
+			s.g.tint = hslToHex(hue, 0.9, 0.6);
+			s.g.alpha = 1;
+		} else if (invincible) {
+			s.g.tint = 0xffffff;
+			s.g.alpha = 0.4 + 0.3 * Math.sin(runTime * 30);
+		} else {
+			s.g.tint = 0xffffff;
+			s.g.alpha = 1;
+		}
 	}
 
 	// Move head forward
@@ -470,7 +722,7 @@ app.ticker.add((time) => {
 
 	centipede.vy += GRAVITY * dt;
 	const newY = head.y + centipede.vy * dt;
-	const floorY = groundY() - CENTIPEDE_RADIUS;
+	const floorY = groundHeightAt(head.x) - CENTIPEDE_RADIUS;
 	if (newY >= floorY) {
 		head.y = floorY;
 		centipede.vy = 0;
@@ -493,7 +745,15 @@ app.ticker.add((time) => {
 		const prev = centipede.segments[i - 1];
 		const seg = centipede.segments[i];
 		seg.x = prev.x - CENTIPEDE_SEG_SPACING;
-		seg.y = prev.y;
+		seg.y = groundHeightAt(seg.x) - CENTIPEDE_RADIUS;
+	}
+
+	// Body ripple: subtle vertical bob per segment so the centipede undulates.
+	for (let i = 0; i < centipede.segments.length; i++) {
+		const s = centipede.segments[i];
+		if (i === 0 && !centipede.onGround) continue;
+		const bob = Math.sin(phase + i * 0.9) * 2;
+		s.y += bob;
 	}
 
 	// Render: draw back-to-front so the head is on top.
@@ -510,24 +770,67 @@ app.ticker.add((time) => {
 		drawLegs(s.legs, phase + i * 0.8);
 	}
 
+	// Draw antennae for the head.
+	const headSeg = centipede.segments[0];
+	if (headSeg?.antennae) {
+		headSeg.antennae.position.set(headSeg.x, headSeg.y);
+		drawAntennae(headSeg.antennae, phase);
+	}
+
 	stepCounterText.text = String(stepCount);
 
 	// Camera tracks the head at ~1/3 screen width.
 	cameraX = head.x - app.screen.width / 3;
 	world.position.x = -cameraX;
-	// Ground rect is finite; re-center it on the camera so it always covers the viewport.
-	ground.position.x = cameraX;
 
 	ensureChunks();
 
-	if (!invincible) {
-		const head = centipede.segments[0];
-		outer: for (const chunk of chunks.values()) {
-			for (const h of chunk.hazards) {
-				if (segmentsCollideHazard(head.x, head.y, h)) {
-					loseSegment();
-					break outer;
+	// Update fireballs: home toward the head at a slow fixed speed.
+	for (const chunk of chunks.values()) {
+		for (const s of chunk.spawns) {
+			if (!s.alive) continue;
+			if (s.kind === "fireball") {
+				const head = centipede.segments[0];
+				const dxh = head.x - s.x;
+				const dyh = head.y - s.y;
+				const dist = Math.max(1, Math.hypot(dxh, dyh));
+				s.x += (dxh / dist) * FIREBALL_SPEED * dt;
+				s.y += (dyh / dist) * FIREBALL_SPEED * dt;
+				s.g.position.set(s.x, s.y);
+				if (s.x < head.x - FIREBALL_DESPAWN_BEHIND_PX) {
+					s.alive = false;
+					s.g.destroy();
 				}
+			}
+		}
+	}
+
+	const h = centipede.segments[0];
+	for (const chunk of chunks.values()) {
+		for (const s of chunk.spawns) {
+			if (!s.alive) continue;
+			const dx = Math.abs(h.x - s.x);
+			const dy = Math.abs(h.y - s.y);
+			const hit =
+				dx < s.width / 2 + CENTIPEDE_RADIUS * 0.7 &&
+				dy < s.height / 2 + CENTIPEDE_RADIUS * 0.7;
+			if (!hit) continue;
+			if (s.kind === "blueMushroom") {
+				s.alive = false;
+				s.g.destroy();
+				gainSegments(Math.random() < 0.5 ? 1 : 3);
+			} else if (s.kind === "redMushroom") {
+				s.alive = false;
+				s.g.destroy();
+				powerupInvincibleUntil = runTime + POWERUP_INVINCIBILITY_SECONDS;
+			} else if (s.kind === "sphere") {
+				s.alive = false;
+				s.g.destroy();
+				if (!invincible) loseSegment();
+			} else if (s.kind === "fireball") {
+				s.alive = false;
+				s.g.destroy();
+				if (!invincible) loseSegment();
 			}
 		}
 	}
