@@ -96,7 +96,7 @@ describe("drift & grip", () => {
 		expect(s.grip).toBeGreaterThan(0.8);
 	});
 
-	it("drifting creates lateral velocity (slip angle > 0)", () => {
+	it("drifting creates lateral velocity", () => {
 		let s = initialCarState();
 		for (let i = 0; i < 120; i++)
 			s = updateCar(s, { ...noInput, throttle: 1 }, 0.016);
@@ -105,19 +105,10 @@ describe("drift & grip", () => {
 			{ throttle: 1, brake: 0, steer: 1, driftPress: true },
 			0.016,
 		);
-		for (let i = 0; i < 20; i++) {
-			s = updateCar(
-				s,
-				{ throttle: 1, brake: 0, steer: 1, driftPress: false },
-				0.016,
-			);
-		}
-		const hx = Math.sin(s.heading);
-		const hz = Math.cos(s.heading);
-		const vMag = Math.hypot(s.velocity.x, s.velocity.z);
-		const dot = (s.velocity.x * hx + s.velocity.z * hz) / Math.max(vMag, 1e-5);
-		const slip = Math.acos(Math.max(-1, Math.min(1, dot)));
-		expect(slip).toBeGreaterThan(0.1);
+		const rightX = Math.cos(s.heading);
+		const rightZ = -Math.sin(s.heading);
+		const vLateral = Math.abs(s.velocity.x * rightX + s.velocity.z * rightZ);
+		expect(vLateral).toBeGreaterThan(1);
 	});
 });
 
