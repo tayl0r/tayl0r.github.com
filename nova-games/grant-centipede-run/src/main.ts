@@ -30,6 +30,7 @@ const TERRAIN_AMPLITUDE = 60;
 const TERRAIN_RAMP_START = 0;
 const TERRAIN_RAMP_END = 2000;
 const INVINCIBILITY_SECONDS = 1;
+const POWERUP_INVINCIBILITY_SECONDS = 5;
 const SPHERE_RADIUS = 28;
 const FIREBALL_RADIUS = 24;
 const FIREBALL_SPEED = 120; // px/s
@@ -68,6 +69,42 @@ app.stage.addChild(ui);
 
 function groundY(): number {
 	return app.screen.height - GROUND_Y_FROM_BOTTOM;
+}
+
+function hslToHex(h: number, s: number, l: number): number {
+	const c = (1 - Math.abs(2 * l - 1)) * s;
+	const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+	const m = l - c / 2;
+	let r = 0;
+	let g = 0;
+	let b = 0;
+	if (h < 60) {
+		r = c;
+		g = x;
+		b = 0;
+	} else if (h < 120) {
+		r = x;
+		g = c;
+		b = 0;
+	} else if (h < 180) {
+		r = 0;
+		g = c;
+		b = x;
+	} else if (h < 240) {
+		r = 0;
+		g = x;
+		b = c;
+	} else if (h < 300) {
+		r = x;
+		g = 0;
+		b = c;
+	} else {
+		r = c;
+		g = 0;
+		b = x;
+	}
+	const to = (v: number) => Math.round((v + m) * 255);
+	return (to(r) << 16) | (to(g) << 8) | to(b);
 }
 
 function groundHeightAt(worldX: number): number {
@@ -404,6 +441,7 @@ let lastStepPhase = 0;
 const STEP_PHASE = Math.PI * 2; // one full leg cycle per 120px of travel
 const PHASE_PER_PX = STEP_PHASE / 120;
 let invincibleUntil = 0; // seconds elapsed
+let powerupInvincibleUntil = 0;
 let runTime = 0;
 
 type SpawnableKind = "sphere" | "fireball" | "blueMushroom" | "redMushroom";
@@ -453,6 +491,22 @@ function makeBlueMushroom(worldX: number): Spawnable {
 	gameScene.addChild(g);
 	return {
 		kind: "blueMushroom",
+		g,
+		x: worldX,
+		y,
+		width: MUSHROOM_WIDTH,
+		height: MUSHROOM_HEIGHT,
+		alive: true,
+	};
+}
+
+function makeRedMushroom(worldX: number): Spawnable {
+	const g = drawMushroom(0xff3a3a);
+	const y = groundHeightAt(worldX) - MUSHROOM_HEIGHT / 2;
+	g.position.set(worldX, y);
+	gameScene.addChild(g);
+	return {
+		kind: "redMushroom",
 		g,
 		x: worldX,
 		y,
@@ -526,11 +580,29 @@ function generateChunk(index: number): Chunk {
 	groundLayer.addChild(ground);
 	const chunk: Chunk = { index, spawns: [], ground };
 	if (index <= 2) return chunk; // first few chunks are safe
-	const worldX = index * CHUNK_WIDTH + 150 + Math.random() * 100;
-	const r = Math.random();
-	if (r < 0.4) chunk.spawns.push(makeBlueMushroom(worldX));
-	else if (r < 0.7) chunk.spawns.push(makeSphere(worldX));
-	else chunk.spawns.push(makeFireball(worldX));
+	const slots: number[] = [];
+	const slot = () => 60 + slots.length * 140 + Math.random() * 40;
+	// Enemy rolls
+	const enemyRoll = Math.random();
+	const enemyCount = enemyRoll < 0.6 ? 1 : enemyRoll < 0.85 ? 2 : 0;
+	for (let i = 0; i < enemyCount; i++) {
+		const x = slot();
+		if (x > CHUNK_WIDTH - 40) break;
+		const worldX = index * CHUNK_WIDTH + x;
+		if (Math.random() < 0.65) chunk.spawns.push(makeSphere(worldX));
+		else chunk.spawns.push(makeFireball(worldX));
+		slots.push(x);
+	}
+	// Powerup roll
+	if (Math.random() < 0.35) {
+		const x = slot();
+		if (x <= CHUNK_WIDTH - 40) {
+			const worldX = index * CHUNK_WIDTH + x;
+			if (Math.random() < 0.7) chunk.spawns.push(makeBlueMushroom(worldX));
+			else chunk.spawns.push(makeRedMushroom(worldX));
+			slots.push(x);
+		}
+	}
 	return chunk;
 }
 
@@ -562,6 +634,7 @@ function startRun(): void {
 	stepCount = 0;
 	lastStepPhase = 0;
 	invincibleUntil = 0;
+	powerupInvincibleUntil = 0;
 	runTime = 0;
 	for (const c of chunks.values()) destroyChunk(c);
 	chunks.clear();
@@ -625,10 +698,22 @@ app.ticker.add((time) => {
 
 	runTime += dt;
 	speed = Math.min(MAX_SPEED, BASE_SPEED + SPEED_ACCEL * runTime);
-	const invincible = runTime < invincibleUntil;
-	// Flash during invincibility
-	for (const s of centipede.segments) {
-		s.g.alpha = invincible ? 0.4 + 0.3 * Math.sin(runTime * 30) : 1;
+	const invincible =
+		runTime < invincibleUntil || runTime < powerupInvincibleUntil;
+	const powerupActive = runTime < powerupInvincibleUntil;
+	for (let i = 0; i < centipede.segments.length; i++) {
+		const s = centipede.segments[i];
+		if (powerupActive) {
+			const hue = (runTime * 300 + i * 40) % 360;
+			s.g.tint = hslToHex(hue, 0.9, 0.6);
+			s.g.alpha = 1;
+		} else if (invincible) {
+			s.g.tint = 0xffffff;
+			s.g.alpha = 0.4 + 0.3 * Math.sin(runTime * 30);
+		} else {
+			s.g.tint = 0xffffff;
+			s.g.alpha = 1;
+		}
 	}
 
 	// Move head forward
@@ -734,6 +819,10 @@ app.ticker.add((time) => {
 				s.alive = false;
 				s.g.destroy();
 				gainSegments(Math.random() < 0.5 ? 1 : 3);
+			} else if (s.kind === "redMushroom") {
+				s.alive = false;
+				s.g.destroy();
+				powerupInvincibleUntil = runTime + POWERUP_INVINCIBILITY_SECONDS;
 			} else if (s.kind === "sphere") {
 				s.alive = false;
 				s.g.destroy();
