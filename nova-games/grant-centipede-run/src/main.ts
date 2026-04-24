@@ -11,6 +11,9 @@ await app.init({
 	background: "#6ec6ff",
 	resizeTo: window,
 	antialias: true,
+	// Pixi v8's WebGPU auto-select can hang silently in some production
+	// browsers; force WebGL to keep startup reliable.
+	preference: "webgl",
 });
 document.body.appendChild(app.canvas);
 
