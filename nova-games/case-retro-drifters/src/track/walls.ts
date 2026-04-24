@@ -43,8 +43,7 @@ export function resolveWallCollision(
 	// Steepness: 0 = pure graze (vAlong dominates), 1 = pure head-on.
 	// Used to scale up rebound and angular nudge so head-on hits don't
 	// pin the car against the wall when the player keeps throttling.
-	const steepness =
-		impactSpeed / (impactSpeed + Math.abs(vAlong) + 0.001);
+	const steepness = impactSpeed / (impactSpeed + Math.abs(vAlong) + 0.001);
 
 	const rebound = REBOUND + steepness * 0.5; // 0.4 → 0.9
 	const vAlongNew = vAlong * SCRAPE_RETAIN;
