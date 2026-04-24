@@ -167,6 +167,7 @@ export const createRaceScene: SceneFactory = (ctx: SceneContext): GameScene => {
 				// Keep rendering but ignore input.
 				camera.position.set(camTargetX, 26, camTargetZ + 18);
 				camera.lookAt(camTargetX, 0, camTargetZ);
+				smoke.update(dt);
 				return;
 			}
 

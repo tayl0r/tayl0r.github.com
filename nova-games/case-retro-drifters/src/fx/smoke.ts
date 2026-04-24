@@ -53,7 +53,6 @@ export function createSmoke(scene: Scene): SmokeFx {
 	const velocities = new Float32Array(MAX_PARTICLES * 3);
 	const ages = new Float32Array(MAX_PARTICLES);
 	const alive = new Uint8Array(MAX_PARTICLES);
-	const sizes = new Float32Array(MAX_PARTICLES);
 
 	for (let i = 0; i < MAX_PARTICLES; i++) {
 		positions[i * 3 + 0] = 0;
@@ -65,8 +64,12 @@ export function createSmoke(scene: Scene): SmokeFx {
 	geo.setAttribute("position", new BufferAttribute(positions, 3));
 
 	const texture = makePuffTexture();
+	// PointsMaterial.size is a single uniform for the whole draw call — we
+	// can't vary it per particle without a custom shader. Fix it at a size
+	// that reads as a mid-life puff; fresh particles pop in and old ones
+	// fade by disappearing rather than shrinking.
 	const mat = new PointsMaterial({
-		size: 1,
+		size: 2.5,
 		map: texture,
 		color: 0xc8c8c8,
 		transparent: true,
@@ -95,7 +98,6 @@ export function createSmoke(scene: Scene): SmokeFx {
 		if (i < 0) return;
 		alive[i] = 1;
 		ages[i] = 0;
-		sizes[i] = 0.5;
 		positions[i * 3 + 0] = x;
 		positions[i * 3 + 1] = y;
 		positions[i * 3 + 2] = z;
@@ -105,7 +107,6 @@ export function createSmoke(scene: Scene): SmokeFx {
 	};
 
 	const update: SmokeFx["update"] = (dt) => {
-		let maxSize = 0.5;
 		for (let i = 0; i < MAX_PARTICLES; i++) {
 			if (!alive[i]) continue;
 			ages[i] += dt;
@@ -118,12 +119,9 @@ export function createSmoke(scene: Scene): SmokeFx {
 			positions[i * 3 + 0] += velocities[i * 3 + 0] * dt;
 			positions[i * 3 + 1] += velocities[i * 3 + 1] * dt;
 			positions[i * 3 + 2] += velocities[i * 3 + 2] * dt;
-			sizes[i] += 6 * dt;
-			if (sizes[i] > maxSize) maxSize = sizes[i];
 		}
 		const posAttr = geo.getAttribute("position") as BufferAttribute;
 		posAttr.needsUpdate = true;
-		mat.size = maxSize;
 	};
 
 	const dispose = (): void => {
