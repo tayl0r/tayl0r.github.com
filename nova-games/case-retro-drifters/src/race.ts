@@ -106,10 +106,13 @@ export const createRaceScene: SceneFactory = (ctx: SceneContext): GameScene => {
 	// Camera smoothing.
 	let camTargetX = car.position.x;
 	let camTargetZ = car.position.z;
-	// Separate smoothed look-ahead target so the camera aims at a point
-	// in front of the car (shifts the car to the lower portion of the
-	// frame, exposing more track ahead).
+	// Chase cam: camera orbits behind the car based on heading, so
+	// pressing "right" always turns right on screen. camHeading is
+	// smoothed so sharp steering doesn't whip the view.
 	const LOOK_AHEAD = 10;
+	const CHASE_DIST = 18;
+	const CHASE_HEIGHT = 26;
+	let camHeading = car.heading;
 	let camLookX = car.position.x + Math.sin(car.heading) * LOOK_AHEAD;
 	let camLookZ = car.position.z + Math.cos(car.heading) * LOOK_AHEAD;
 
@@ -164,16 +167,29 @@ export const createRaceScene: SceneFactory = (ctx: SceneContext): GameScene => {
 				carMesh.rotation.y = car.heading;
 				camTargetX = car.position.x;
 				camTargetZ = car.position.z;
+				camHeading = car.heading;
 				camLookX = car.position.x + Math.sin(car.heading) * LOOK_AHEAD;
 				camLookZ = car.position.z + Math.cos(car.heading) * LOOK_AHEAD;
-				camera.position.set(camTargetX, 26, camTargetZ + 18);
+				const cFwdX = Math.sin(camHeading);
+				const cFwdZ = Math.cos(camHeading);
+				camera.position.set(
+					camTargetX - cFwdX * CHASE_DIST,
+					CHASE_HEIGHT,
+					camTargetZ - cFwdZ * CHASE_DIST,
+				);
 				camera.lookAt(camLookX, 0, camLookZ);
 				return;
 			}
 
 			if (finished) {
 				// Keep rendering but ignore input.
-				camera.position.set(camTargetX, 26, camTargetZ + 18);
+				const cFwdX = Math.sin(camHeading);
+				const cFwdZ = Math.cos(camHeading);
+				camera.position.set(
+					camTargetX - cFwdX * CHASE_DIST,
+					CHASE_HEIGHT,
+					camTargetZ - cFwdZ * CHASE_DIST,
+				);
 				camera.lookAt(camLookX, 0, camLookZ);
 				smoke.update(dt);
 				return;
@@ -211,18 +227,27 @@ export const createRaceScene: SceneFactory = (ctx: SceneContext): GameScene => {
 				}
 			}
 
-			// Camera: Hades-tilt follow, extra snap when drifting.
+			// Camera: chase cam that orbits behind the car.
 			const lag = car.isDrifting ? 0.08 : 0.2;
 			const lerp = Math.min(1, dt / lag);
 			camTargetX += (car.position.x - camTargetX) * lerp;
 			camTargetZ += (car.position.z - camTargetZ) * lerp;
-			// Look-ahead target: car position + heading * LOOK_AHEAD, lerped
-			// separately so sharp steering doesn't whip the view.
+			// Smooth camera heading toward car heading, handling angle wrap.
+			let headingDiff = car.heading - camHeading;
+			while (headingDiff > Math.PI) headingDiff -= 2 * Math.PI;
+			while (headingDiff < -Math.PI) headingDiff += 2 * Math.PI;
+			camHeading += headingDiff * lerp;
+			const camFwdX = Math.sin(camHeading);
+			const camFwdZ = Math.cos(camHeading);
 			const desiredLookX = car.position.x + Math.sin(car.heading) * LOOK_AHEAD;
 			const desiredLookZ = car.position.z + Math.cos(car.heading) * LOOK_AHEAD;
 			camLookX += (desiredLookX - camLookX) * lerp;
 			camLookZ += (desiredLookZ - camLookZ) * lerp;
-			camera.position.set(camTargetX, 26, camTargetZ + 18);
+			camera.position.set(
+				camTargetX - camFwdX * CHASE_DIST,
+				CHASE_HEIGHT,
+				camTargetZ - camFwdZ * CHASE_DIST,
+			);
 			camera.lookAt(camLookX, 0, camLookZ);
 
 			// Occlusion transparency for buildings between camera and car.
