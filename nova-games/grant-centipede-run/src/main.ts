@@ -6,13 +6,18 @@ import {
 	Text,
 } from "pixi.js";
 
+// Dynamic import forces the full pixi.js module (including renderer extension
+// registrations with side effects) to evaluate before we touch Application.
+// Removing this makes app.init() hang silently in the production bundle.
+await import("pixi.js");
+
 const app = new Application();
 await app.init({
 	background: "#6ec6ff",
 	resizeTo: window,
 	antialias: true,
-	// Pixi v8's WebGPU auto-select can hang silently in some production
-	// browsers; force WebGL to keep startup reliable.
+	// Also force WebGL; Pixi v8's WebGPU auto-select has caused hangs in the
+	// past and WebGL is plenty for this game.
 	preference: "webgl",
 });
 document.body.appendChild(app.canvas);
