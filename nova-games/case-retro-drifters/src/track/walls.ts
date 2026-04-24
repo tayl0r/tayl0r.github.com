@@ -38,21 +38,36 @@ export function resolveWallCollision(
 
 	const vAlong = car.velocity.x * dirX + car.velocity.z * dirZ;
 	const vInto = car.velocity.x * nX + car.velocity.z * nZ;
+	const impactSpeed = Math.max(vInto, 0);
 
+	// Steepness: 0 = pure graze (vAlong dominates), 1 = pure head-on.
+	// Used to scale up rebound and angular nudge so head-on hits don't
+	// pin the car against the wall when the player keeps throttling.
+	const steepness =
+		impactSpeed / (impactSpeed + Math.abs(vAlong) + 0.001);
+
+	const rebound = REBOUND + steepness * 0.5; // 0.4 → 0.9
 	const vAlongNew = vAlong * SCRAPE_RETAIN;
-	const vIntoNew = -Math.max(vInto, 0) * REBOUND;
+	const vIntoNew = -impactSpeed * rebound;
 
 	const velocity = {
 		x: dirX * vAlongNew + nX * vIntoNew,
 		z: dirZ * vAlongNew + nZ * vIntoNew,
 	};
 
+	// Angular nudge rotates the car toward wall-parallel. Sign falls back
+	// to the player's angular velocity (i.e. active steer intent) when
+	// vAlong is ~0, and to a constant otherwise — prevents the "stuck
+	// facing the wall" case where sign(vAlong) = 0 = no rotation.
+	const nudgeSign = Math.sign(vAlong) || Math.sign(car.angularVelocity) || 1;
+	const angularNudge = nudgeSign * (NUDGE + steepness * 2);
+
 	return {
 		...car,
 		position: newPos,
 		velocity,
 		speed: Math.hypot(velocity.x, velocity.z),
-		angularVelocity: car.angularVelocity + Math.sign(vAlong) * NUDGE,
+		angularVelocity: car.angularVelocity + angularNudge,
 		isDrifting: false,
 		grip: 1,
 		driftExitTimer: 0,

@@ -54,6 +54,38 @@ describe("resolveWallCollision", () => {
 		expect(r.velocity.z).toBeGreaterThan(15);
 	});
 
+	it("head-on impact rebounds strongly and applies angular nudge", () => {
+		// Car moving straight into wall (pure vInto, no vAlong) with
+		// player steering right (angularVelocity > 0).
+		const s: CarState = {
+			...initialCarState(),
+			position: v2(6, 50),
+			velocity: v2(25, 0),
+			speed: 25,
+			angularVelocity: 1,
+		};
+		const r = resolveWallCollision(s, segment);
+		// Rebound should be much stronger than 40% — enough to get the car
+		// off the wall at a noticeable speed (not pinned).
+		expect(r.velocity.x).toBeLessThan(-15);
+		// Angular velocity should have grown, not stayed flat — car is
+		// rotating toward wall-parallel.
+		expect(r.angularVelocity).toBeGreaterThan(s.angularVelocity + 1);
+	});
+
+	it("head-on impact with zero steer still rotates (fallback nudge)", () => {
+		// No vAlong and no angular velocity — fallback to constant sign.
+		const s: CarState = {
+			...initialCarState(),
+			position: v2(6, 50),
+			velocity: v2(20, 0),
+			speed: 20,
+			angularVelocity: 0,
+		};
+		const r = resolveWallCollision(s, segment);
+		expect(r.angularVelocity).not.toBe(0);
+	});
+
 	it("kills drift state on impact", () => {
 		const s: CarState = {
 			...initialCarState(),
