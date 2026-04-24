@@ -106,6 +106,12 @@ export const createRaceScene: SceneFactory = (ctx: SceneContext): GameScene => {
 	// Camera smoothing.
 	let camTargetX = car.position.x;
 	let camTargetZ = car.position.z;
+	// Separate smoothed look-ahead target so the camera aims at a point
+	// in front of the car (shifts the car to the lower portion of the
+	// frame, exposing more track ahead).
+	const LOOK_AHEAD = 20;
+	let camLookX = car.position.x + Math.sin(car.heading) * LOOK_AHEAD;
+	let camLookZ = car.position.z + Math.cos(car.heading) * LOOK_AHEAD;
 
 	// Esc / back handlers.
 	const removeBackHandler = hud.onBack(() => goBack());
@@ -158,15 +164,17 @@ export const createRaceScene: SceneFactory = (ctx: SceneContext): GameScene => {
 				carMesh.rotation.y = car.heading;
 				camTargetX = car.position.x;
 				camTargetZ = car.position.z;
+				camLookX = car.position.x + Math.sin(car.heading) * LOOK_AHEAD;
+				camLookZ = car.position.z + Math.cos(car.heading) * LOOK_AHEAD;
 				camera.position.set(camTargetX, 26, camTargetZ + 18);
-				camera.lookAt(camTargetX, 0, camTargetZ);
+				camera.lookAt(camLookX, 0, camLookZ);
 				return;
 			}
 
 			if (finished) {
 				// Keep rendering but ignore input.
 				camera.position.set(camTargetX, 26, camTargetZ + 18);
-				camera.lookAt(camTargetX, 0, camTargetZ);
+				camera.lookAt(camLookX, 0, camLookZ);
 				smoke.update(dt);
 				return;
 			}
@@ -208,8 +216,14 @@ export const createRaceScene: SceneFactory = (ctx: SceneContext): GameScene => {
 			const lerp = Math.min(1, dt / lag);
 			camTargetX += (car.position.x - camTargetX) * lerp;
 			camTargetZ += (car.position.z - camTargetZ) * lerp;
+			// Look-ahead target: car position + heading * LOOK_AHEAD, lerped
+			// separately so sharp steering doesn't whip the view.
+			const desiredLookX = car.position.x + Math.sin(car.heading) * LOOK_AHEAD;
+			const desiredLookZ = car.position.z + Math.cos(car.heading) * LOOK_AHEAD;
+			camLookX += (desiredLookX - camLookX) * lerp;
+			camLookZ += (desiredLookZ - camLookZ) * lerp;
 			camera.position.set(camTargetX, 26, camTargetZ + 18);
-			camera.lookAt(camTargetX, 0, camTargetZ);
+			camera.lookAt(camLookX, 0, camLookZ);
 
 			// Occlusion transparency for buildings between camera and car.
 			camWorldPos.copy(camera.position);
