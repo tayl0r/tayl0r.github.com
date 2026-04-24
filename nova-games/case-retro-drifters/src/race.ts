@@ -109,7 +109,7 @@ export const createRaceScene: SceneFactory = (ctx: SceneContext): GameScene => {
 	// Separate smoothed look-ahead target so the camera aims at a point
 	// in front of the car (shifts the car to the lower portion of the
 	// frame, exposing more track ahead).
-	const LOOK_AHEAD = 20;
+	const LOOK_AHEAD = 10;
 	let camLookX = car.position.x + Math.sin(car.heading) * LOOK_AHEAD;
 	let camLookZ = car.position.z + Math.cos(car.heading) * LOOK_AHEAD;
 
