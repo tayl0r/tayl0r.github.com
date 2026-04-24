@@ -6,15 +6,26 @@ export const DRIFT_SPEED_THRESHOLD = 18;
 export const THROTTLE_FORCE = 40;
 export const IDLE_DECAY = 4;
 export const HARD_BRAKE_DECAY = 30;
-export const STEER_RATE = 3.0;
+export const STEER_RATE = 6.5;
 export const DRIFT_STEER_MULT = 1.6;
-export const ANGULAR_DAMPING = 0.9;
+export const ANGULAR_DAMPING = 0.88;
 export const GRIP_RECOVERY = 2.5;
 export const GRIP_DECAY = 1.4;
 export const MIN_GRIP = 0.3;
 export const SPIN_OUT_ANGLE = (Math.PI * 2) / 3;
 export const SPIN_OUT_DURATION = 0.8;
 export const LATERAL_FRICTION = 5;
+export const DRIFT_KICK_MAGNITUDE = 8;
+export const DRIFT_EXIT_LATERAL = 1.5;
+export const DRIFT_EXIT_DURATION = 0.15;
+export const DRIFT_EXIT_SPEED = DRIFT_SPEED_THRESHOLD * 0.6;
+export const COUNTERSTEER_DAMP = 0.94;
+// When drifting and the player releases steering, bleed lateral velocity
+// aggressively so the car settles and the auto-release timer can trip.
+// Load-bearing: with grip pinned at MIN_GRIP the default lateral friction
+// alone is too weak to bring |vLateral| below DRIFT_EXIT_LATERAL in the
+// DRIFT_EXIT_DURATION window.
+export const DRIFT_SETTLE_DAMP = 0.92;
 
 export function initialCarState(): CarState {
 	return {
@@ -26,6 +37,7 @@ export function initialCarState(): CarState {
 		grip: 1,
 		isDrifting: false,
 		spinOutTimer: 0,
+		driftExitTimer: 0,
 	};
 }
 
@@ -38,37 +50,43 @@ export function updateCar(s: CarState, inp: CarInput, dt: number): CarState {
 
 	const effectiveInput: CarInput =
 		s.spinOutTimer > 0
-			? { throttle: 0, brake: 0, steer: 0, driftBtn: false }
+			? { throttle: 0, brake: 0, steer: 0, driftPress: false }
 			: inp;
 
 	const fwd = headingVec(s.heading);
 
-	// Drift state.
-	const wantsDrift =
-		effectiveInput.driftBtn &&
-		Math.abs(effectiveInput.steer) > 0.01 &&
-		s.speed > DRIFT_SPEED_THRESHOLD;
-	const isDrifting = wantsDrift;
-	const gripTarget = isDrifting ? MIN_GRIP : 1;
-	const gripRate = isDrifting ? GRIP_DECAY : GRIP_RECOVERY;
-	let grip = s.grip;
-	if (grip < gripTarget) grip = Math.min(gripTarget, grip + gripRate * dt);
-	else if (grip > gripTarget) grip = Math.max(gripTarget, grip - gripRate * dt);
-
-	// Angular velocity.
-	const steerMult = isDrifting ? DRIFT_STEER_MULT : 1;
-	let angularVelocity =
-		s.angularVelocity + effectiveInput.steer * STEER_RATE * steerMult * dt;
-	// Framerate-independent exponential damping (reference rate: 60Hz).
-	angularVelocity *= ANGULAR_DAMPING ** (dt * 60);
-
-	// Decompose velocity into forward and lateral (right-vector) components.
 	const rightX = Math.cos(s.heading);
 	const rightZ = -Math.sin(s.heading);
 	let vForward = v2dot(s.velocity, fwd);
 	let vLateral = s.velocity.x * rightX + s.velocity.z * rightZ;
 
-	// Throttle.
+	let isDrifting = s.isDrifting;
+	let driftExitTimer = s.driftExitTimer;
+	let grip = s.grip;
+	if (
+		effectiveInput.driftPress &&
+		!isDrifting &&
+		s.speed > DRIFT_SPEED_THRESHOLD &&
+		s.spinOutTimer === 0
+	) {
+		isDrifting = true;
+		const kickSign = Math.sign(effectiveInput.steer) || 1;
+		vLateral += kickSign * DRIFT_KICK_MAGNITUDE;
+		grip = MIN_GRIP;
+		driftExitTimer = 0;
+	}
+
+	if (isDrifting) {
+		grip = MIN_GRIP;
+	} else if (grip < 1) {
+		grip = Math.min(1, grip + GRIP_RECOVERY * dt);
+	}
+
+	const steerMult = isDrifting ? DRIFT_STEER_MULT : 1;
+	let angularVelocity =
+		s.angularVelocity + effectiveInput.steer * STEER_RATE * steerMult * dt;
+	angularVelocity *= ANGULAR_DAMPING ** (dt * 60);
+
 	vForward += effectiveInput.throttle * THROTTLE_FORCE * dt;
 	if (effectiveInput.throttle === 0) {
 		const decay = IDLE_DECAY * dt;
@@ -86,18 +104,23 @@ export function updateCar(s: CarState, inp: CarInput, dt: number): CarState {
 	}
 	vForward = Math.max(-MAX_SPEED * 0.5, Math.min(MAX_SPEED, vForward));
 
-	// Drift: inject lateral velocity proportional to how much heading is
-	// rotating vs how much grip we have left.
-	const driftInjection =
-		(1 - grip) * angularVelocity * Math.abs(vForward) * dt * 0.6;
-	vLateral += driftInjection;
+	if (isDrifting) {
+		const driftInjection =
+			(1 - grip) * angularVelocity * Math.abs(vForward) * dt * 0.6;
+		vLateral += driftInjection;
+	}
 
-	// Lateral friction — stronger with more grip.
 	const lateralDecay = grip * LATERAL_FRICTION * dt;
 	vLateral =
 		vLateral > 0
 			? Math.max(0, vLateral - lateralDecay)
 			: Math.min(0, vLateral + lateralDecay);
+
+	// When drifting and the driver isn't steering into the slide anymore,
+	// bleed lateral velocity aggressively so the car settles and auto-releases.
+	if (isDrifting && Math.abs(effectiveInput.steer) < 0.01) {
+		vLateral *= DRIFT_SETTLE_DAMP ** (dt * 60);
+	}
 
 	const velocity: Vec2 = {
 		x: fwd.x * vForward + rightX * vLateral,
@@ -110,7 +133,6 @@ export function updateCar(s: CarState, inp: CarInput, dt: number): CarState {
 		z: s.position.z + velocity.z * dt,
 	};
 
-	// Spin-out detection.
 	let spinOutTimer = Math.max(0, s.spinOutTimer - dt);
 	const vMag = Math.hypot(velocity.x, velocity.z);
 	if (spinOutTimer === 0 && isDrifting && vMag > 5) {
@@ -125,16 +147,31 @@ export function updateCar(s: CarState, inp: CarInput, dt: number): CarState {
 			angularVelocity = (Math.random() - 0.5) * 8;
 			velocity.x *= 0.2;
 			velocity.z *= 0.2;
+			isDrifting = false;
 		}
 	}
 
-	// Counter-steer reward: extra damping on angular velocity.
 	if (
 		isDrifting &&
 		Math.sign(effectiveInput.steer) !== 0 &&
 		Math.sign(effectiveInput.steer) === -Math.sign(angularVelocity)
 	) {
-		angularVelocity *= 0.85 ** (dt * 60);
+		angularVelocity *= COUNTERSTEER_DAMP ** (dt * 60);
+	}
+
+	if (isDrifting) {
+		if (Math.abs(vLateral) < DRIFT_EXIT_LATERAL) {
+			driftExitTimer += dt;
+		} else {
+			driftExitTimer = 0;
+		}
+		const speedNow = Math.hypot(velocity.x, velocity.z);
+		if (driftExitTimer >= DRIFT_EXIT_DURATION || speedNow < DRIFT_EXIT_SPEED) {
+			isDrifting = false;
+			driftExitTimer = 0;
+		}
+	} else {
+		driftExitTimer = 0;
 	}
 
 	return {
@@ -146,5 +183,6 @@ export function updateCar(s: CarState, inp: CarInput, dt: number): CarState {
 		grip,
 		isDrifting,
 		spinOutTimer,
+		driftExitTimer,
 	};
 }

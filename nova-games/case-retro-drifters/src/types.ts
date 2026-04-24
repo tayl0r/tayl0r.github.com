@@ -2,9 +2,9 @@ export type Vec2 = { x: number; z: number };
 
 export type CarInput = {
 	throttle: number; // 0..1
-	brake: number; // 0..1 (Shift+S)
+	brake: number; // 0..1 (S)
 	steer: number; // -1..1
-	driftBtn: boolean; // Shift held
+	driftPress: boolean; // rising edge of Shift
 };
 
 export type CarState = {
@@ -16,6 +16,7 @@ export type CarState = {
 	grip: number; // 1.0 full, 0.3 drift min
 	isDrifting: boolean;
 	spinOutTimer: number; // seconds > 0 = locked out
+	driftExitTimer: number; // seconds near-straight while drifting (for auto-release)
 };
 
 export type Waypoint = {

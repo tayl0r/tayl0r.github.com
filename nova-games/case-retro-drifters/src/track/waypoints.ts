@@ -1,6 +1,6 @@
 import type { Waypoint } from "../types";
 
-const W = 8;
+const W = 14;
 
 export const tokyoWaypoints: Waypoint[] = [
 	{ pos: { x: 0, z: 0 }, width: W, tag: "start" },

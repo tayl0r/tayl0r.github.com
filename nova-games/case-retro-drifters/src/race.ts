@@ -1,17 +1,22 @@
 import {
 	AmbientLight,
+	Box3,
 	DirectionalLight,
 	type Group,
 	PerspectiveCamera,
+	Ray,
 	Scene,
+	Vector3,
 } from "three";
 import { buildCar } from "./car/geometry";
 import { initialCarState, updateCar } from "./car/physics";
+import { createSmoke } from "./fx/smoke";
 import { HUD } from "./hud";
 import { Input } from "./input";
+import { createStartLights } from "./race/lights";
 import type { GameScene, SceneContext, SceneFactory } from "./scene";
-import { nearestSegment, offTrack, segmentDirection } from "./track/collision";
 import { buildRoad } from "./track/geometry";
+import { resolveWallCollision } from "./track/walls";
 import { tokyoWaypoints } from "./track/waypoints";
 import type { CarInput, CarState } from "./types";
 
@@ -28,6 +33,34 @@ export const createRaceScene: SceneFactory = (ctx: SceneContext): GameScene => {
 
 	const track = buildRoad(tokyoWaypoints);
 	scene.add(track.root);
+
+	const lights = createStartLights(
+		scene,
+		track.startInfo.pos,
+		track.startInfo.rightNormal,
+		track.startInfo.halfWidth,
+	);
+
+	const smoke = createSmoke(scene);
+
+	const buildings = track.buildings;
+	// Make materials transparent-ready.
+	for (const b of buildings) {
+		const mat = b.material as {
+			transparent: boolean;
+			depthWrite: boolean;
+			opacity: number;
+		};
+		mat.transparent = true;
+		mat.depthWrite = false;
+		mat.opacity = 1;
+	}
+	const buildingBoxes = buildings.map((b) => new Box3().setFromObject(b));
+	const buildingTargetOpacity = new Float32Array(buildings.length).fill(1);
+	const occlusionRay = new Ray();
+	const camWorldPos = new Vector3();
+	const carWorldPos = new Vector3();
+	const rayHit = new Vector3();
 
 	const carMesh: Group = buildCar("skyline");
 	scene.add(carMesh);
@@ -51,15 +84,13 @@ export const createRaceScene: SceneFactory = (ctx: SceneContext): GameScene => {
 	}
 
 	// Race progression.
-	let countdown = 3.0;
-	hud.setCenter("3");
+	let countdown = 4.0;
 	let raceTime = 0;
 	let lapStart = 0;
 	let lap = 1;
 	let bestLap: number | null = null;
 	let finished = false;
 	let halfwayReached = false;
-	let penaltyTimer = 0;
 
 	// Start line direction (used as forward direction AND to derive its
 	// left-perpendicular normal for side-of-line detection).
@@ -75,6 +106,14 @@ export const createRaceScene: SceneFactory = (ctx: SceneContext): GameScene => {
 	// Camera smoothing.
 	let camTargetX = car.position.x;
 	let camTargetZ = car.position.z;
+	// Fixed-orientation follow cam (camera stays at world +Z of car, not
+	// behind the car's heading). A chase cam that orbits with heading
+	// flips the visual frame and makes turning feel reversed — the car's
+	// body stops rotating on screen and the world rotates instead. This
+	// setup keeps the original "the car rotates, the world stays put" feel.
+	const LOOK_AHEAD = 10;
+	let camLookX = car.position.x + Math.sin(car.heading) * LOOK_AHEAD;
+	let camLookZ = car.position.z + Math.cos(car.heading) * LOOK_AHEAD;
 
 	// Esc / back handlers.
 	const removeBackHandler = hud.onBack(() => goBack());
@@ -88,26 +127,6 @@ export const createRaceScene: SceneFactory = (ctx: SceneContext): GameScene => {
 		if (disposed) return;
 		const { createMenuScene } = await import("./menu");
 		ctx.switchTo(createMenuScene);
-	}
-
-	function applyOffTrackPenalty(): void {
-		const hit = nearestSegment(car.position, tokyoWaypoints);
-		const a = tokyoWaypoints[hit.segmentIndex].pos;
-		const b =
-			tokyoWaypoints[(hit.segmentIndex + 1) % tokyoWaypoints.length].pos;
-		const dir = segmentDirection(a, b);
-		car = {
-			...car,
-			position: { ...hit.closestPoint },
-			velocity: { x: dir.x * car.speed * 0.5, z: dir.z * car.speed * 0.5 },
-			heading: Math.atan2(dir.x, dir.z),
-			angularVelocity: 0,
-			speed: car.speed * 0.5,
-			isDrifting: false,
-			grip: 1,
-		};
-		penaltyTimer = 3;
-		hud.setCenter("OFF TRACK");
 	}
 
 	function detectLapCross(
@@ -134,42 +153,39 @@ export const createRaceScene: SceneFactory = (ctx: SceneContext): GameScene => {
 			// Countdown: freeze car, just animate camera.
 			if (countdown > 0) {
 				countdown -= dt;
-				const n = Math.ceil(countdown);
-				if (countdown <= 0) {
+				if (countdown >= 3) lights.setState("red1");
+				else if (countdown >= 2) lights.setState("red2");
+				else if (countdown >= 1) lights.setState("red3");
+				else if (countdown > 0) lights.setState("green");
+				else {
+					lights.setState("off");
 					hud.flash("GO", 700);
 					countdown = 0;
-				} else {
-					hud.setCenter(String(n));
 				}
 				carMesh.position.set(car.position.x, 0, car.position.z);
 				carMesh.rotation.y = car.heading;
 				camTargetX = car.position.x;
 				camTargetZ = car.position.z;
-				camera.position.set(camTargetX, 18, camTargetZ + 10);
-				camera.lookAt(camTargetX, 0, camTargetZ);
+				camLookX = car.position.x + Math.sin(car.heading) * LOOK_AHEAD;
+				camLookZ = car.position.z + Math.cos(car.heading) * LOOK_AHEAD;
+				camera.position.set(camTargetX, 26, camTargetZ + 18);
+				camera.lookAt(camLookX, 0, camLookZ);
 				return;
 			}
 
 			if (finished) {
 				// Keep rendering but ignore input.
-				camera.position.set(camTargetX, 18, camTargetZ + 10);
-				camera.lookAt(camTargetX, 0, camTargetZ);
+				camera.position.set(camTargetX, 26, camTargetZ + 18);
+				camera.lookAt(camLookX, 0, camLookZ);
+				smoke.update(dt);
 				return;
 			}
 
-			let inp: CarInput = input.readCar();
-			if (penaltyTimer > 0) {
-				inp = { throttle: 0, brake: 0, steer: 0, driftBtn: false };
-				penaltyTimer -= dt;
-				if (penaltyTimer <= 0) hud.clearCenter();
-			}
+			const inp: CarInput = input.readCar();
 
 			const prev = { ...car.position };
 			car = updateCar(car, inp, dt);
-
-			if (penaltyTimer <= 0 && offTrack(car.position, tokyoWaypoints)) {
-				applyOffTrackPenalty();
-			}
+			car = resolveWallCollision(car, tokyoWaypoints);
 
 			raceTime += dt;
 			const lapTime = raceTime - lapStart;
@@ -197,13 +213,59 @@ export const createRaceScene: SceneFactory = (ctx: SceneContext): GameScene => {
 				}
 			}
 
-			// Camera: Hades-tilt follow, extra snap when drifting.
+			// Camera: fixed-orientation follow with look-ahead target.
 			const lag = car.isDrifting ? 0.08 : 0.2;
 			const lerp = Math.min(1, dt / lag);
 			camTargetX += (car.position.x - camTargetX) * lerp;
 			camTargetZ += (car.position.z - camTargetZ) * lerp;
-			camera.position.set(camTargetX, 18, camTargetZ + 10);
-			camera.lookAt(camTargetX, 0, camTargetZ);
+			const desiredLookX = car.position.x + Math.sin(car.heading) * LOOK_AHEAD;
+			const desiredLookZ = car.position.z + Math.cos(car.heading) * LOOK_AHEAD;
+			camLookX += (desiredLookX - camLookX) * lerp;
+			camLookZ += (desiredLookZ - camLookZ) * lerp;
+			camera.position.set(camTargetX, 26, camTargetZ + 18);
+			camera.lookAt(camLookX, 0, camLookZ);
+
+			// Occlusion transparency for buildings between camera and car.
+			camWorldPos.copy(camera.position);
+			carWorldPos.set(car.position.x, 1, car.position.z);
+			occlusionRay.origin.copy(camWorldPos);
+			occlusionRay.direction.copy(carWorldPos).sub(camWorldPos).normalize();
+			const distToCar = camWorldPos.distanceTo(carWorldPos);
+			for (let i = 0; i < buildings.length; i++) {
+				const target = occlusionRay.intersectBox(buildingBoxes[i], rayHit);
+				let blocking = false;
+				if (target) {
+					const d = camWorldPos.distanceTo(rayHit);
+					if (d > 0.1 && d < distToCar) blocking = true;
+				}
+				buildingTargetOpacity[i] = blocking ? 0.25 : 1.0;
+			}
+			const opacityLerp = 1 - Math.exp(-dt / 0.3);
+			for (let i = 0; i < buildings.length; i++) {
+				const mat = buildings[i].material as { opacity: number };
+				mat.opacity += (buildingTargetOpacity[i] - mat.opacity) * opacityLerp;
+			}
+
+			smoke.update(dt);
+			if (car.isDrifting) {
+				const cos = Math.cos(car.heading);
+				const sin = Math.sin(car.heading);
+				const wheels: [number, number][] = [
+					[-0.95, -1.6],
+					[0.95, -1.6],
+				];
+				for (const [lx, lz] of wheels) {
+					const wx = car.position.x + sin * lz + cos * lx;
+					const wz = car.position.z + cos * lz - sin * lx;
+					for (let i = 0; i < 2; i++) {
+						const jitter = (Math.random() - 0.5) * 0.8;
+						const back = -2 - Math.random();
+						const vx = -sin * back + cos * jitter;
+						const vz = -cos * back - sin * jitter;
+						smoke.emit(wx, 0.3, wz, vx, 0.5 + Math.random(), vz);
+					}
+				}
+			}
 
 			carMesh.position.set(car.position.x, 0, car.position.z);
 			carMesh.rotation.y = car.heading;
@@ -217,6 +279,8 @@ export const createRaceScene: SceneFactory = (ctx: SceneContext): GameScene => {
 			window.removeEventListener("keydown", onKey);
 			hud.hide();
 			hud.clearCenter();
+			lights.dispose();
+			smoke.dispose();
 			scene.traverse((obj) => {
 				const m = obj as {
 					geometry?: { dispose(): void };

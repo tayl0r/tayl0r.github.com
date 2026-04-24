@@ -4,6 +4,7 @@ type KeyState = Record<string, boolean>;
 
 export class Input {
 	private keys: KeyState = {};
+	private prevShift = false;
 
 	constructor() {
 		window.addEventListener("keydown", this.onDown);
@@ -29,10 +30,15 @@ export class Input {
 	readCar(): CarInput {
 		const left = this.isDown("ArrowLeft") || this.isDown("KeyA");
 		const right = this.isDown("ArrowRight") || this.isDown("KeyD");
-		const throttle = this.isDown("Space") ? 1 : 0;
-		const driftBtn = this.isDown("ShiftLeft") || this.isDown("ShiftRight");
-		const brake = driftBtn && this.isDown("KeyS") ? 1 : 0;
-		const steer = (left ? -1 : 0) + (right ? 1 : 0);
-		return { throttle, brake, steer, driftBtn };
+		const throttle =
+			this.isDown("Space") || this.isDown("KeyW") || this.isDown("ArrowUp")
+				? 1
+				: 0;
+		const brake = this.isDown("KeyS") ? 1 : 0;
+		const shiftNow = this.isDown("ShiftLeft") || this.isDown("ShiftRight");
+		const driftPress = shiftNow && !this.prevShift;
+		this.prevShift = shiftNow;
+		const steer = (left ? 1 : 0) + (right ? -1 : 0);
+		return { throttle, brake, steer, driftPress };
 	}
 }
