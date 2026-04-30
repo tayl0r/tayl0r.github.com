@@ -103,17 +103,10 @@ export const createRaceScene: SceneFactory = (ctx: SceneContext): GameScene => {
 	const startNormX = -startDirZ;
 	const startNormZ = startDirX;
 
-	// Camera smoothing.
+	// Fixed-orientation follow cam: position and look-at both track the car
+	// in world space, so the camera never yaws and the car stays centered.
 	let camTargetX = car.position.x;
 	let camTargetZ = car.position.z;
-	// Fixed-orientation follow cam (camera stays at world +Z of car, not
-	// behind the car's heading). A chase cam that orbits with heading
-	// flips the visual frame and makes turning feel reversed — the car's
-	// body stops rotating on screen and the world rotates instead. This
-	// setup keeps the original "the car rotates, the world stays put" feel.
-	const LOOK_AHEAD = 10;
-	let camLookX = car.position.x + Math.sin(car.heading) * LOOK_AHEAD;
-	let camLookZ = car.position.z + Math.cos(car.heading) * LOOK_AHEAD;
 
 	// Esc / back handlers.
 	const removeBackHandler = hud.onBack(() => goBack());
@@ -166,17 +159,15 @@ export const createRaceScene: SceneFactory = (ctx: SceneContext): GameScene => {
 				carMesh.rotation.y = car.heading;
 				camTargetX = car.position.x;
 				camTargetZ = car.position.z;
-				camLookX = car.position.x + Math.sin(car.heading) * LOOK_AHEAD;
-				camLookZ = car.position.z + Math.cos(car.heading) * LOOK_AHEAD;
 				camera.position.set(camTargetX, 26, camTargetZ + 18);
-				camera.lookAt(camLookX, 0, camLookZ);
+				camera.lookAt(camTargetX, 0, camTargetZ);
 				return;
 			}
 
 			if (finished) {
 				// Keep rendering but ignore input.
 				camera.position.set(camTargetX, 26, camTargetZ + 18);
-				camera.lookAt(camLookX, 0, camLookZ);
+				camera.lookAt(camTargetX, 0, camTargetZ);
 				smoke.update(dt);
 				return;
 			}
@@ -213,17 +204,11 @@ export const createRaceScene: SceneFactory = (ctx: SceneContext): GameScene => {
 				}
 			}
 
-			// Camera: fixed-orientation follow with look-ahead target.
-			const lag = car.isDrifting ? 0.08 : 0.2;
-			const lerp = Math.min(1, dt / lag);
-			camTargetX += (car.position.x - camTargetX) * lerp;
-			camTargetZ += (car.position.z - camTargetZ) * lerp;
-			const desiredLookX = car.position.x + Math.sin(car.heading) * LOOK_AHEAD;
-			const desiredLookZ = car.position.z + Math.cos(car.heading) * LOOK_AHEAD;
-			camLookX += (desiredLookX - camLookX) * lerp;
-			camLookZ += (desiredLookZ - camLookZ) * lerp;
+			// Camera: fixed-orientation follow, car always centered.
+			camTargetX = car.position.x;
+			camTargetZ = car.position.z;
 			camera.position.set(camTargetX, 26, camTargetZ + 18);
-			camera.lookAt(camLookX, 0, camLookZ);
+			camera.lookAt(camTargetX, 0, camTargetZ);
 
 			// Occlusion transparency for buildings between camera and car.
 			camWorldPos.copy(camera.position);

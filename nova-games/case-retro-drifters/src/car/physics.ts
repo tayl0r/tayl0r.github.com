@@ -1,11 +1,12 @@
 import type { CarInput, CarState, Vec2 } from "../types";
 import { v2, v2dot, v2len } from "../types";
 
-export const MAX_SPEED = 30;
+export const MAX_SPEED = 22.5;
 export const DRIFT_SPEED_THRESHOLD = 18;
-export const THROTTLE_FORCE = 40;
+export const THROTTLE_FORCE = 30;
 export const IDLE_DECAY = 4;
 export const HARD_BRAKE_DECAY = 30;
+export const REVERSE_FORCE = 18;
 export const STEER_RATE = 6.5;
 export const DRIFT_STEER_MULT = 1.6;
 export const ANGULAR_DAMPING = 0.88;
@@ -50,9 +51,10 @@ export function updateCar(s: CarState, inp: CarInput, dt: number): CarState {
 
 	const effectiveInput: CarInput =
 		s.spinOutTimer > 0
-			? { throttle: 0, brake: 0, steer: 0, driftPress: false }
+			? { throttle: 0, reverse: 0, steer: 0, driftPress: false }
 			: inp;
 
+	const speedAtFrameStart = s.speed;
 	const fwd = headingVec(s.heading);
 
 	const rightX = Math.cos(s.heading);
@@ -95,12 +97,12 @@ export function updateCar(s: CarState, inp: CarInput, dt: number): CarState {
 				? Math.max(0, vForward - decay)
 				: Math.min(0, vForward + decay);
 	}
-	if (effectiveInput.brake > 0) {
-		const decay = HARD_BRAKE_DECAY * dt;
-		vForward =
-			vForward > 0
-				? Math.max(0, vForward - decay)
-				: Math.min(0, vForward + decay);
+	if (effectiveInput.reverse > 0) {
+		if (vForward > 0) {
+			vForward = Math.max(0, vForward - HARD_BRAKE_DECAY * dt);
+		} else {
+			vForward -= effectiveInput.reverse * REVERSE_FORCE * dt;
+		}
 	}
 	vForward = Math.max(-MAX_SPEED * 0.5, Math.min(MAX_SPEED, vForward));
 
@@ -120,6 +122,17 @@ export function updateCar(s: CarState, inp: CarInput, dt: number): CarState {
 	// bleed lateral velocity aggressively so the car settles and auto-releases.
 	if (isDrifting && Math.abs(effectiveInput.steer) < 0.01) {
 		vLateral *= DRIFT_SETTLE_DAMP ** (dt * 60);
+	}
+
+	// Lock total speed during drift: the entry kick, drift injection, and
+	// throttle should rotate the velocity vector but not increase its magnitude.
+	if (isDrifting) {
+		const mag = Math.hypot(vForward, vLateral);
+		if (mag > 0.001 && speedAtFrameStart > 0.001) {
+			const scale = speedAtFrameStart / mag;
+			vForward *= scale;
+			vLateral *= scale;
+		}
 	}
 
 	const velocity: Vec2 = {

@@ -3,7 +3,7 @@ import type { CarState } from "../types";
 import { v2 } from "../types";
 import { DRIFT_SPEED_THRESHOLD, initialCarState, updateCar } from "./physics";
 
-const noInput = { throttle: 0, brake: 0, steer: 0, driftPress: false };
+const noInput = { throttle: 0, reverse: 0, steer: 0, driftPress: false };
 
 describe("updateCar", () => {
 	it("returns state with same position at rest with no input", () => {
@@ -52,7 +52,7 @@ describe("drift & grip", () => {
 		expect(s.speed).toBeLessThan(DRIFT_SPEED_THRESHOLD);
 		s = updateCar(
 			s,
-			{ throttle: 1, brake: 0, steer: 1, driftPress: true },
+			{ throttle: 1, reverse: 0, steer: 1, driftPress: true },
 			0.016,
 		);
 		expect(s.isDrifting).toBe(false);
@@ -66,7 +66,7 @@ describe("drift & grip", () => {
 		expect(s.speed).toBeGreaterThan(DRIFT_SPEED_THRESHOLD);
 		s = updateCar(
 			s,
-			{ throttle: 1, brake: 0, steer: 1, driftPress: true },
+			{ throttle: 1, reverse: 0, steer: 1, driftPress: true },
 			0.016,
 		);
 		expect(s.isDrifting).toBe(true);
@@ -74,7 +74,7 @@ describe("drift & grip", () => {
 		for (let i = 0; i < 10; i++) {
 			s = updateCar(
 				s,
-				{ throttle: 1, brake: 0, steer: 1, driftPress: false },
+				{ throttle: 1, reverse: 0, steer: 1, driftPress: false },
 				0.016,
 			);
 		}
@@ -87,7 +87,7 @@ describe("drift & grip", () => {
 			s = updateCar(s, { ...noInput, throttle: 1 }, 0.016);
 		s = updateCar(
 			s,
-			{ throttle: 1, brake: 0, steer: 1, driftPress: true },
+			{ throttle: 1, reverse: 0, steer: 1, driftPress: true },
 			0.016,
 		);
 		for (let i = 0; i < 120; i++)
@@ -102,7 +102,7 @@ describe("drift & grip", () => {
 			s = updateCar(s, { ...noInput, throttle: 1 }, 0.016);
 		s = updateCar(
 			s,
-			{ throttle: 1, brake: 0, steer: 1, driftPress: true },
+			{ throttle: 1, reverse: 0, steer: 1, driftPress: true },
 			0.016,
 		);
 		const rightX = Math.cos(s.heading);
@@ -125,7 +125,7 @@ describe("spin-out", () => {
 		};
 		const next = updateCar(
 			extreme,
-			{ throttle: 0, brake: 0, steer: 1, driftPress: false },
+			{ throttle: 0, reverse: 0, steer: 1, driftPress: false },
 			0.016,
 		);
 		expect(next.spinOutTimer).toBeGreaterThan(0);
@@ -140,7 +140,7 @@ describe("spin-out", () => {
 		};
 		const next = updateCar(
 			stuck,
-			{ throttle: 1, brake: 0, steer: 0, driftPress: false },
+			{ throttle: 1, reverse: 0, steer: 0, driftPress: false },
 			0.016,
 		);
 		expect(next.spinOutTimer).toBeLessThan(0.5);
@@ -159,7 +159,7 @@ describe("spin-out", () => {
 		// steer = -1 opposes angularVelocity > 0 → counter-steering active.
 		const next = updateCar(
 			extreme,
-			{ throttle: 0, brake: 0, steer: -1, driftPress: false },
+			{ throttle: 0, reverse: 0, steer: -1, driftPress: false },
 			0.016,
 		);
 		expect(next.spinOutTimer).toBe(0);
@@ -173,7 +173,7 @@ describe("drift tap mechanics", () => {
 			s = updateCar(s, { ...noInput, throttle: 1 }, 0.016);
 		s = updateCar(
 			s,
-			{ throttle: 1, brake: 0, steer: 1, driftPress: true },
+			{ throttle: 1, reverse: 0, steer: 1, driftPress: true },
 			0.016,
 		);
 		expect(s.isDrifting).toBe(true);
@@ -182,7 +182,7 @@ describe("drift tap mechanics", () => {
 		);
 		s = updateCar(
 			s,
-			{ throttle: 1, brake: 0, steer: 1, driftPress: true },
+			{ throttle: 1, reverse: 0, steer: 1, driftPress: true },
 			0.016,
 		);
 		const latAfterSecond = Math.abs(
@@ -197,7 +197,7 @@ describe("drift tap mechanics", () => {
 			s = updateCar(s, { ...noInput, throttle: 1 }, 0.016);
 		s = updateCar(
 			s,
-			{ throttle: 1, brake: 0, steer: 1, driftPress: true },
+			{ throttle: 1, reverse: 0, steer: 1, driftPress: true },
 			0.016,
 		);
 		expect(s.isDrifting).toBe(true);
@@ -208,23 +208,34 @@ describe("drift tap mechanics", () => {
 	});
 
 	it("auto-releases drift when speed drops below floor", () => {
+		const slow: CarState = {
+			...initialCarState(),
+			velocity: v2(0, 4),
+			speed: 4,
+			grip: 0.3,
+			isDrifting: true,
+		};
+		const next = updateCar(slow, noInput, 0.016);
+		expect(next.isDrifting).toBe(false);
+	});
+});
+
+describe("reverse", () => {
+	it("drives backward from a stop", () => {
 		let s = initialCarState();
-		for (let i = 0; i < 120; i++)
-			s = updateCar(s, { ...noInput, throttle: 1 }, 0.016);
-		s = updateCar(
-			s,
-			{ throttle: 1, brake: 0, steer: 1, driftPress: true },
-			0.016,
-		);
-		expect(s.isDrifting).toBe(true);
-		for (let i = 0; i < 200; i++) {
-			s = updateCar(
-				s,
-				{ throttle: 0, brake: 1, steer: 0, driftPress: false },
-				0.016,
-			);
+		for (let i = 0; i < 30; i++) {
+			s = updateCar(s, { ...noInput, reverse: 1 }, 0.016);
 		}
-		expect(s.speed).toBeLessThan(5);
-		expect(s.isDrifting).toBe(false);
+		expect(s.velocity.z).toBeLessThan(-0.5);
+	});
+
+	it("brakes forward motion before reversing", () => {
+		let s = initialCarState();
+		for (let i = 0; i < 60; i++)
+			s = updateCar(s, { ...noInput, throttle: 1 }, 0.016);
+		const peak = s.speed;
+		s = updateCar(s, { ...noInput, reverse: 1 }, 0.016);
+		expect(s.speed).toBeLessThan(peak);
+		expect(s.velocity.z).toBeGreaterThan(0);
 	});
 });
