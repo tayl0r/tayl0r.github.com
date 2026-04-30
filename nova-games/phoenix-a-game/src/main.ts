@@ -31,7 +31,12 @@ import {
 	type Monster,
 	moveMonsterTowards,
 } from "./monsters";
-import { computeVelocity, createPlayerMesh, PLAYER_RADIUS } from "./player";
+import {
+	computeVelocity,
+	createPlayerMesh,
+	PLAYER_RADIUS,
+	swordColorFor,
+} from "./player";
 import { createInitialState } from "./state";
 import {
 	activateSwitch,
@@ -299,6 +304,9 @@ function animate() {
 	follow.update(player, input.mouseDX, input.mouseDY);
 	input.mouseDX = 0;
 	input.mouseDY = 0;
+	(sword.material as MeshStandardMaterial).color.setHex(
+		swordColorFor(state.player.swordDamage),
+	);
 	const v = computeVelocity(input, input.shift, follow.yaw);
 	const moving = Math.hypot(v.x, v.z) > 0.01;
 	tickPlayer(state, dt, moving, moving && input.shift);
