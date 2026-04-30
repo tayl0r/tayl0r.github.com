@@ -4,6 +4,7 @@ export type MonsterKind = "goblin" | "ogre" | "boss";
 
 export interface Monster {
 	kind: MonsterKind;
+	roomIndex: number;
 	x: number;
 	z: number;
 	hp: number;
@@ -11,13 +12,15 @@ export interface Monster {
 	radius: number;
 	contact: number;
 	damage: number;
+	dormant: boolean;
 	mesh?: Mesh;
 	flashUntil?: number;
 }
 
-export function createGoblin(x: number, z: number): Monster {
+export function createGoblin(x: number, z: number, roomIndex: number): Monster {
 	return {
 		kind: "goblin",
+		roomIndex,
 		x,
 		z,
 		hp: 2,
@@ -25,12 +28,14 @@ export function createGoblin(x: number, z: number): Monster {
 		radius: 0.4,
 		contact: 0.9,
 		damage: 0.5,
+		dormant: true,
 	};
 }
 
-export function createOgre(x: number, z: number): Monster {
+export function createOgre(x: number, z: number, roomIndex: number): Monster {
 	return {
 		kind: "ogre",
+		roomIndex,
 		x,
 		z,
 		hp: 4,
@@ -38,12 +43,14 @@ export function createOgre(x: number, z: number): Monster {
 		radius: 0.6,
 		contact: 1.2,
 		damage: 1,
+		dormant: true,
 	};
 }
 
-export function createBoss(x: number, z: number): Monster {
+export function createBoss(x: number, z: number, roomIndex: number): Monster {
 	return {
 		kind: "boss",
+		roomIndex,
 		x,
 		z,
 		hp: 10,
@@ -51,6 +58,7 @@ export function createBoss(x: number, z: number): Monster {
 		radius: 0.9,
 		contact: 1.8,
 		damage: 1,
+		dormant: false,
 	};
 }
 
@@ -72,6 +80,7 @@ export function moveMonsterTowards(
 	targetZ: number,
 	dt: number,
 ): void {
+	if (m.dormant) return;
 	const dx = targetX - m.x;
 	const dz = targetZ - m.z;
 	const d = Math.hypot(dx, dz);
