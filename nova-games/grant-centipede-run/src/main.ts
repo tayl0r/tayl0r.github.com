@@ -33,6 +33,7 @@ const SPEED_ACCEL = 6; // px/s per second
 const MAX_SPEED = 520; // px/s
 const GRAVITY = 1800; // px/s^2
 const JUMP_IMPULSE = 720; // px/s upward
+const SEGMENT_JUMP_DELAY = 0.07; // seconds between each segment in the jump wave
 const CHUNK_WIDTH = 400;
 const TERRAIN_AMPLITUDE = 60;
 const TERRAIN_RAMP_START = 0;
@@ -45,6 +46,7 @@ const FIREBALL_SPEED = 120; // px/s
 const FIREBALL_DESPAWN_BEHIND_PX = 150;
 const MUSHROOM_HEIGHT = 34;
 const MUSHROOM_WIDTH = 30;
+const MIN_SPAWN_SPACING = 200; // px between consecutive spawns (enemies + powerups)
 const HIGH_SCORE_KEY = "centipede-run:highscore";
 
 function loadHighScore(): number {
@@ -334,12 +336,13 @@ interface Segment {
 	antennae: Graphics | null;
 	x: number;
 	y: number;
+	vy: number;
+	onGround: boolean;
+	pendingJumpAt: number | null;
 }
 
-const centipede: { segments: Segment[]; vy: number; onGround: boolean } = {
+const centipede: { segments: Segment[] } = {
 	segments: [],
-	vy: 0,
-	onGround: true,
 };
 
 function drawSegment(isHead: boolean): Graphics {
@@ -364,11 +367,10 @@ function drawSegment(isHead: boolean): Graphics {
 		// Rosy cheeks
 		g.circle(eyeX + 2, eyeY + 5, 2.5).fill(0xff9ab0);
 		g.circle(-eyeX + 2, eyeY + 5, 2.5).fill(0xff9ab0);
-		// Smile
-		g.arc(0, eyeY + 6, 3.5, 0.15 * Math.PI, 0.85 * Math.PI).stroke({
-			color: 0x3a2516,
-			width: 1.5,
-		});
+		// Cute wide smile — explicit moveTo + curve so no stray line is drawn.
+		g.moveTo(-8, eyeY + 4)
+			.quadraticCurveTo(0, eyeY + 12, 8, eyeY + 4)
+			.stroke({ color: 0x3a2516, width: 2.5 });
 	}
 	return g;
 }
@@ -394,23 +396,23 @@ function drawAntennae(a: Graphics, phase: number): void {
 	a.clear()
 		.moveTo(-6, -CENTIPEDE_RADIUS + 2)
 		.quadraticCurveTo(
-			-10 + swing,
+			-9 + swing,
+			-CENTIPEDE_RADIUS - 6,
+			-7 + swing,
 			-CENTIPEDE_RADIUS - 10,
-			-8 + swing,
-			-CENTIPEDE_RADIUS - 16,
 		)
 		.stroke({ color: 0x3a2516, width: 2 })
-		.circle(-8 + swing, -CENTIPEDE_RADIUS - 17, 2)
+		.circle(-7 + swing, -CENTIPEDE_RADIUS - 11, 2)
 		.fill(0x3a2516)
 		.moveTo(6, -CENTIPEDE_RADIUS + 2)
 		.quadraticCurveTo(
-			10 - swing,
+			9 - swing,
+			-CENTIPEDE_RADIUS - 6,
+			7 - swing,
 			-CENTIPEDE_RADIUS - 10,
-			8 - swing,
-			-CENTIPEDE_RADIUS - 16,
 		)
 		.stroke({ color: 0x3a2516, width: 2 })
-		.circle(8 - swing, -CENTIPEDE_RADIUS - 17, 2)
+		.circle(7 - swing, -CENTIPEDE_RADIUS - 11, 2)
 		.fill(0x3a2516);
 }
 
@@ -435,10 +437,17 @@ function spawnCentipede(): void {
 			antennae = new Graphics();
 			gameScene.addChild(antennae);
 		}
-		centipede.segments.push({ g, legs, antennae, x, y });
+		centipede.segments.push({
+			g,
+			legs,
+			antennae,
+			x,
+			y,
+			vy: 0,
+			onGround: true,
+			pendingJumpAt: null,
+		});
 	}
-	centipede.vy = 0;
-	centipede.onGround = true;
 }
 
 let speed = BASE_SPEED;
@@ -473,6 +482,7 @@ interface Chunk {
 }
 
 const chunks = new Map<number, Chunk>();
+let lastSpawnWorldX = Number.NEGATIVE_INFINITY;
 
 function drawMushroom(capColor: number): Graphics {
 	const g = new Graphics();
@@ -588,28 +598,29 @@ function generateChunk(index: number): Chunk {
 	groundLayer.addChild(ground);
 	const chunk: Chunk = { index, spawns: [], ground };
 	if (index <= 2) return chunk; // first few chunks are safe
-	const slots: number[] = [];
-	const slot = () => 60 + slots.length * 140 + Math.random() * 40;
-	// Enemy rolls
-	const enemyRoll = Math.random();
-	const enemyCount = enemyRoll < 0.6 ? 1 : enemyRoll < 0.85 ? 2 : 0;
-	for (let i = 0; i < enemyCount; i++) {
-		const x = slot();
-		if (x > CHUNK_WIDTH - 40) break;
-		const worldX = index * CHUNK_WIDTH + x;
-		if (Math.random() < 0.65) chunk.spawns.push(makeSphere(worldX));
-		else chunk.spawns.push(makeFireball(worldX));
-		slots.push(x);
-	}
-	// Powerup roll
-	if (Math.random() < 0.35) {
-		const x = slot();
-		if (x <= CHUNK_WIDTH - 40) {
-			const worldX = index * CHUNK_WIDTH + x;
-			if (Math.random() < 0.7) chunk.spawns.push(makeBlueMushroom(worldX));
-			else chunk.spawns.push(makeRedMushroom(worldX));
-			slots.push(x);
+
+	const chunkStart = index * CHUNK_WIDTH;
+	const chunkEnd = chunkStart + CHUNK_WIDTH - 40;
+	let candidateX = Math.max(
+		lastSpawnWorldX + MIN_SPAWN_SPACING,
+		chunkStart + 60,
+	);
+
+	while (candidateX <= chunkEnd) {
+		const roll = Math.random();
+		if (roll < 0.7) {
+			// Enemy
+			if (Math.random() < 0.65) chunk.spawns.push(makeSphere(candidateX));
+			else chunk.spawns.push(makeFireball(candidateX));
+			lastSpawnWorldX = candidateX;
+		} else if (roll < 0.85) {
+			// Powerup
+			if (Math.random() < 0.7) chunk.spawns.push(makeBlueMushroom(candidateX));
+			else chunk.spawns.push(makeRedMushroom(candidateX));
+			lastSpawnWorldX = candidateX;
 		}
+		// else: empty stretch (15%) — still advance the cursor so we don't bunch up
+		candidateX += MIN_SPAWN_SPACING + Math.random() * 80;
 	}
 	return chunk;
 }
@@ -646,6 +657,7 @@ function startRun(): void {
 	runTime = 0;
 	for (const c of chunks.values()) destroyChunk(c);
 	chunks.clear();
+	lastSpawnWorldX = Number.NEGATIVE_INFINITY;
 	spawnCentipede();
 	stepCounterText.visible = true;
 	stepCounterText.text = "0";
@@ -677,7 +689,16 @@ function gainSegments(n: number): void {
 		gameScene.addChild(g);
 		const legs = new Graphics();
 		gameScene.addChild(legs);
-		centipede.segments.push({ g, legs, antennae: null, x, y });
+		centipede.segments.push({
+			g,
+			legs,
+			antennae: null,
+			x,
+			y,
+			vy: 0,
+			onGround: true,
+			pendingJumpAt: null,
+		});
 	}
 }
 
@@ -693,9 +714,13 @@ function endRun(): void {
 }
 
 window.addEventListener("keydown", (e) => {
-	if (e.code === "Space" && state === "playing" && centipede.onGround) {
-		centipede.vy = -JUMP_IMPULSE;
-		centipede.onGround = false;
+	if (e.code === "Space" && state === "playing") {
+		const head = centipede.segments[0];
+		if (head?.onGround) {
+			for (let i = 0; i < centipede.segments.length; i++) {
+				centipede.segments[i].pendingJumpAt = runTime + i * SEGMENT_JUMP_DELAY;
+			}
+		}
 		e.preventDefault();
 	}
 });
@@ -728,17 +753,6 @@ app.ticker.add((time) => {
 	const head = centipede.segments[0];
 	head.x += speed * dt;
 
-	centipede.vy += GRAVITY * dt;
-	const newY = head.y + centipede.vy * dt;
-	const floorY = groundHeightAt(head.x) - CENTIPEDE_RADIUS;
-	if (newY >= floorY) {
-		head.y = floorY;
-		centipede.vy = 0;
-		centipede.onGround = true;
-	} else {
-		head.y = newY;
-	}
-
 	const moved = speed * dt;
 	distance += moved;
 	const phase = distance * PHASE_PER_PX;
@@ -748,18 +762,41 @@ app.ticker.add((time) => {
 		lastStepPhase = fullCycles;
 	}
 
-	// Trailing segments follow with fixed spacing behind the head.
+	// Trailing segments follow with fixed x-spacing behind the head.
 	for (let i = 1; i < centipede.segments.length; i++) {
 		const prev = centipede.segments[i - 1];
 		const seg = centipede.segments[i];
 		seg.x = prev.x - CENTIPEDE_SEG_SPACING;
-		seg.y = groundHeightAt(seg.x) - CENTIPEDE_RADIUS;
 	}
 
-	// Body ripple: subtle vertical bob per segment so the centipede undulates.
+	// Per-segment jump physics: each segment fires its delayed jump, falls under
+	// gravity, and lands on the terrain at its own x.
+	for (const seg of centipede.segments) {
+		if (
+			seg.pendingJumpAt !== null &&
+			runTime >= seg.pendingJumpAt &&
+			seg.onGround
+		) {
+			seg.vy = -JUMP_IMPULSE;
+			seg.onGround = false;
+			seg.pendingJumpAt = null;
+		}
+		seg.vy += GRAVITY * dt;
+		const newY = seg.y + seg.vy * dt;
+		const segFloorY = groundHeightAt(seg.x) - CENTIPEDE_RADIUS;
+		if (newY >= segFloorY) {
+			seg.y = segFloorY;
+			seg.vy = 0;
+			seg.onGround = true;
+		} else {
+			seg.y = newY;
+		}
+	}
+
+	// Body ripple: subtle vertical bob only while the segment is grounded.
 	for (let i = 0; i < centipede.segments.length; i++) {
 		const s = centipede.segments[i];
-		if (i === 0 && !centipede.onGround) continue;
+		if (!s.onGround) continue;
 		const bob = Math.sin(phase + i * 0.9) * 2;
 		s.y += bob;
 	}
