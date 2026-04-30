@@ -22,7 +22,7 @@ import {
 import { createDoors, type Door, openDoor } from "./doors";
 import { renderHud } from "./hud";
 import { createInput, wireInput } from "./input";
-import { type Chest, createChest, tryOpenChest } from "./loot";
+import { type Chest, createChest, openChest, updateChestDrop } from "./loot";
 import {
 	createBoss,
 	createGoblin,
@@ -154,7 +154,10 @@ function spawnBoss() {
 
 function teardownDungeon() {
 	for (const m of monsters) if (m.mesh) disposeMesh(m.mesh);
-	for (const c of chests) disposeMesh(c.mesh);
+	for (const c of chests) {
+		disposeMesh(c.mesh);
+		if (c.dropMesh) disposeMesh(c.dropMesh);
+	}
 	for (const d of doors) disposeMesh(d.mesh);
 	for (const s of roomSwitches) disposeMesh(s.mesh);
 	if (winSwitch) disposeMesh(winSwitch.mesh);
@@ -250,6 +253,24 @@ function handleSwingTargets(
 			activateSwitch(sw);
 		}
 	}
+	for (const chest of chests) {
+		if (chest.opened) continue;
+		if (
+			checkSwingHit(
+				swing,
+				state.now,
+				facingX,
+				facingZ,
+				px,
+				pz,
+				chest.x,
+				chest.z,
+			)
+		) {
+			const dropMesh = openChest(chest, state, Math.random, state.now);
+			if (dropMesh) scene.add(dropMesh);
+		}
+	}
 	if (!boss && roomSwitches.every((s) => s.activated)) {
 		spawnBoss();
 	}
@@ -309,15 +330,7 @@ function animate() {
 			player.position.z,
 			PLAYER_RADIUS,
 		);
-		for (const chest of chests) {
-			tryOpenChest(
-				chest,
-				player.position.x,
-				player.position.z,
-				state,
-				Math.random,
-			);
-		}
+		for (const chest of chests) updateChestDrop(chest, state.now);
 	}
 	if (input.click && !prevClick) {
 		if (state.phase === "playing") {
