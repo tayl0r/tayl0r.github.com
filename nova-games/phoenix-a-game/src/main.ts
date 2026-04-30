@@ -214,9 +214,9 @@ function activeWalls(): Aabb[] {
 	return walls;
 }
 
-function wakeRoomMonsters(roomIndex: number) {
+function wakeRooms(roomIndices: readonly number[]) {
 	for (const m of monsters) {
-		if (m.roomIndex === roomIndex) m.dormant = false;
+		if (roomIndices.includes(m.roomIndex)) m.dormant = false;
 	}
 }
 
@@ -241,7 +241,7 @@ function handleSwingTargets(
 			)
 		) {
 			openDoor(door);
-			wakeRoomMonsters(door.roomIndex);
+			wakeRooms(door.roomIndices);
 		}
 	}
 	for (const sw of roomSwitches) {
