@@ -1,6 +1,7 @@
 import {
 	BoxGeometry,
 	CapsuleGeometry,
+	Group,
 	Mesh,
 	MeshStandardMaterial,
 } from "three";
@@ -40,17 +41,19 @@ export function computeVelocity(
 	};
 }
 
-export function createPlayerMesh(): { root: Mesh; sword: Mesh } {
-	const root = new Mesh(
+export function createPlayerMesh(): { root: Group; sword: Mesh } {
+	const root = new Group();
+	const body = new Mesh(
 		new CapsuleGeometry(0.5, 1, 4, 8),
 		new MeshStandardMaterial({ color: 0x66ccff }),
 	);
-	root.position.y = 1;
+	body.position.y = 1;
+	body.visible = false;
+	root.add(body);
 	const sword = new Mesh(
-		new BoxGeometry(0.1, 0.1, 1.0),
+		new BoxGeometry(0.12, 0.12, 1.2),
 		new MeshStandardMaterial({ color: 0xcccccc }),
 	);
-	sword.position.set(0.5, 0, -0.5);
-	root.add(sword);
+	sword.position.set(0.5, -0.4, -0.8);
 	return { root, sword };
 }

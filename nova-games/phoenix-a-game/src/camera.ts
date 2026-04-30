@@ -1,43 +1,34 @@
-import type { Mesh, PerspectiveCamera } from "three";
-import { Vector3 } from "three";
+import type { Object3D, PerspectiveCamera } from "three";
 
 export interface FollowCamera {
 	yaw: number;
 	pitch: number;
-	update(target: Mesh, dt: number, mouseDX: number, mouseDY: number): void;
+	update(target: Object3D, mouseDX: number, mouseDY: number): void;
 }
 
-const OFFSET_DISTANCE = 8;
-const OFFSET_HEIGHT = 4;
+const EYE_HEIGHT = 1.8;
 const MOUSE_SENSITIVITY = 0.0025;
-const PITCH_MIN = -Math.PI / 3;
-const PITCH_MAX = Math.PI / 6;
+const PITCH_MIN = -Math.PI / 2 + 0.05;
+const PITCH_MAX = Math.PI / 2 - 0.05;
 
 export function createFollowCamera(camera: PerspectiveCamera): FollowCamera {
+	camera.rotation.order = "YXZ";
 	const state: FollowCamera = {
 		yaw: 0,
-		pitch: -Math.PI / 8,
-		update(target, dt, mouseDX, mouseDY) {
+		pitch: 0,
+		update(target, mouseDX, mouseDY) {
 			state.yaw -= mouseDX * MOUSE_SENSITIVITY;
 			state.pitch = Math.max(
 				PITCH_MIN,
 				Math.min(PITCH_MAX, state.pitch - mouseDY * MOUSE_SENSITIVITY),
 			);
-			const horiz = Math.cos(state.pitch) * OFFSET_DISTANCE;
-			const offset = new Vector3(
-				Math.sin(state.yaw) * horiz,
-				OFFSET_HEIGHT - Math.sin(state.pitch) * OFFSET_DISTANCE,
-				Math.cos(state.yaw) * horiz,
-			);
-			camera.position.lerp(
-				target.position.clone().add(offset),
-				1 - Math.exp(-dt * 10),
-			);
-			camera.lookAt(
+			camera.position.set(
 				target.position.x,
-				target.position.y + 1,
+				target.position.y + EYE_HEIGHT,
 				target.position.z,
 			);
+			camera.rotation.y = state.yaw;
+			camera.rotation.x = state.pitch;
 		},
 	};
 	return state;
