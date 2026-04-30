@@ -22,7 +22,13 @@ import {
 import { createDoors, type Door, openDoor } from "./doors";
 import { renderHud } from "./hud";
 import { createInput, wireInput } from "./input";
-import { type Chest, createChest, openChest, updateChestDrop } from "./loot";
+import {
+	type Chest,
+	createChest,
+	openChest,
+	pickupDrop,
+	updateChestDrop,
+} from "./loot";
 import {
 	createBoss,
 	createGoblin,
@@ -272,8 +278,31 @@ function handleSwingTargets(
 				chest.z,
 			)
 		) {
-			const dropMesh = openChest(chest, state, Math.random, state.now);
+			const dropMesh = openChest(chest, Math.random, state.now);
 			if (dropMesh) scene.add(dropMesh);
+		}
+	}
+	for (const chest of chests) {
+		if (
+			!chest.dropMesh ||
+			chest.dropPickedUp ||
+			chest.openedAt === undefined ||
+			state.now - chest.openedAt < SWING_DURATION
+		)
+			continue;
+		if (
+			checkSwingHit(
+				swing,
+				state.now,
+				facingX,
+				facingZ,
+				px,
+				pz,
+				chest.x,
+				chest.z,
+			)
+		) {
+			pickupDrop(chest, state, state.now);
 		}
 	}
 	if (!boss && roomSwitches.every((s) => s.activated)) {
@@ -338,7 +367,13 @@ function animate() {
 			player.position.z,
 			PLAYER_RADIUS,
 		);
-		for (const chest of chests) updateChestDrop(chest, state.now);
+		for (const chest of chests) {
+			const done = updateChestDrop(chest, state.now);
+			if (done && chest.dropMesh) {
+				disposeMesh(chest.dropMesh);
+				chest.dropMesh = undefined;
+			}
+		}
 	}
 	if (input.click && !prevClick) {
 		if (state.phase === "playing") {
