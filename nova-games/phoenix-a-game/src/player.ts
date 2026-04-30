@@ -41,6 +41,22 @@ export function computeVelocity(
 	};
 }
 
+const SWORD_COLORS = [
+	0xcccccc, // 1: gray
+	0xff3333, // 2: red
+	0xff8800, // 3: orange
+	0xffee00, // 4: yellow
+	0x33dd33, // 5: green
+	0x3366ff, // 6: blue
+	0x6600cc, // 7: indigo
+	0xcc33ff, // 8: violet
+];
+
+export function swordColorFor(damage: number): number {
+	const idx = Math.min(Math.max(damage - 1, 0), SWORD_COLORS.length - 1);
+	return SWORD_COLORS[idx];
+}
+
 export function createPlayerMesh(): { root: Group; sword: Mesh } {
 	const root = new Group();
 	const body = new Mesh(
