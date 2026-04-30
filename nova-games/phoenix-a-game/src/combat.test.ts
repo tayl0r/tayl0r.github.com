@@ -5,6 +5,7 @@ import type { Monster } from "./monsters";
 function makeGoblin(x: number, z: number): Monster {
 	return {
 		kind: "goblin",
+		roomIndex: 0,
 		x,
 		z,
 		hp: 2,
@@ -12,6 +13,7 @@ function makeGoblin(x: number, z: number): Monster {
 		radius: 0.4,
 		contact: 0.9,
 		damage: 0.5,
+		dormant: false,
 	};
 }
 
