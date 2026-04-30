@@ -1,8 +1,8 @@
 import type { Monster } from "./monsters";
 
 export const SWING_DURATION = 0.3;
-const HITBOX_REACH = 1.5;
-const HITBOX_HALF_WIDTH = 1.0;
+const HITBOX_REACH = 2.5;
+const HITBOX_HALF_WIDTH = 1.8;
 
 export interface SwingState {
 	active: boolean;

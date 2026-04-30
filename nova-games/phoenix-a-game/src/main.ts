@@ -64,6 +64,8 @@ scene.add(floor);
 
 const { root: player, sword } = createPlayerMesh();
 scene.add(player);
+scene.add(camera);
+camera.add(sword);
 
 const grid = generate3x3Grid();
 const wallMaterial = new MeshStandardMaterial({ color: 0x666666 });
@@ -144,7 +146,7 @@ function respawnPlayer() {
 function animate() {
 	requestAnimationFrame(animate);
 	const dt = clock.getDelta();
-	follow.update(player, dt, input.mouseDX, input.mouseDY);
+	follow.update(player, input.mouseDX, input.mouseDY);
 	input.mouseDX = 0;
 	input.mouseDY = 0;
 	const v = computeVelocity(input, input.shift, follow.yaw);
@@ -164,6 +166,9 @@ function animate() {
 		for (const m of monsters) {
 			if (m.hp <= 0) continue;
 			moveMonsterTowards(m, player.position.x, player.position.z, dt);
+			const resolvedM = resolveAll(m.x, m.z, m.radius, grid.walls);
+			m.x = resolvedM.x;
+			m.z = resolvedM.z;
 			if (m.mesh) {
 				m.mesh.position.x = m.x;
 				m.mesh.position.z = m.z;
