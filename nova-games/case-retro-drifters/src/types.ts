@@ -2,7 +2,7 @@ export type Vec2 = { x: number; z: number };
 
 export type CarInput = {
 	throttle: number; // 0..1
-	brake: number; // 0..1 (S)
+	reverse: number; // 0..1 (S) — brakes forward motion, then drives backward
 	steer: number; // -1..1
 	driftPress: boolean; // rising edge of Shift
 };

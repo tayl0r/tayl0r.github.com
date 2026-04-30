@@ -34,11 +34,11 @@ export class Input {
 			this.isDown("Space") || this.isDown("KeyW") || this.isDown("ArrowUp")
 				? 1
 				: 0;
-		const brake = this.isDown("KeyS") ? 1 : 0;
+		const reverse = this.isDown("KeyS") || this.isDown("ArrowDown") ? 1 : 0;
 		const shiftNow = this.isDown("ShiftLeft") || this.isDown("ShiftRight");
 		const driftPress = shiftNow && !this.prevShift;
 		this.prevShift = shiftNow;
 		const steer = (left ? 1 : 0) + (right ? -1 : 0);
-		return { throttle, brake, steer, driftPress };
+		return { throttle, reverse, steer, driftPress };
 	}
 }
