@@ -4,6 +4,7 @@ import { renderHeadlights } from "../art/headlights";
 import type { Scene, SceneFactory } from "../context";
 import { Car } from "../race/car";
 import { createKeyboardInput } from "../race/input";
+import { createParticles } from "../race/particles";
 import { TOKYO } from "../race/track-data";
 import { buildWorld } from "../race/world";
 import { pixelButton } from "../ui/button";
@@ -14,6 +15,9 @@ export const createRaceScene: SceneFactory = (ctx) => {
 	const world = buildWorld(TOKYO);
 	world.root.eventMode = "none";
 	root.addChild(world.root);
+
+	const smoke = createParticles(192);
+	world.entityLayer.addChildAt(smoke.view, 0);
 
 	const car = new Car();
 	car.x = world.track.startPos.x;
@@ -60,6 +64,26 @@ export const createRaceScene: SceneFactory = (ctx) => {
 			world.camera.target.y = car.y;
 			world.updateCamera(ctx.app.screen.width, ctx.app.screen.height);
 			world.updateOcclusion({ x: car.x, y: car.y });
+
+			const drifting = car.state === "DRIFTING" || car.state === "SPINNING";
+			if (drifting) {
+				const fcx = Math.cos(car.facing);
+				const fcy = Math.sin(car.facing);
+				const rx = -fcx * 14;
+				const ry = -fcy * 14;
+				for (const off of [-9, 9]) {
+					const wx = car.x + rx + -fcy * off;
+					const wy = car.y + ry + fcx * off;
+					smoke.spawn({
+						x: wx,
+						y: wy,
+						vx: -fcx * 6 + (Math.random() - 0.5) * 8,
+						vy: -fcy * 6 + (Math.random() - 0.5) * 8,
+						ttl: 0.7 + Math.random() * 0.4,
+					});
+				}
+			}
+			smoke.update(dt);
 		},
 		dispose() {
 			input.dispose();
