@@ -1,3 +1,5 @@
+export type Weapon = "sword" | "bow";
+
 export interface PlayerState {
 	health: number;
 	maxHealth: number;
@@ -6,6 +8,8 @@ export interface PlayerState {
 	hunger: number;
 	maxHunger: number;
 	swordDamage: number;
+	bowDamage: number;
+	weapon: Weapon;
 	iframesUntil: number;
 	hitFlashUntil: number;
 }
@@ -26,6 +30,8 @@ export function createInitialState(): GameState {
 			hunger: 10,
 			maxHunger: 10,
 			swordDamage: 1,
+			bowDamage: 1,
+			weapon: "sword",
 			iframesUntil: 0,
 			hitFlashUntil: 0,
 		},

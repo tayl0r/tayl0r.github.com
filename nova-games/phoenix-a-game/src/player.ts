@@ -41,7 +41,7 @@ export function computeVelocity(
 	};
 }
 
-const SWORD_COLORS = [
+const WEAPON_COLORS = [
 	0xcccccc, // 1: gray
 	0xff3333, // 2: red
 	0xff8800, // 3: orange
@@ -52,12 +52,12 @@ const SWORD_COLORS = [
 	0xcc33ff, // 8: violet
 ];
 
-export function swordColorFor(damage: number): number {
-	const idx = Math.min(Math.max(damage - 1, 0), SWORD_COLORS.length - 1);
-	return SWORD_COLORS[idx];
+export function weaponColorFor(damage: number): number {
+	const idx = Math.min(Math.max(damage - 1, 0), WEAPON_COLORS.length - 1);
+	return WEAPON_COLORS[idx];
 }
 
-export function createPlayerMesh(): { root: Group; sword: Mesh } {
+export function createPlayerMesh(): { root: Group; sword: Mesh; bow: Mesh } {
 	const root = new Group();
 	const body = new Mesh(
 		new CapsuleGeometry(0.5, 1, 4, 8),
@@ -71,5 +71,11 @@ export function createPlayerMesh(): { root: Group; sword: Mesh } {
 		new MeshStandardMaterial({ color: 0xcccccc }),
 	);
 	sword.position.set(0.5, -0.4, -0.8);
-	return { root, sword };
+	const bow = new Mesh(
+		new BoxGeometry(0.08, 0.9, 0.08),
+		new MeshStandardMaterial({ color: 0xcccccc }),
+	);
+	bow.position.set(0.5, -0.4, -0.8);
+	bow.visible = false;
+	return { root, sword, bow };
 }

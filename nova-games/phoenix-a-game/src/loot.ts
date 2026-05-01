@@ -1,13 +1,16 @@
 import { BoxGeometry, Mesh, MeshStandardMaterial, SphereGeometry } from "three";
 import type { GameState } from "./state";
 
-export type DropKind = "food" | "sword";
+export type DropKind = "food" | "sword" | "bow";
 
 const FADE_DURATION = 0.6;
 
 export function rollDrop(rng: () => number, boss = false): DropKind {
 	if (boss) return "sword";
-	return rng() < 0.6 ? "food" : "sword";
+	const r = rng();
+	if (r < 0.4) return "food";
+	if (r < 0.7) return "sword";
+	return "bow";
 }
 
 export interface Chest {
@@ -39,6 +42,16 @@ function createDropMesh(drop: DropKind): Mesh {
 			new MeshStandardMaterial({
 				color: 0xcc2222,
 				emissive: 0x441111,
+				transparent: true,
+			}),
+		);
+	}
+	if (drop === "bow") {
+		return new Mesh(
+			new BoxGeometry(0.5, 0.12, 0.06),
+			new MeshStandardMaterial({
+				color: 0xaa6633,
+				emissive: 0x331a0d,
 				transparent: true,
 			}),
 		);
@@ -84,6 +97,8 @@ export function pickupDrop(
 			state.player.maxHunger,
 			state.player.hunger + 3,
 		);
+	} else if (chest.drop === "bow") {
+		state.player.bowDamage += chest.boss ? 2 : 1;
 	} else {
 		state.player.swordDamage += chest.boss ? 2 : 1;
 	}
