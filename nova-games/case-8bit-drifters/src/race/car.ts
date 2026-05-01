@@ -11,6 +11,7 @@ export const CAR_PHYSICS = {
 	dragLinear: 0.35,
 	steerRate: 2.0,
 	steerSpeedRef: 80,
+	driftEntryKick: 0.6, // fraction of forward speed kicked sideways on drift entry
 };
 
 export class Car {
@@ -73,7 +74,8 @@ export class Car {
 			this.state === "DRIFTING" &&
 			input.steer !== 0
 		) {
-			lateralSpeed += input.steer * Math.abs(forwardSpeed) * 0.6;
+			lateralSpeed +=
+				input.steer * Math.abs(forwardSpeed) * CAR_PHYSICS.driftEntryKick;
 		}
 
 		// Throttle / brake — act in car frame

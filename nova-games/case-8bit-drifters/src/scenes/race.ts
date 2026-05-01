@@ -2,7 +2,8 @@ import { Container, Graphics } from "pixi.js";
 import { renderCar } from "../art/car";
 import { renderHeadlights } from "../art/headlights";
 import type { Scene, SceneFactory } from "../context";
-import { Car } from "../race/car";
+import { CAR_PHYSICS, Car } from "../race/car";
+import { DEFAULT_DRIFT_CONFIG } from "../race/drift";
 import { createHud, formatTime } from "../race/hud";
 import { createKeyboardInput } from "../race/input";
 import { LapTracker } from "../race/lap";
@@ -10,11 +11,22 @@ import { advanceLights, inputsEnabled, type LightsState } from "../race/lights";
 import { createParticles } from "../race/particles";
 import { createSkid } from "../race/skid";
 import { TOKYO } from "../race/track-data";
+import {
+	defaultDriftValue,
+	defaultPhysicsValue,
+	resetAllTuning,
+	saveTuning,
+} from "../race/tuning";
 import { buildWorld } from "../race/world";
 import { persist } from "../storage";
 import { pixelButton } from "../ui/button";
 import { panel } from "../ui/panel";
 import { pixelText } from "../ui/pixel-text";
+import {
+	createTuningPanel,
+	type Knob,
+	type KnobGroup,
+} from "../ui/tuning-panel";
 import { createHomeScene } from "./home";
 
 const MAP_ID = "tokyo";
@@ -64,6 +76,89 @@ export const createRaceScene: SceneFactory = (ctx) => {
 	);
 
 	const input = createKeyboardInput();
+
+	// Tuning panel — press T while racing to toggle. Slider edits mutate
+	// CAR_PHYSICS / DEFAULT_DRIFT_CONFIG live and persist to localStorage.
+	const physicsKnob = (
+		key: keyof typeof CAR_PHYSICS,
+		label: string,
+		min: number,
+		max: number,
+		step: number,
+	): Knob => ({
+		label,
+		min,
+		max,
+		step,
+		get: () => CAR_PHYSICS[key],
+		set: (v) => {
+			CAR_PHYSICS[key] = v;
+		},
+		defaultValue: defaultPhysicsValue(key),
+	});
+	const driftKnob = (
+		key: keyof typeof DEFAULT_DRIFT_CONFIG,
+		label: string,
+		min: number,
+		max: number,
+		step: number,
+	): Knob => ({
+		label,
+		min,
+		max,
+		step,
+		get: () => DEFAULT_DRIFT_CONFIG[key],
+		set: (v) => {
+			DEFAULT_DRIFT_CONFIG[key] = v;
+		},
+		defaultValue: defaultDriftValue(key),
+	});
+	const tuningGroups: KnobGroup[] = [
+		{
+			title: "CAR",
+			knobs: [
+				physicsKnob("maxSpeed", "Top speed", 50, 500, 5),
+				physicsKnob("accel", "Acceleration", 20, 400, 5),
+				physicsKnob("brakeFromForward", "Brake force", 50, 500, 5),
+				physicsKnob("reverseAccel", "Reverse accel", 10, 200, 5),
+				physicsKnob("dragLinear", "Linear drag", 0.05, 1.5, 0.05),
+				physicsKnob("steerRate", "Turn rate (base)", 0.5, 5.0, 0.1),
+				physicsKnob("steerSpeedRef", "Steer speed ref", 20, 200, 5),
+			],
+		},
+		{
+			title: "DRIFT",
+			knobs: [
+				driftKnob("steerAuthorityGrip", "Grip turn × ", 0.05, 2.0, 0.05),
+				driftKnob("steerAuthorityDrift", "Drift turn × ", 0.5, 5.0, 0.1),
+				driftKnob("lateralGripGrip", "Grip lateral hold", 1, 30, 0.5),
+				driftKnob(
+					"lateralGripDrift",
+					"Drift slide (lower=slidier)",
+					0.1,
+					10,
+					0.1,
+				),
+				driftKnob("longitudinalGripDrift", "Drift speed bleed", 0.1, 1.0, 0.05),
+				physicsKnob("driftEntryKick", "Drift entry kick", 0, 1.5, 0.05),
+				driftKnob("minDriftSpeed", "Min drift speed", 0, 30, 1),
+				driftKnob("exitSlipThreshold", "Exit slip threshold", 0.01, 0.5, 0.01),
+				driftKnob("maxYawRate", "Max yaw before spin", 1, 10, 0.5),
+				driftKnob("spinExitYawRate", "Spin recover threshold", 0.1, 3, 0.1),
+			],
+		},
+	];
+	let saveTimer: ReturnType<typeof setTimeout> | null = null;
+	const debouncedSave = (): void => {
+		if (saveTimer) clearTimeout(saveTimer);
+		saveTimer = setTimeout(() => {
+			saveTuning();
+			saveTimer = null;
+		}, 200);
+	};
+	const tuning = createTuningPanel(tuningGroups, debouncedSave, () => {
+		resetAllTuning();
+	});
 
 	// Start lights graphics (3 circles near top of screen)
 	const lightsView = new Container();
@@ -241,6 +336,11 @@ export const createRaceScene: SceneFactory = (ctx) => {
 			input.dispose();
 			window.removeEventListener("resize", onResize);
 			skid.dispose();
+			tuning.dispose();
+			if (saveTimer) {
+				clearTimeout(saveTimer);
+				saveTuning();
+			}
 			root.destroy({ children: true });
 		},
 	};

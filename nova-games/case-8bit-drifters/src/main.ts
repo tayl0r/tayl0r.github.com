@@ -1,5 +1,6 @@
 import { Application } from "pixi.js";
 import type { GameContext, Scene, SceneFactory } from "./context";
+import { loadTuning } from "./race/tuning";
 import { createLoadingScene } from "./scenes/loading";
 import { loadState } from "./storage";
 
@@ -17,6 +18,10 @@ await Promise.race([
 	document.fonts.ready,
 	new Promise((r) => setTimeout(r, 1500)),
 ]);
+
+// Apply persisted physics tuning before any scene boots so the very first
+// race uses the player's saved tuning values.
+loadTuning();
 
 const stored = loadState();
 let current: Scene | null = null;
