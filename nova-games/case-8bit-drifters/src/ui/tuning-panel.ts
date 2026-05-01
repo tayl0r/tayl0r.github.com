@@ -35,7 +35,7 @@ export function createTuningPanel(
 		fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace',
 		fontSize: "11px",
 		zIndex: "100",
-		display: "none",
+		display: "block",
 		maxHeight: "calc(100vh - 32px)",
 		overflowY: "auto",
 		boxShadow: "0 4px 16px rgba(0,0,0,0.6)",
@@ -173,7 +173,7 @@ export function createTuningPanel(
 
 	document.body.appendChild(panel);
 
-	let visible = false;
+	let visible = true;
 	const onKey = (e: KeyboardEvent): void => {
 		if (e.key.toLowerCase() === "t" && !e.repeat) {
 			visible = !visible;
