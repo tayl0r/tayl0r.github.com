@@ -1,5 +1,6 @@
 import { Container, Graphics } from "pixi.js";
 import { renderCar } from "../art/car";
+import { renderHeadlights } from "../art/headlights";
 import type { Scene, SceneFactory } from "../context";
 import { Car } from "../race/car";
 import { createKeyboardInput } from "../race/input";
@@ -29,6 +30,11 @@ export const createRaceScene: SceneFactory = (ctx) => {
 	// has sortableChildren = true.
 	world.buildingLayer.addChild(carG);
 
+	const headlights = new Graphics();
+	// Below the car body in zIndex, but in the same buildingLayer so it
+	// sorts correctly with buildings.
+	world.buildingLayer.addChild(headlights);
+
 	const input = createKeyboardInput();
 
 	const ui = new Container();
@@ -42,6 +48,10 @@ export const createRaceScene: SceneFactory = (ctx) => {
 		update(dt) {
 			const state = input.read();
 			car.update(dt, state);
+			renderHeadlights(headlights, car.look.headlightColor);
+			headlights.position.set(car.x, car.y);
+			headlights.rotation = car.facing;
+			headlights.zIndex = car.y - 0.1; // just below car so car body is on top
 			renderCar(carG, car.look, { brake: car.braking });
 			carG.position.set(car.x, car.y);
 			carG.rotation = car.facing;
