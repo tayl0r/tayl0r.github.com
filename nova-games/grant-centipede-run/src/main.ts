@@ -46,6 +46,8 @@ const FIREBALL_SPEED = 120; // px/s
 const FIREBALL_DESPAWN_BEHIND_PX = 150;
 const MUSHROOM_HEIGHT = 34;
 const MUSHROOM_WIDTH = 30;
+const PIT_WIDTH = 90;
+const PIT_DEPTH = 36;
 const MIN_SPAWN_SPACING = 200; // px between consecutive spawns (enemies + powerups)
 const HIGH_SCORE_KEY = "centipede-run:highscore";
 
@@ -461,7 +463,12 @@ let invincibleUntil = 0; // seconds elapsed
 let powerupInvincibleUntil = 0;
 let runTime = 0;
 
-type SpawnableKind = "sphere" | "fireball" | "blueMushroom" | "redMushroom";
+type SpawnableKind =
+	| "sphere"
+	| "fireball"
+	| "blueMushroom"
+	| "redMushroom"
+	| "pit";
 
 interface Spawnable {
 	kind: SpawnableKind;
@@ -572,11 +579,12 @@ function makeFireball(worldX: number): Spawnable {
 		.stroke({ color: 0x801800, width: 2 });
 	// Inner flicker
 	g.circle(-2, 2, FIREBALL_RADIUS * 0.6).fill(0xffc400);
-	// Single angry eye
-	g.circle(0, 0, 7).fill(0xffffff);
-	g.circle(0, 1, 3).fill(0x000000);
-	// Eyebrow (angled line above the eye)
-	g.moveTo(-8, -8).lineTo(8, -10).stroke({ color: 0x200800, width: 3 });
+	// One big angry eye
+	g.circle(0, 0, 11).fill(0xffffff);
+	g.circle(0, 1, 5).fill(0x000000);
+	// Two furrowed brows angling inward and down for a "pissed" look
+	g.moveTo(-15, -20).lineTo(-3, -13).stroke({ color: 0x200800, width: 4 });
+	g.moveTo(15, -20).lineTo(3, -13).stroke({ color: 0x200800, width: 4 });
 	const y = groundHeightAt(worldX) - (180 + Math.random() * 80);
 	g.position.set(worldX, y);
 	gameScene.addChild(g);
@@ -589,6 +597,42 @@ function makeFireball(worldX: number): Spawnable {
 		vy: 0,
 		width: FIREBALL_RADIUS * 2,
 		height: FIREBALL_RADIUS * 2,
+		alive: true,
+	};
+}
+
+function makePit(worldX: number): Spawnable {
+	const g = new Graphics();
+	const ground = groundHeightAt(worldX);
+	const w = PIT_WIDTH;
+	const d = PIT_DEPTH;
+	// Dark hole extending downward from ground level.
+	g.rect(-w / 2, 0, w, d).fill(0x14070b);
+	// Inner shadow at the rim so the lip reads as a hole.
+	g.rect(-w / 2, 0, w, 4).fill(0x000000);
+	// Spike teeth pointing up from the bottom.
+	const spikeCount = 5;
+	const spikeStep = w / spikeCount;
+	for (let i = 0; i < spikeCount; i++) {
+		const sx = -w / 2 + spikeStep * (i + 0.5);
+		g.moveTo(sx - 5, d - 2)
+			.lineTo(sx, 8)
+			.lineTo(sx + 5, d - 2)
+			.closePath()
+			.fill(0xc8c8c8)
+			.stroke({ color: 0x444444, width: 1 });
+	}
+	g.position.set(worldX, ground);
+	// Add to groundLayer so it draws over the ground polygon (which is filled
+	// from screen bottom up to the ground line).
+	groundLayer.addChild(g);
+	return {
+		kind: "pit",
+		g,
+		x: worldX,
+		y: ground,
+		width: w,
+		height: d,
 		alive: true,
 	};
 }
@@ -609,9 +653,11 @@ function generateChunk(index: number): Chunk {
 	while (candidateX <= chunkEnd) {
 		const roll = Math.random();
 		if (roll < 0.7) {
-			// Enemy
-			if (Math.random() < 0.65) chunk.spawns.push(makeSphere(candidateX));
-			else chunk.spawns.push(makeFireball(candidateX));
+			// Hazard: sphere, fireball, or pit
+			const t = Math.random();
+			if (t < 0.5) chunk.spawns.push(makeSphere(candidateX));
+			else if (t < 0.8) chunk.spawns.push(makeFireball(candidateX));
+			else chunk.spawns.push(makePit(candidateX));
 			lastSpawnWorldX = candidateX;
 		} else if (roll < 0.85) {
 			// Powerup
@@ -854,6 +900,14 @@ app.ticker.add((time) => {
 	for (const chunk of chunks.values()) {
 		for (const s of chunk.spawns) {
 			if (!s.alive) continue;
+			if (s.kind === "pit") {
+				// Pits only hurt when the head is at ground level inside their range.
+				// Jumping over them is safe.
+				if (!h.onGround) continue;
+				if (Math.abs(h.x - s.x) >= s.width / 2) continue;
+				if (!invincible) loseSegment();
+				continue;
+			}
 			const dx = Math.abs(h.x - s.x);
 			const dy = Math.abs(h.y - s.y);
 			const hit =
