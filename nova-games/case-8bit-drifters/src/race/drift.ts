@@ -20,8 +20,11 @@ export const DEFAULT_DRIFT_CONFIG: DriftConfig = {
 	exitSlipThreshold: 0.08,
 	maxYawRate: 4.0,
 	spinExitYawRate: 0.5,
-	steerAuthorityGrip: 1.0,
-	steerAuthorityDrift: 3.5,
+	// Grip turning is intentionally weak — you cannot make it through tight
+	// corners without engaging drift. Drift authority restores the old "feels
+	// good" turn rate, so drifting becomes the primary cornering tool.
+	steerAuthorityGrip: 0.3,
+	steerAuthorityDrift: 1.0,
 	lateralGripGrip: 14.0,
 	lateralGripDrift: 1.0,
 	longitudinalGripDrift: 0.7,

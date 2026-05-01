@@ -4,11 +4,11 @@ import { DEFAULT_DRIFT_CONFIG, type DriftState, stepDriftState } from "./drift";
 import type { InputState } from "./input";
 
 export const CAR_PHYSICS = {
-	maxSpeed: 160,
-	accel: 100,
-	reverseAccel: 50,
-	brakeFromForward: 140,
-	dragLinear: 0.4,
+	maxSpeed: 240,
+	accel: 160,
+	reverseAccel: 80,
+	brakeFromForward: 200,
+	dragLinear: 0.35,
 	steerRate: 2.0,
 	steerSpeedRef: 80,
 };
