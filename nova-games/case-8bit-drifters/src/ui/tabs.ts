@@ -22,7 +22,7 @@ export function createTabs(
 		});
 		t.anchor.set(0, 0);
 		t.position.set(x, isActive ? 0 : 6);
-		t.eventMode = tab.enabled ? "static" : "passive";
+		t.eventMode = "static";
 		t.cursor = tab.enabled ? "pointer" : "not-allowed";
 		t.on("pointertap", () => onClick(tab.id));
 		view.addChild(t);
