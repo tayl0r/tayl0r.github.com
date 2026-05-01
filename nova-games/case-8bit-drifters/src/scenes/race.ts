@@ -34,9 +34,8 @@ export const createRaceScene: SceneFactory = (ctx) => {
 	const car = new Car();
 	car.x = world.track.startPos.x;
 	car.y = world.track.startPos.y;
-	car.facing = Math.atan2(
-		world.track.startTangent.y,
-		world.track.startTangent.x,
+	car.snapToFacing(
+		Math.atan2(world.track.startTangent.y, world.track.startTangent.x),
 	);
 
 	const carG = new Graphics();

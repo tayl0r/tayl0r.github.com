@@ -33,6 +33,11 @@ export class Car {
 		return this._braking;
 	}
 
+	snapToFacing(angle: number): void {
+		this.facing = angle;
+		this.prevFacing = angle;
+	}
+
 	update(dt: number, input: InputState): void {
 		const fx = Math.cos(this.facing);
 		const fy = Math.sin(this.facing);
