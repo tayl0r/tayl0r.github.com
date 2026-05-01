@@ -8,7 +8,7 @@ export const IDLE_DECAY = 4;
 export const HARD_BRAKE_DECAY = 30;
 export const REVERSE_FORCE = 18;
 export const STEER_RATE = 6.5;
-export const DRIFT_STEER_MULT = 1.6;
+export const DRIFT_STEER_MULT = 1.9;
 export const ANGULAR_DAMPING = 0.88;
 export const GRIP_RECOVERY = 2.5;
 export const GRIP_DECAY = 1.4;
@@ -16,9 +16,13 @@ export const MIN_GRIP = 0.3;
 export const SPIN_OUT_ANGLE = (Math.PI * 2) / 3;
 export const SPIN_OUT_DURATION = 0.8;
 export const LATERAL_FRICTION = 5;
-export const DRIFT_KICK_MAGNITUDE = 8;
+export const DRIFT_KICK_MAGNITUDE = 0;
 export const DRIFT_EXIT_LATERAL = 1.5;
 export const DRIFT_EXIT_DURATION = 0.15;
+// Grace window after drift entry where the auto-release timer is offset
+// negative — gives steering input time to build lateral velocity past the
+// engagement threshold before the settle-and-release logic can fire.
+export const DRIFT_ENGAGE_GRACE = 0.4;
 export const DRIFT_EXIT_SPEED = DRIFT_SPEED_THRESHOLD * 0.6;
 export const COUNTERSTEER_DAMP = 0.94;
 // When drifting and the player releases steering, bleed lateral velocity
@@ -75,7 +79,7 @@ export function updateCar(s: CarState, inp: CarInput, dt: number): CarState {
 		const kickSign = Math.sign(effectiveInput.steer) || 1;
 		vLateral += kickSign * DRIFT_KICK_MAGNITUDE;
 		grip = MIN_GRIP;
-		driftExitTimer = 0;
+		driftExitTimer = -DRIFT_ENGAGE_GRACE;
 	}
 
 	if (isDrifting) {
@@ -107,9 +111,13 @@ export function updateCar(s: CarState, inp: CarInput, dt: number): CarState {
 	vForward = Math.max(-MAX_SPEED * 0.5, Math.min(MAX_SPEED, vForward));
 
 	if (isDrifting) {
+		// Negative sign: heading rotation naturally pushes velocity to lag
+		// behind (e.g. right turn → velocity slides left of heading → vLateral
+		// goes negative). The injection should reinforce that natural slip,
+		// not oppose it.
 		const driftInjection =
 			(1 - grip) * angularVelocity * Math.abs(vForward) * dt * 0.6;
-		vLateral += driftInjection;
+		vLateral -= driftInjection;
 	}
 
 	const lateralDecay = grip * LATERAL_FRICTION * dt;

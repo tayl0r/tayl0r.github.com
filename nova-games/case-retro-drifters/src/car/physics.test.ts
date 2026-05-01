@@ -105,6 +105,15 @@ describe("drift & grip", () => {
 			{ throttle: 1, reverse: 0, steer: 1, driftPress: true },
 			0.016,
 		);
+		// Lateral builds up over the course of the drift via heading
+		// rotation + drift injection — there is no instantaneous kick.
+		for (let i = 0; i < 20; i++) {
+			s = updateCar(
+				s,
+				{ throttle: 1, reverse: 0, steer: 1, driftPress: false },
+				0.016,
+			);
+		}
 		const rightX = Math.cos(s.heading);
 		const rightZ = -Math.sin(s.heading);
 		const vLateral = Math.abs(s.velocity.x * rightX + s.velocity.z * rightZ);
