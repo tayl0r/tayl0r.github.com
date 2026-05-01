@@ -42,10 +42,13 @@ export const createNamePickerScene: SceneFactory = (ctx) => {
 	const onResize = (): void => place();
 	window.addEventListener("resize", onResize);
 
+	let openInput: HTMLInputElement | null = null;
+
 	const beginEdit = (): void => {
 		tag.visible = false;
 		errText.text = ""; // clear any previous error message before re-edit
 		const input = document.createElement("input");
+		openInput = input;
 		input.type = "text";
 		input.maxLength = 12;
 		input.value = ctx.profile?.name ?? "";
@@ -66,7 +69,10 @@ export const createNamePickerScene: SceneFactory = (ctx) => {
 		document.body.appendChild(input);
 		input.focus();
 		input.select();
+		let done = false;
 		const commit = (): void => {
+			if (done) return;
+			done = true;
 			const v = validateName(input.value);
 			if (v !== "ok") {
 				errText.text =
@@ -76,6 +82,7 @@ export const createNamePickerScene: SceneFactory = (ctx) => {
 							? "max 12 characters"
 							: "school-appropriate names please";
 				input.remove();
+				openInput = null;
 				tag.visible = true;
 				return;
 			}
@@ -85,12 +92,15 @@ export const createNamePickerScene: SceneFactory = (ctx) => {
 			tag.visible = true;
 			cont.setEnabled(true);
 			input.remove();
+			openInput = null;
 		};
 		input.addEventListener("blur", commit);
 		input.addEventListener("keydown", (e) => {
 			if (e.key === "Enter") input.blur();
 			if (e.key === "Escape") {
 				input.remove();
+				openInput = null;
+				errText.text = "";
 				tag.visible = true;
 			}
 		});
@@ -102,6 +112,8 @@ export const createNamePickerScene: SceneFactory = (ctx) => {
 		update: () => {},
 		dispose: () => {
 			window.removeEventListener("resize", onResize);
+			openInput?.remove();
+			openInput = null;
 			root.destroy({ children: true });
 		},
 	};
