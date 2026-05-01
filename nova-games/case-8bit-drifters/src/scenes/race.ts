@@ -3,25 +3,38 @@ import { renderCar } from "../art/car";
 import { renderHeadlights } from "../art/headlights";
 import type { Scene, SceneFactory } from "../context";
 import { Car } from "../race/car";
+import { createHud, formatTime } from "../race/hud";
 import { createKeyboardInput } from "../race/input";
+import { LapTracker } from "../race/lap";
+import { advanceLights, inputsEnabled, type LightsState } from "../race/lights";
 import { createParticles } from "../race/particles";
 import { createSkid } from "../race/skid";
 import { TOKYO } from "../race/track-data";
 import { buildWorld } from "../race/world";
+import { persist } from "../storage";
 import { pixelButton } from "../ui/button";
+import { panel } from "../ui/panel";
+import { pixelText } from "../ui/pixel-text";
 import { createHomeScene } from "./home";
 
+const MAP_ID = "tokyo";
+const DEFAULT_TOTAL_LAPS = 5;
+
 export const createRaceScene: SceneFactory = (ctx) => {
+	const params = new URLSearchParams(window.location.search);
+	const TOTAL_LAPS =
+		import.meta.env.DEV && params.has("laps")
+			? Math.max(1, Number.parseInt(params.get("laps") ?? "5", 10))
+			: DEFAULT_TOTAL_LAPS;
+
 	const root = new Container();
 	const world = buildWorld(TOKYO);
 	world.root.eventMode = "none";
 	root.addChild(world.root);
 
-	const smoke = createParticles(192);
-	world.entityLayer.addChildAt(smoke.view, 0);
-
-	const SKID_W = 2200;
-	const SKID_H = 1400;
+	// Skid into ground layer (under car/buildings)
+	const SKID_W = 2400;
+	const SKID_H = 1600;
 	const skid = createSkid(
 		ctx.app,
 		SKID_W,
@@ -31,6 +44,18 @@ export const createRaceScene: SceneFactory = (ctx) => {
 	);
 	world.groundLayer.addChild(skid.sprite);
 
+	// Smoke into entity layer (between ground and buildings)
+	const smoke = createParticles(192);
+	world.entityLayer.addChildAt(smoke.view, 0);
+
+	// IMPORTANT: per M6 architectural correction, headlights + car go into
+	// buildingLayer so they sort against buildings via zIndex.
+	const headlights = new Graphics();
+	world.buildingLayer.addChild(headlights);
+
+	const carG = new Graphics();
+	world.buildingLayer.addChild(carG);
+
 	const car = new Car();
 	car.x = world.track.startPos.x;
 	car.y = world.track.startPos.y;
@@ -38,46 +63,121 @@ export const createRaceScene: SceneFactory = (ctx) => {
 		Math.atan2(world.track.startTangent.y, world.track.startTangent.x),
 	);
 
-	const carG = new Graphics();
-	// Put the car into the building layer so it sorts WITH buildings by world-y.
-	// This is the correction to the M5b layer split (entityLayer + buildingLayer
-	// were siblings, so cross-layer zIndex didn't matter). buildingLayer already
-	// has sortableChildren = true.
-	world.buildingLayer.addChild(carG);
-
-	const headlights = new Graphics();
-	// Below the car body in zIndex, but in the same buildingLayer so it
-	// sorts correctly with buildings.
-	world.buildingLayer.addChild(headlights);
-
 	const input = createKeyboardInput();
 
-	const ui = new Container();
-	const back = pixelButton("BACK", () => ctx.switchTo(createHomeScene), 14);
-	back.view.position.set(60, 24);
-	ui.addChild(back.view);
-	root.addChild(ui);
+	// Start lights graphics (3 circles near top of screen)
+	const lightsView = new Container();
+	const lightG: Graphics[] = [];
+	for (let i = 0; i < 3; i++) {
+		const g = new Graphics();
+		g.circle(i * 48 - 48, 0, 18).fill(0x331111);
+		lightsView.addChild(g);
+		lightG.push(g);
+	}
+	const goText = pixelText("GO!", { fontSize: 56, fill: 0x00ff88 });
+	goText.visible = false;
+	lightsView.addChild(goText);
+	root.addChild(lightsView);
+
+	let lights: LightsState = { phase: "COUNTDOWN_3", t: 0 };
+
+	const lap = new LapTracker({
+		ax: world.track.startPos.x,
+		ay: world.track.startPos.y,
+		tx: world.track.startTangent.x,
+		ty: world.track.startTangent.y,
+	});
+	let lapNum = 1;
+	let lapStartMs = 0;
+	let nowMs = 0;
+	const lapTimes: number[] = [];
+
+	const hud = createHud();
+	root.addChild(hud.view);
+	hud.setBest(ctx.bests[MAP_ID] ?? null);
+
+	let finished = false;
+
+	const place = (): void => {
+		hud.place(ctx.app.screen.width);
+		lightsView.position.set(ctx.app.screen.width / 2, 80);
+		goText.position.set(0, 0);
+	};
+	place();
+	const onResize = (): void => place();
+	window.addEventListener("resize", onResize);
+
+	function showEnd(): void {
+		const p = panel(420, 320);
+		p.position.set(ctx.app.screen.width / 2, ctx.app.screen.height / 2);
+		const title = pixelText("RACE COMPLETE", { fontSize: 18 });
+		title.position.set(0, -120);
+		p.addChild(title);
+
+		const best = Math.min(...lapTimes);
+		for (let i = 0; i < lapTimes.length; i++) {
+			const tx = pixelText(`L${i + 1}  ${formatTime(lapTimes[i])}`, {
+				fontSize: 14,
+				fill: lapTimes[i] === best ? 0x00ff88 : 0xffffff,
+			});
+			tx.position.set(0, -80 + i * 22);
+			p.addChild(tx);
+		}
+
+		const again = pixelButton(
+			"RACE AGAIN",
+			() => ctx.switchTo(createRaceScene),
+			14,
+		);
+		again.view.position.set(-90, 110);
+		const home = pixelButton(
+			"BACK TO MENU",
+			() => ctx.switchTo(createHomeScene),
+			14,
+		);
+		home.view.position.set(90, 110);
+		p.addChild(again.view, home.view);
+		root.addChild(p);
+	}
 
 	const scene: Scene = {
 		root,
 		update(dt) {
+			const dtMs = dt * 1000;
+			lights = advanceLights(lights, dt);
+			for (let i = 0; i < 3; i++) {
+				const lit =
+					(lights.phase === "COUNTDOWN_3" && i < 1) ||
+					(lights.phase === "COUNTDOWN_2" && i < 2) ||
+					(lights.phase === "COUNTDOWN_1" && i < 3);
+				const green = lights.phase === "GO";
+				lightG[i].clear();
+				const color = green ? 0x00ff66 : lit ? 0xff2222 : 0x331111;
+				lightG[i].circle(i * 48 - 48, 0, 18).fill(color);
+			}
+			goText.visible = lights.phase === "GO";
+
 			const state = input.read();
-			car.update(dt, state);
+			const allowInput = inputsEnabled(lights) && !finished;
+			car.update(
+				dt,
+				allowInput
+					? state
+					: { throttle: 0, steer: 0, drift: false, driftPressed: false },
+			);
+
 			renderHeadlights(headlights, car.look.headlightColor);
 			headlights.position.set(car.x, car.y);
 			headlights.rotation = car.facing;
-			headlights.zIndex = car.y - 0.1; // just below car so car body is on top
+			headlights.zIndex = car.y - 0.1;
+
 			renderCar(carG, car.look, { brake: car.braking });
 			carG.position.set(car.x, car.y);
 			carG.rotation = car.facing;
 			carG.zIndex = car.y;
-			world.camera.target.x = car.x;
-			world.camera.target.y = car.y;
-			world.updateCamera(ctx.app.screen.width, ctx.app.screen.height);
-			world.updateOcclusion({ x: car.x, y: car.y });
 
 			const drifting = car.state === "DRIFTING" || car.state === "SPINNING";
-			if (drifting) {
+			if (drifting && allowInput) {
 				const fcx = Math.cos(car.facing);
 				const fcy = Math.sin(car.facing);
 				const rx = -fcx * 14;
@@ -96,9 +196,49 @@ export const createRaceScene: SceneFactory = (ctx) => {
 				skid.stamp(car.x, car.y, car.facing);
 			}
 			smoke.update(dt);
+
+			world.camera.target.x = car.x;
+			world.camera.target.y = car.y;
+			world.updateCamera(ctx.app.screen.width, ctx.app.screen.height);
+			world.updateOcclusion({ x: car.x, y: car.y });
+
+			if (lights.phase === "GO" && lapStartMs === 0) {
+				lapStartMs = nowMs;
+			}
+			nowMs += dtMs;
+			if (lapStartMs > 0 && !finished) {
+				const cur = nowMs - lapStartMs;
+				hud.setLap(lapNum, TOTAL_LAPS);
+				hud.setCurrent(cur);
+				const distFromStart = Math.hypot(
+					car.x - world.track.startPos.x,
+					car.y - world.track.startPos.y,
+				);
+				if (lap.update({ x: car.x, y: car.y }, distFromStart)) {
+					const lapMs = nowMs - lapStartMs;
+					lapTimes.push(lapMs);
+					lapStartMs = nowMs;
+					const best = ctx.bests[MAP_ID];
+					if (best === undefined || lapMs < best) {
+						ctx.bests[MAP_ID] = lapMs;
+						persist(ctx);
+						hud.setBest(lapMs);
+					}
+					if (lapNum >= TOTAL_LAPS) {
+						finished = true;
+						showEnd();
+					} else {
+						lapNum++;
+					}
+				}
+			} else {
+				hud.setLap(lapNum, TOTAL_LAPS);
+				hud.setCurrent(0);
+			}
 		},
 		dispose() {
 			input.dispose();
+			window.removeEventListener("resize", onResize);
 			skid.dispose();
 			root.destroy({ children: true });
 		},
