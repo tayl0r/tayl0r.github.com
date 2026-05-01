@@ -41,8 +41,9 @@ export class Car {
 	update(dt: number, input: InputState): void {
 		const fx = Math.cos(this.facing);
 		const fy = Math.sin(this.facing);
-		const forwardSpeed = this.vx * fx + this.vy * fy;
-		const lateralSpeed = -this.vx * fy + this.vy * fx;
+		// Decompose current velocity along facing axes
+		let forwardSpeed = this.vx * fx + this.vy * fy;
+		let lateralSpeed = -this.vx * fy + this.vy * fx;
 
 		const slip = Math.atan2(
 			Math.abs(lateralSpeed),
@@ -62,27 +63,32 @@ export class Car {
 
 		const cfg = DEFAULT_DRIFT_CONFIG;
 
+		// All velocity changes happen on forward/lateral, then we reconstruct
+		// vx/vy at the end. Doing throttle on vx/vy directly is a bug because
+		// the lateral/forward grip step below would discard those changes.
 		this._braking = false;
 		if (input.throttle === 1) {
-			this.vx += fx * CAR_PHYSICS.accel * dt;
-			this.vy += fy * CAR_PHYSICS.accel * dt;
+			forwardSpeed += CAR_PHYSICS.accel * dt;
 		} else if (input.throttle === -1) {
 			if (forwardSpeed > 1) {
-				this.vx -= fx * CAR_PHYSICS.brakeFromForward * dt;
-				this.vy -= fy * CAR_PHYSICS.brakeFromForward * dt;
+				forwardSpeed -= CAR_PHYSICS.brakeFromForward * dt;
 				this._braking = true;
 			} else {
-				this.vx -= fx * CAR_PHYSICS.reverseAccel * dt;
-				this.vy -= fy * CAR_PHYSICS.reverseAccel * dt;
+				forwardSpeed -= CAR_PHYSICS.reverseAccel * dt;
 			}
 		}
 
-		this.vx *= 1 - CAR_PHYSICS.dragLinear * dt;
-		this.vy *= 1 - CAR_PHYSICS.dragLinear * dt;
+		// Linear drag on both components
+		const dragMul = 1 - CAR_PHYSICS.dragLinear * dt;
+		forwardSpeed *= dragMul;
+		lateralSpeed *= dragMul;
 
-		if (this.speed > CAR_PHYSICS.maxSpeed) {
-			this.vx *= CAR_PHYSICS.maxSpeed / this.speed;
-			this.vy *= CAR_PHYSICS.maxSpeed / this.speed;
+		// Speed cap (using combined magnitude)
+		const totalSp = Math.hypot(forwardSpeed, lateralSpeed);
+		if (totalSp > CAR_PHYSICS.maxSpeed) {
+			const k = CAR_PHYSICS.maxSpeed / totalSp;
+			forwardSpeed *= k;
+			lateralSpeed *= k;
 		}
 
 		const steerAuthority =
@@ -90,7 +96,7 @@ export class Car {
 				? cfg.steerAuthorityDrift
 				: cfg.steerAuthorityGrip;
 		if (input.steer !== 0) {
-			const speedFactor = Math.min(1, this.speed / CAR_PHYSICS.steerSpeedRef);
+			const speedFactor = Math.min(1, totalSp / CAR_PHYSICS.steerSpeedRef);
 			const sign = forwardSpeed >= 0 ? 1 : -1;
 			this.facing +=
 				input.steer *
@@ -104,17 +110,22 @@ export class Car {
 			this.facing += yawRate * dt * 0.6;
 		}
 
+		// Lateral grip — bleed sideways speed back into the facing direction
 		const lateralGrip =
 			this.state === "DRIFTING" || this.state === "SPINNING"
 				? cfg.lateralGripDrift
 				: cfg.lateralGripGrip;
-		const newLateral = lateralSpeed * (1 - Math.min(1, lateralGrip * dt));
-		const newForward =
-			this.state === "DRIFTING"
-				? forwardSpeed * cfg.longitudinalGripDrift ** dt
-				: forwardSpeed;
-		this.vx = fx * newForward + -fy * newLateral;
-		this.vy = fy * newForward + fx * newLateral;
+		lateralSpeed *= 1 - Math.min(1, lateralGrip * dt);
+		// Longitudinal drag specific to drifting
+		if (this.state === "DRIFTING") {
+			forwardSpeed *= cfg.longitudinalGripDrift ** dt;
+		}
+
+		// Reconstruct vx/vy using CURRENT facing (which may have just rotated)
+		const fx2 = Math.cos(this.facing);
+		const fy2 = Math.sin(this.facing);
+		this.vx = fx2 * forwardSpeed + -fy2 * lateralSpeed;
+		this.vy = fy2 * forwardSpeed + fx2 * lateralSpeed;
 
 		this.x += this.vx * dt;
 		this.y += this.vy * dt;
