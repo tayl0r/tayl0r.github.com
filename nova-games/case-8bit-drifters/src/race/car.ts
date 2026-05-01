@@ -39,9 +39,11 @@ export class Car {
 	}
 
 	update(dt: number, input: InputState): void {
+		// Decompose current world velocity into car-local forward/lateral
+		// components, BASED ON THE OLD FACING. We use this for accel/brake
+		// (which act in car frame) and to compute slip for the drift state.
 		const fx = Math.cos(this.facing);
 		const fy = Math.sin(this.facing);
-		// Decompose current velocity along facing axes
 		let forwardSpeed = this.vx * fx + this.vy * fy;
 		let lateralSpeed = -this.vx * fy + this.vy * fx;
 
@@ -66,19 +68,15 @@ export class Car {
 
 		// Drift entry kick: when transitioning GRIP → DRIFTING, push lateral
 		// velocity in the steer direction so the slide is immediately visible.
-		// Without this, lateral velocity has to build up over many frames as
-		// the car rotates faster than its momentum can follow — slow and dull.
 		if (
 			prevState === "GRIP" &&
 			this.state === "DRIFTING" &&
 			input.steer !== 0
 		) {
-			lateralSpeed += input.steer * Math.abs(forwardSpeed) * 0.45;
+			lateralSpeed += input.steer * Math.abs(forwardSpeed) * 0.6;
 		}
 
-		// All velocity changes happen on forward/lateral, then we reconstruct
-		// vx/vy at the end. Doing throttle on vx/vy directly is a bug because
-		// the lateral/forward grip step below would discard those changes.
+		// Throttle / brake — act in car frame
 		this._braking = false;
 		if (input.throttle === 1) {
 			forwardSpeed += CAR_PHYSICS.accel * dt;
@@ -96,6 +94,11 @@ export class Car {
 		forwardSpeed *= dragMul;
 		lateralSpeed *= dragMul;
 
+		// Longitudinal drag specific to drifting (bleed forward speed)
+		if (this.state === "DRIFTING") {
+			forwardSpeed *= cfg.longitudinalGripDrift ** dt;
+		}
+
 		// Speed cap (using combined magnitude)
 		const totalSp = Math.hypot(forwardSpeed, lateralSpeed);
 		if (totalSp > CAR_PHYSICS.maxSpeed) {
@@ -104,6 +107,17 @@ export class Car {
 			lateralSpeed *= k;
 		}
 
+		// Recompose to WORLD velocity using the OLD facing — at this point the
+		// car has not yet rotated for this frame. The world-frame velocity
+		// vector is what we want to preserve when the car then rotates: in
+		// real drift, the car's heading rotates around its own momentum, not
+		// with it. The previous bug was using the NEW facing here, which
+		// effectively rotated the velocity vector along with the car and made
+		// drift indistinguishable from a wider turn radius.
+		this.vx = fx * forwardSpeed + -fy * lateralSpeed;
+		this.vy = fy * forwardSpeed + fx * lateralSpeed;
+
+		// Steering: rotate facing only. Velocity stays put in world frame.
 		const steerAuthority =
 			this.state === "DRIFTING"
 				? cfg.steerAuthorityDrift
@@ -123,22 +137,20 @@ export class Car {
 			this.facing += yawRate * dt * 0.6;
 		}
 
-		// Lateral grip — bleed sideways speed back into the facing direction
+		// Lateral grip in NEW car frame — pull world velocity toward whatever
+		// the car is now facing. In GRIP this is fast (instant tracking).
+		// In DRIFTING this is slow (visible sideways slide for ~1 second).
+		const fx2 = Math.cos(this.facing);
+		const fy2 = Math.sin(this.facing);
+		const newForward = this.vx * fx2 + this.vy * fy2;
+		let newLateral = -this.vx * fy2 + this.vy * fx2;
 		const lateralGrip =
 			this.state === "DRIFTING" || this.state === "SPINNING"
 				? cfg.lateralGripDrift
 				: cfg.lateralGripGrip;
-		lateralSpeed *= 1 - Math.min(1, lateralGrip * dt);
-		// Longitudinal drag specific to drifting
-		if (this.state === "DRIFTING") {
-			forwardSpeed *= cfg.longitudinalGripDrift ** dt;
-		}
-
-		// Reconstruct vx/vy using CURRENT facing (which may have just rotated)
-		const fx2 = Math.cos(this.facing);
-		const fy2 = Math.sin(this.facing);
-		this.vx = fx2 * forwardSpeed + -fy2 * lateralSpeed;
-		this.vy = fy2 * forwardSpeed + fx2 * lateralSpeed;
+		newLateral *= 1 - Math.min(1, lateralGrip * dt);
+		this.vx = fx2 * newForward + -fy2 * newLateral;
+		this.vy = fy2 * newForward + fx2 * newLateral;
 
 		this.x += this.vx * dt;
 		this.y += this.vy * dt;
