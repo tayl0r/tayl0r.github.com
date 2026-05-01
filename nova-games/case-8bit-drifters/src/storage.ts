@@ -29,9 +29,6 @@ export function saveState(state: StoredState): void {
 
 /** Persist whatever's currently in the GameContext. Lives here (not main.ts)
  * to avoid circular imports between scenes and main. */
-export function persist(state: {
-	profile: { name: string } | null;
-	bests: Record<string, number>;
-}): void {
-	saveState({ profile: state.profile, bests: state.bests });
+export function persist(state: StoredState): void {
+	saveState(state);
 }
