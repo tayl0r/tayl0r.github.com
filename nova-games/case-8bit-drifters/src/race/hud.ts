@@ -21,9 +21,9 @@ export function createHud(): HudApi {
 	const lap = pixelText("LAP 1 / 5", { fontSize: 16 });
 	const cur = pixelText("0:00.00", { fontSize: 16 });
 	const best = pixelText("BEST —", { fontSize: 12, fill: 0x8a92a3 });
-	lap.anchor.set(0, 0);
-	cur.anchor.set(0, 0);
-	best.anchor.set(0, 0);
+	lap.anchor.set(1, 0);
+	cur.anchor.set(1, 0);
+	best.anchor.set(1, 0);
 	lap.position.set(0, 0);
 	cur.position.set(0, 24);
 	best.position.set(0, 48);
@@ -40,7 +40,7 @@ export function createHud(): HudApi {
 			best.text = ms === null ? "BEST —" : `BEST ${formatTime(ms)}`;
 		},
 		place(width) {
-			view.position.set(width - 200, 16);
+			view.position.set(width - 16, 16);
 		},
 	};
 }

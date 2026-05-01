@@ -61,7 +61,7 @@ export const createHomeScene: SceneFactory = (ctx) => {
 		MODES[modeIdx],
 		() => {
 			modeIdx = (modeIdx + 1) % MODES.length;
-			modeText.text = MODES[modeIdx];
+			modeButton.setLabel(MODES[modeIdx]);
 			// Quick rotate animation
 			modeWrap.rotation = -Math.PI / 2;
 			const t0 = performance.now();
@@ -76,7 +76,6 @@ export const createHomeScene: SceneFactory = (ctx) => {
 	);
 	const modeWrap = new Container();
 	modeWrap.addChild(modeButton.view);
-	const modeText = modeButton.view.children[0] as import("pixi.js").Text;
 
 	// Race button
 	const raceButton = pixelButton(

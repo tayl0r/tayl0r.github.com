@@ -156,6 +156,7 @@ export const createRaceScene: SceneFactory = (ctx) => {
 				lightG[i].circle(i * 48 - 48, 0, 18).fill(color);
 			}
 			goText.visible = lights.phase === "GO";
+			lightsView.visible = lights.phase !== "HIDDEN";
 
 			const state = input.read();
 			const allowInput = inputsEnabled(lights) && !finished;

@@ -4,6 +4,7 @@ import { pixelText } from "./pixel-text";
 export type PixelButton = {
 	view: Container;
 	setEnabled(b: boolean): void;
+	setLabel(label: string): void;
 };
 
 export function pixelButton(
@@ -32,6 +33,9 @@ export function pixelButton(
 		setEnabled(b) {
 			enabled = b;
 			text.alpha = b ? 1 : 0.4;
+		},
+		setLabel(label) {
+			text.text = label;
 		},
 	};
 }
