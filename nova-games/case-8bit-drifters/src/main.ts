@@ -4,11 +4,18 @@ import { loadTuning } from "./race/tuning";
 import { createLoadingScene } from "./scenes/loading";
 import { loadState } from "./storage";
 
+// Dynamic import forces the full pixi.js module (including renderer extension
+// registrations with side effects) to evaluate before we touch Application.
+// Removing this makes app.init() hang silently in the production bundle.
+await import("pixi.js");
+
 const app = new Application();
 await app.init({
 	background: "#0a0a14",
 	resizeTo: window,
 	antialias: true,
+	// Force WebGL; Pixi v8's WebGPU auto-select has caused hangs in the past.
+	preference: "webgl",
 });
 document.body.appendChild(app.canvas);
 
