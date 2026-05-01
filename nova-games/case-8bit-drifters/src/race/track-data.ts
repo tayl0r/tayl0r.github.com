@@ -25,7 +25,7 @@ export type TrackData = {
 // hairpin right, sweeping curve through "Shibuya" intersection, second hairpin,
 // curve around the lake park, back to start.
 export const TOKYO: TrackData = {
-	width: 110,
+	width: 160,
 	startIndex: 6, // mid-straight
 	centerline: [
 		{ x: -800, y: -400 }, // 0  start straight begin (west)

@@ -15,16 +15,16 @@ export type DriftConfig = {
 };
 
 export const DEFAULT_DRIFT_CONFIG: DriftConfig = {
-	minDriftSpeed: 6,
+	minDriftSpeed: 8,
 	entryAngleThreshold: 0.15,
-	exitSlipThreshold: 0.05,
+	exitSlipThreshold: 0.08,
 	maxYawRate: 4.0,
 	spinExitYawRate: 0.5,
 	steerAuthorityGrip: 1.0,
-	steerAuthorityDrift: 2.5,
-	lateralGripGrip: 12.0,
-	lateralGripDrift: 2.5,
-	longitudinalGripDrift: 0.85,
+	steerAuthorityDrift: 3.5,
+	lateralGripGrip: 14.0,
+	lateralGripDrift: 1.0,
+	longitudinalGripDrift: 0.7,
 	gripRecoveryRate: 8.0,
 };
 
@@ -40,8 +40,10 @@ export type StepArgs = {
 export function stepDriftState(a: StepArgs): DriftState {
 	switch (a.state) {
 		case "GRIP":
+			// Hold-Shift to engage drift (forgiving — players don't have to time
+			// the tap with the turn). Exit on Shift-release in DRIFTING below.
 			if (
-				a.input.driftPressed &&
+				a.input.drift &&
 				a.input.steer !== 0 &&
 				a.speed >= a.cfg.minDriftSpeed
 			) {

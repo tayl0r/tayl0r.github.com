@@ -4,13 +4,13 @@ import { DEFAULT_DRIFT_CONFIG, type DriftState, stepDriftState } from "./drift";
 import type { InputState } from "./input";
 
 export const CAR_PHYSICS = {
-	maxSpeed: 90,
-	accel: 55,
-	reverseAccel: 28,
-	brakeFromForward: 80,
-	dragLinear: 0.5,
-	steerRate: 2.8,
-	steerSpeedRef: 45,
+	maxSpeed: 160,
+	accel: 100,
+	reverseAccel: 50,
+	brakeFromForward: 140,
+	dragLinear: 0.4,
+	steerRate: 2.0,
+	steerSpeedRef: 80,
 };
 
 export class Car {
@@ -52,6 +52,7 @@ export class Car {
 		const yawRate = (this.facing - this.prevFacing) / Math.max(dt, 0.001);
 		this.prevFacing = this.facing;
 
+		const prevState = this.state;
 		this.state = stepDriftState({
 			state: this.state,
 			slip,
@@ -62,6 +63,18 @@ export class Car {
 		});
 
 		const cfg = DEFAULT_DRIFT_CONFIG;
+
+		// Drift entry kick: when transitioning GRIP → DRIFTING, push lateral
+		// velocity in the steer direction so the slide is immediately visible.
+		// Without this, lateral velocity has to build up over many frames as
+		// the car rotates faster than its momentum can follow — slow and dull.
+		if (
+			prevState === "GRIP" &&
+			this.state === "DRIFTING" &&
+			input.steer !== 0
+		) {
+			lateralSpeed += input.steer * Math.abs(forwardSpeed) * 0.45;
+		}
 
 		// All velocity changes happen on forward/lateral, then we reconstruct
 		// vx/vy at the end. Doing throttle on vx/vy directly is a bug because

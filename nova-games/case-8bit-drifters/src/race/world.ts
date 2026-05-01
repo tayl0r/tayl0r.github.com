@@ -38,7 +38,7 @@ export function buildWorld(data: TrackData): World {
 
 	const camera = {
 		target: { x: track.startPos.x, y: track.startPos.y },
-		scale: 2.2,
+		scale: 1.7,
 	};
 
 	return {
