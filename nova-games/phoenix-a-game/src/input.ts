@@ -1,3 +1,5 @@
+import type { Weapon } from "./state";
+
 export interface InputState {
 	w: boolean;
 	a: boolean;
@@ -5,6 +7,7 @@ export interface InputState {
 	d: boolean;
 	shift: boolean;
 	click: boolean;
+	weapon: Weapon;
 	mouseDX: number;
 	mouseDY: number;
 }
@@ -17,6 +20,7 @@ export function createInput(): InputState {
 		d: false,
 		shift: false,
 		click: false,
+		weapon: "sword",
 		mouseDX: 0,
 		mouseDY: 0,
 	};
@@ -40,6 +44,12 @@ export function wireInput(input: InputState): void {
 			case "ShiftLeft":
 			case "ShiftRight":
 				input.shift = down;
+				break;
+			case "Digit1":
+				if (down) input.weapon = "sword";
+				break;
+			case "Digit2":
+				if (down) input.weapon = "bow";
 				break;
 		}
 	};
