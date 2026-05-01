@@ -5,6 +5,7 @@ import type { Scene, SceneFactory } from "../context";
 import { Car } from "../race/car";
 import { createKeyboardInput } from "../race/input";
 import { createParticles } from "../race/particles";
+import { createSkid } from "../race/skid";
 import { TOKYO } from "../race/track-data";
 import { buildWorld } from "../race/world";
 import { pixelButton } from "../ui/button";
@@ -18,6 +19,17 @@ export const createRaceScene: SceneFactory = (ctx) => {
 
 	const smoke = createParticles(192);
 	world.entityLayer.addChildAt(smoke.view, 0);
+
+	const SKID_W = 2200;
+	const SKID_H = 1400;
+	const skid = createSkid(
+		ctx.app,
+		SKID_W,
+		SKID_H,
+		-SKID_W / 2 + 100,
+		-SKID_H / 2,
+	);
+	world.groundLayer.addChild(skid.sprite);
 
 	const car = new Car();
 	car.x = world.track.startPos.x;
@@ -82,11 +94,13 @@ export const createRaceScene: SceneFactory = (ctx) => {
 						ttl: 0.7 + Math.random() * 0.4,
 					});
 				}
+				skid.stamp(car.x, car.y, car.facing);
 			}
 			smoke.update(dt);
 		},
 		dispose() {
 			input.dispose();
+			skid.dispose();
 			root.destroy({ children: true });
 		},
 	};
