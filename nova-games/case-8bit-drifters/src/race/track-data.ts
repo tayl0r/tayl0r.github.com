@@ -67,15 +67,18 @@ export const TOKYO: TrackData = {
 		{ x: -1100, y: -480 }, // 25  rejoin start straight
 	],
 
-	// Building placement constraints (track width is 160, road extends ±80
-	// from centerline). Roof rects (y..y+h) must be clear of the road; the
-	// south-extending facade is allowed to overlap because the occlusion-
-	// fade hides it when the car drives behind.
+	// Building placement: every building's ENTIRE visual footprint
+	// (roof + south-extending facade) must be clear of the road. The
+	// constraint for north-side buildings is `y + h + height ≤ road_north_edge`,
+	// not just `y + h ≤ road_north_edge` — the facade is what was previously
+	// rendering inside the asphalt. Buildings here all stay at least 10
+	// units clear of the road on the road-facing side.
 	buildings: [
-		// === Start straight, NORTH side (road north edge y=-580). y+h ≤ -580. ===
+		// === Start straight, NORTH side (road north edge y=-580).
+		// y + h + height ≤ -590 keeps facade tip 10 units north of road. ===
 		{
 			x: -800,
-			y: -680,
+			y: -800,
 			w: 200,
 			h: 80,
 			height: 120,
@@ -84,7 +87,7 @@ export const TOKYO: TrackData = {
 		},
 		{
 			x: -540,
-			y: -700,
+			y: -830,
 			w: 200,
 			h: 100,
 			height: 130,
@@ -93,7 +96,7 @@ export const TOKYO: TrackData = {
 		},
 		{
 			x: -280,
-			y: -680,
+			y: -790,
 			w: 220,
 			h: 80,
 			height: 110,
@@ -102,7 +105,7 @@ export const TOKYO: TrackData = {
 		},
 		{
 			x: 20,
-			y: -700,
+			y: -830,
 			w: 200,
 			h: 100,
 			height: 130,
@@ -111,7 +114,7 @@ export const TOKYO: TrackData = {
 		},
 		{
 			x: 280,
-			y: -680,
+			y: -790,
 			w: 200,
 			h: 80,
 			height: 110,
@@ -120,7 +123,7 @@ export const TOKYO: TrackData = {
 		},
 		{
 			x: 540,
-			y: -700,
+			y: -820,
 			w: 240,
 			h: 100,
 			height: 120,
@@ -128,21 +131,23 @@ export const TOKYO: TrackData = {
 			neon: 0xffd900,
 		},
 
-		// === Start straight, SOUTH side (road south edge y=-420). y ≥ -400. ===
-		{ x: -780, y: -400, w: 140, h: 70, height: 80, color: 0x182030 },
+		// === Start straight, SOUTH side (road south edge y=-420).
+		// Building y ≥ -380 keeps the roof 40 units clear; facade extends
+		// further south away from the road. ===
+		{ x: -780, y: -380, w: 140, h: 70, height: 80, color: 0x182030 },
 		{
 			x: -350,
-			y: -400,
+			y: -380,
 			w: 160,
 			h: 70,
 			height: 80,
 			color: 0x182030,
 			neon: 0xff3399,
 		},
-		{ x: 100, y: -400, w: 140, h: 70, height: 80, color: 0x182030 },
+		{ x: 100, y: -380, w: 140, h: 70, height: 80, color: 0x182030 },
 		{
 			x: 500,
-			y: -400,
+			y: -380,
 			w: 160,
 			h: 70,
 			height: 80,
