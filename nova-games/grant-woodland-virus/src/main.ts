@@ -13,6 +13,7 @@ import {
 } from "three";
 import { buildForest } from "./forest";
 import { attachPlayerInput, createPlayer, updatePlayer } from "./player";
+import { createUI } from "./ui";
 
 const scene = new Scene();
 scene.fog = new FogExp2(0x050a08, 0.05);
@@ -59,11 +60,18 @@ const forest = buildForest(scene);
 const player = createPlayer();
 attachPlayerInput(renderer.domElement, player);
 
+const ui = createUI();
+ui.setStaminaVisible(true);
+ui.showTitle(() => {
+	ui.hideTitle();
+});
+
 const clock = new Clock();
 function animate() {
 	requestAnimationFrame(animate);
 	const dt = clock.getDelta();
 	updatePlayer(player, camera, dt, forest);
+	ui.setStamina(player.stamina, 100);
 	renderer.render(scene, camera);
 }
 animate();
