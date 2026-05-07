@@ -8,6 +8,7 @@ import {
 	PerspectiveCamera,
 	PlaneGeometry,
 	Scene,
+	SpotLight,
 	WebGLRenderer,
 } from "three";
 import { buildForest } from "./forest";
@@ -39,6 +40,19 @@ scene.add(ground);
 
 scene.add(new AmbientLight(0xffffff, 0.08));
 scene.add(new HemisphereLight(0x0a0a14, 0x020402, 0.05));
+
+const flashlight = new SpotLight(
+	0xfff2cc,
+	3,
+	25,
+	(25 / 180) * Math.PI,
+	0.4,
+	1.5,
+);
+flashlight.position.set(0, -0.3, 0);
+flashlight.target.position.set(0, -0.3, -1);
+camera.add(flashlight);
+camera.add(flashlight.target);
 
 const forest = buildForest(scene);
 
