@@ -10,6 +10,8 @@ import {
 	WebGLRenderer,
 } from "three";
 
+import { buildForest } from "./forest";
+
 const scene = new Scene();
 scene.fog = new FogExp2(0x050a08, 0.05);
 
@@ -37,6 +39,9 @@ scene.add(ground);
 
 scene.add(new AmbientLight(0xffffff, 0.08));
 scene.add(new HemisphereLight(0x0a0a14, 0x020402, 0.05));
+
+const forest = buildForest(scene);
+void forest; // referenced in later tasks
 
 function animate() {
 	requestAnimationFrame(animate);
