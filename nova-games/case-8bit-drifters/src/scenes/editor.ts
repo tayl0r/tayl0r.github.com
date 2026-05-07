@@ -279,23 +279,26 @@ export const createEditorScene: SceneFactory = (ctx) => {
 	updatePlayEnabled();
 
 	const place = (): void => {
-		const w = ctx.app.screen.width;
 		const h = ctx.app.screen.height;
-		// Top bar buttons left-to-right.
+		// Top bar buttons left-to-right. Use a generous gap so labels (which
+		// can grow to "MODE: START" / "BRUSH: 24" / hover-scale 1.1×) never
+		// overlap. Measured widths are unreliable before the pixel font has
+		// loaded, so a fixed gap is safer than `view.width + space`.
 		let x = 20;
 		const y = 18;
-		const space = 16;
+		const GAP = 40;
 		const buttons = [menuBtn, modeBtn, brushBtn, clearBtn, playBtn];
 		for (const b of buttons) {
 			b.view.position.set(x, y);
-			x += b.view.width + space;
+			x += b.view.width + GAP;
 		}
 		hint.position.set(20, h - 26);
-		// Keep grid border highlighted by leaving sprite/world centered as
-		// camera math handles the rest.
-		void w;
 	};
 	place();
+	// Re-place once on next frame in case the pixel font finished loading
+	// after the initial measurement (button widths grow slightly with the
+	// real font vs. the fallback).
+	requestAnimationFrame(() => place());
 	const onResize = (): void => place();
 	window.addEventListener("resize", onResize);
 
