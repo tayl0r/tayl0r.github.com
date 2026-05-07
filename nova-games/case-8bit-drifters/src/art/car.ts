@@ -14,24 +14,62 @@ export const DEFAULT_LOOK: CarLook = {
 	taillightColor: 0xff3344,
 };
 
-/** Draws a top-down-ish car centered on (0,0) facing right (+x). */
+// 8-bit pixel-art top-down car sprite.
+// 12 columns × 6 rows; each cell renders as a hard-edged 4×4 world-unit square.
+// Bounding box: 48 × 24 world units, centered at (0, 0). Faces +x (front-right).
+//   '.' transparent  'B' body  'W' windshield  'D' darker body (panel split)
+//   'H' headlight    'T' taillight
+const CAR_SPRITE = [
+	".BBBBBBBBBB.",
+	"TBBBBBBBBBBH",
+	"TBBBWWWWBBBH",
+	"TBBBWWWWBBBH",
+	"TBDBBBBBBDBH",
+	".BBBBBBBBBB.",
+];
+const CELL = 4;
+const W_CELLS = 12;
+const H_CELLS = 6;
+const ORIGIN_X = (-W_CELLS * CELL) / 2;
+const ORIGIN_Y = (-H_CELLS * CELL) / 2;
+
+function darken(rgb: number, factor: number): number {
+	const r = Math.round(((rgb >> 16) & 0xff) * factor);
+	const g = Math.round(((rgb >> 8) & 0xff) * factor);
+	const b = Math.round((rgb & 0xff) * factor);
+	return (r << 16) | (g << 8) | b;
+}
+
+/** Draws an 8-bit pixel-art top-down car centered at (0,0) facing +x. */
 export function renderCar(
 	g: Graphics,
 	look: CarLook,
 	opts: { brake?: boolean } = {},
 ): void {
 	g.clear();
-	// Body
-	g.roundRect(-22, -12, 44, 24, 4).fill(look.bodyColor);
-	// Hood split
-	g.rect(-22, -1, 44, 2).fill({ color: 0x000000, alpha: 0.18 });
-	// Windshield
-	g.roundRect(-2, -10, 14, 20, 3).fill(look.windshieldColor);
-	// Headlights (front, +x)
-	g.rect(20, -9, 4, 4).fill(look.headlightColor);
-	g.rect(20, 5, 4, 4).fill(look.headlightColor);
-	// Taillights (rear, -x); brighten when braking
-	const tailAlpha = opts.brake ? 1 : 0.7;
-	g.rect(-24, -9, 3, 4).fill({ color: look.taillightColor, alpha: tailAlpha });
-	g.rect(-24, 5, 3, 4).fill({ color: look.taillightColor, alpha: tailAlpha });
+	const tailAlpha = opts.brake ? 1 : 0.65;
+	const bodyDark = darken(look.bodyColor, 0.7);
+	for (let row = 0; row < H_CELLS; row++) {
+		const line = CAR_SPRITE[row];
+		for (let col = 0; col < W_CELLS; col++) {
+			const ch = line[col];
+			if (ch === ".") continue;
+			const px = ORIGIN_X + col * CELL;
+			const py = ORIGIN_Y + row * CELL;
+			if (ch === "T") {
+				g.rect(px, py, CELL, CELL).fill({
+					color: look.taillightColor,
+					alpha: tailAlpha,
+				});
+			} else if (ch === "B") {
+				g.rect(px, py, CELL, CELL).fill(look.bodyColor);
+			} else if (ch === "D") {
+				g.rect(px, py, CELL, CELL).fill(bodyDark);
+			} else if (ch === "W") {
+				g.rect(px, py, CELL, CELL).fill(look.windshieldColor);
+			} else if (ch === "H") {
+				g.rect(px, py, CELL, CELL).fill(look.headlightColor);
+			}
+		}
+	}
 }
