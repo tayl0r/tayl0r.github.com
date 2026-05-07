@@ -1,8 +1,7 @@
 import { BoxGeometry, Mesh, MeshStandardMaterial } from "three";
 import type { Aabb } from "./collision";
+import { COLS, DOORWAY_WIDTH, HALLWAY_EDGES, roomCenter } from "./world";
 
-const ROOM = 16;
-const DOORWAY_WIDTH = 4;
 const WALL_THICKNESS = 1;
 const DOOR_HEIGHT = 3;
 
@@ -23,25 +22,29 @@ interface DoorSpec {
 	horizontal: boolean;
 }
 
-const SPECS: DoorSpec[] = [
-	// Doors in vertical-running walls (block east-west passage)
-	{ roomA: 0, roomB: 1, centerX: -ROOM / 2, centerZ: -ROOM, horizontal: false },
-	{ roomA: 1, roomB: 2, centerX: ROOM / 2, centerZ: -ROOM, horizontal: false },
-	{ roomA: 3, roomB: 4, centerX: -ROOM / 2, centerZ: 0, horizontal: false },
-	{ roomA: 4, roomB: 5, centerX: ROOM / 2, centerZ: 0, horizontal: false },
-	{ roomA: 6, roomB: 7, centerX: -ROOM / 2, centerZ: ROOM, horizontal: false },
-	{ roomA: 7, roomB: 8, centerX: ROOM / 2, centerZ: ROOM, horizontal: false },
-	// Doors in horizontal-running walls (block north-south passage)
-	{ roomA: 0, roomB: 3, centerX: -ROOM, centerZ: -ROOM / 2, horizontal: true },
-	{ roomA: 1, roomB: 4, centerX: 0, centerZ: -ROOM / 2, horizontal: true },
-	{ roomA: 2, roomB: 5, centerX: ROOM, centerZ: -ROOM / 2, horizontal: true },
-	{ roomA: 3, roomB: 6, centerX: -ROOM, centerZ: ROOM / 2, horizontal: true },
-	{ roomA: 4, roomB: 7, centerX: 0, centerZ: ROOM / 2, horizontal: true },
-	{ roomA: 5, roomB: 8, centerX: ROOM, centerZ: ROOM / 2, horizontal: true },
-];
+function generateDoorSpecs(): DoorSpec[] {
+	return HALLWAY_EDGES.map(([a, b]) => {
+		const lo = Math.min(a, b);
+		const hi = Math.max(a, b);
+		const rA = Math.floor(lo / COLS);
+		const cA = lo % COLS;
+		const rB = Math.floor(hi / COLS);
+		const cB = hi % COLS;
+		const cenA = roomCenter(rA, cA);
+		const cenB = roomCenter(rB, cB);
+		const sameRow = rA === rB;
+		return {
+			roomA: lo,
+			roomB: hi,
+			centerX: (cenA.x + cenB.x) / 2,
+			centerZ: (cenA.z + cenB.z) / 2,
+			horizontal: !sameRow,
+		};
+	});
+}
 
 export function createDoors(): Door[] {
-	return SPECS.map(doorFromSpec);
+	return generateDoorSpecs().map(doorFromSpec);
 }
 
 function doorFromSpec(s: DoorSpec): Door {

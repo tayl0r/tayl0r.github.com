@@ -64,7 +64,7 @@ import {
 	type WinSwitch,
 } from "./switches";
 import { applyContactDamage, tickPlayer } from "./tick";
-import { generate3x3Grid } from "./world";
+import { COLS, generateLevel1Grid, PITCH, ROWS } from "./world";
 
 const scene = new Scene();
 const camera = new PerspectiveCamera(
@@ -91,8 +91,10 @@ if (startOverlay) {
 	});
 }
 
+const FLOOR_W = COLS * PITCH + 16;
+const FLOOR_D = ROWS * PITCH + 16;
 const floor = new Mesh(
-	new PlaneGeometry(48, 48),
+	new PlaneGeometry(FLOOR_W, FLOOR_D),
 	new MeshStandardMaterial({ color: 0x555555 }),
 );
 floor.rotation.x = -Math.PI / 2;
@@ -104,7 +106,7 @@ scene.add(camera);
 camera.add(sword);
 camera.add(bow);
 
-const grid = generate3x3Grid();
+const grid = generateLevel1Grid();
 const wallMaterial = new MeshStandardMaterial({ color: 0x666666 });
 for (const w of grid.walls) {
 	const width = w.maxX - w.minX;
@@ -129,11 +131,11 @@ let prevClick = false;
 let arrows: Arrow[] = [];
 
 const spawnRoom = grid.rooms[1];
-const bossRoom = grid.rooms[4];
-const MONSTER_GOBLIN_ROOMS = [0, 2, 3, 5, 7];
-const MONSTER_OGRE_ROOMS = [0, 6, 8];
-const SWITCH_ROOMS = [0, 2, 3, 5, 6, 7, 8];
-const CHEST_ROOMS = [0, 2, 3, 5, 7];
+const bossRoom = grid.rooms[16];
+const MONSTER_GOBLIN_ROOMS = [4, 5, 7, 8, 10, 11, 13, 14];
+const MONSTER_OGRE_ROOMS = [6, 9, 12, 15];
+const SWITCH_ROOMS = [0, 2, 3, 6, 9, 12, 15, 17];
+const CHEST_ROOMS = [0, 2, 3, 5, 8, 11, 14, 17];
 
 let monsters: Monster[] = [];
 let chests: Chest[] = [];
@@ -169,7 +171,7 @@ function spawnMonster(
 
 function spawnBoss() {
 	if (boss) return;
-	boss = createBoss(bossRoom.centerX, bossRoom.centerZ, 4);
+	boss = createBoss(bossRoom.centerX, bossRoom.centerZ, 16);
 	boss.mesh = createMonsterMesh(boss);
 	scene.add(boss.mesh);
 	monsters.push(boss);
