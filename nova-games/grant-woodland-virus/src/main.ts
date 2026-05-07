@@ -41,7 +41,6 @@ scene.add(new AmbientLight(0xffffff, 0.08));
 scene.add(new HemisphereLight(0x0a0a14, 0x020402, 0.05));
 
 const forest = buildForest(scene);
-void forest;
 
 const player = createPlayer();
 attachPlayerInput(renderer.domElement, player);
@@ -50,7 +49,7 @@ const clock = new Clock();
 function animate() {
 	requestAnimationFrame(animate);
 	const dt = clock.getDelta();
-	updatePlayer(player, camera, dt);
+	updatePlayer(player, camera, dt, forest);
 	renderer.render(scene, camera);
 }
 animate();

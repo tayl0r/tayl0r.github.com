@@ -1,9 +1,11 @@
 import { type PerspectiveCamera, Vector3 } from "three";
+import type { TreeCollider } from "./forest";
 
 const PITCH_LIMIT = (85 / 180) * Math.PI;
 const MOUSE_SENSITIVITY = 0.002;
 const WALK_SPEED = 4;
 const EYE_HEIGHT = 1.7;
+const PLAYER_RADIUS = 0.3;
 
 export type PlayerState = {
 	position: Vector3;
@@ -66,10 +68,42 @@ const tmpForward = new Vector3();
 const tmpRight = new Vector3();
 const tmpMove = new Vector3();
 
+export type World = {
+	colliders: TreeCollider[];
+	bounds: { halfX: number; halfZ: number };
+};
+
+function resolveCollision(position: Vector3, world: World) {
+	for (let pass = 0; pass < 3; pass++) {
+		let pushed = false;
+		for (const c of world.colliders) {
+			const dx = position.x - c.x;
+			const dz = position.z - c.z;
+			const dist = Math.hypot(dx, dz);
+			const minDist = c.radius + PLAYER_RADIUS;
+			if (dist < minDist && dist > 0.0001) {
+				const push = minDist - dist;
+				position.x += (dx / dist) * push;
+				position.z += (dz / dist) * push;
+				pushed = true;
+			}
+		}
+		if (!pushed) break;
+	}
+
+	const limitX = world.bounds.halfX - PLAYER_RADIUS;
+	const limitZ = world.bounds.halfZ - PLAYER_RADIUS;
+	if (position.x > limitX) position.x = limitX;
+	if (position.x < -limitX) position.x = -limitX;
+	if (position.z > limitZ) position.z = limitZ;
+	if (position.z < -limitZ) position.z = -limitZ;
+}
+
 export function updatePlayer(
 	player: PlayerState,
 	camera: PerspectiveCamera,
 	dt: number,
+	world: World,
 ) {
 	camera.rotation.order = "YXZ";
 	camera.rotation.set(player.pitch, player.yaw, 0);
@@ -90,6 +124,8 @@ export function updatePlayer(
 			tmpMove.normalize().multiplyScalar(WALK_SPEED * dt);
 			player.position.add(tmpMove);
 		}
+
+		resolveCollision(player.position, world);
 	}
 
 	camera.position.copy(player.position);
