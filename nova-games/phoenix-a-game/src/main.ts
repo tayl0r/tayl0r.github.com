@@ -53,7 +53,7 @@ import {
 	PLAYER_RADIUS,
 	weaponColorFor,
 } from "./player";
-import { createInitialState } from "./state";
+import { canAttack, consumeAttackStamina, createInitialState } from "./state";
 import {
 	activateSwitch,
 	activateWinSwitch,
@@ -217,12 +217,12 @@ function buildDungeon() {
 function resetPlayerStats() {
 	state.player.health = state.player.maxHealth;
 	state.player.stamina = state.player.maxStamina;
-	state.player.hunger = state.player.maxHunger;
 	state.player.swordDamage = 1;
 	state.player.bowDamage = 1;
 	state.player.weapon = "sword";
 	state.player.iframesUntil = 0;
 	state.player.hitFlashUntil = 0;
+	state.player.lastAttackAt = -Infinity;
 	input.weapon = "sword";
 }
 
@@ -451,8 +451,7 @@ function animate() {
 		weaponColorFor(state.player.bowDamage),
 	);
 	const v = computeVelocity(input, input.shift, follow.yaw);
-	const moving = Math.hypot(v.x, v.z) > 0.01;
-	tickPlayer(state, dt, moving, moving && input.shift);
+	tickPlayer(state, dt);
 	const walls = activeWalls();
 	if (state.phase === "playing") {
 		const candidateX = player.position.x + v.x * dt;
@@ -496,10 +495,14 @@ function animate() {
 	}
 	if (input.click && !prevClick) {
 		if (state.phase === "playing") {
-			if (state.player.weapon === "sword") {
-				startSwing(swing, state.now);
-			} else {
-				fireArrow();
+			if (canAttack(state)) {
+				if (state.player.weapon === "sword") {
+					startSwing(swing, state.now);
+					consumeAttackStamina(state);
+				} else {
+					fireArrow();
+					consumeAttackStamina(state);
+				}
 			}
 		} else if (state.phase === "dead") {
 			respawnPlayer();

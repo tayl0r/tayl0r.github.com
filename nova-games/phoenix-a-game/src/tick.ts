@@ -1,34 +1,16 @@
 import type { Monster } from "./monsters";
-import type { GameState } from "./state";
+import { type GameState, STAMINA_REGEN_DELAY } from "./state";
 
-const HUNGER_PER_SEC_WALKING = 0.5 / 60;
-const HUNGER_PER_SEC_SPRINTING = 1 / 30;
-const STAMINA_DRAIN_PER_SEC = 3;
-const STAMINA_REGEN_PER_SEC = 5;
-const STARVE_DAMAGE_PER_SEC = 0.1;
+const STAMINA_REGEN_PER_SEC = 2;
 
-export function tickPlayer(
-	state: GameState,
-	dt: number,
-	moving: boolean,
-	sprinting: boolean,
-): void {
+export function tickPlayer(state: GameState, dt: number): void {
 	if (state.phase !== "playing") {
 		state.now += dt;
 		return;
 	}
 	const p = state.player;
-	if (moving) {
-		const drain = sprinting ? HUNGER_PER_SEC_SPRINTING : HUNGER_PER_SEC_WALKING;
-		p.hunger = Math.max(0, p.hunger - drain * dt);
-	}
-	if (sprinting && p.stamina > 0) {
-		p.stamina = Math.max(0, p.stamina - STAMINA_DRAIN_PER_SEC * dt);
-	} else if (!sprinting) {
+	if (state.now - p.lastAttackAt >= STAMINA_REGEN_DELAY) {
 		p.stamina = Math.min(p.maxStamina, p.stamina + STAMINA_REGEN_PER_SEC * dt);
-	}
-	if (p.hunger === 0) {
-		p.health = Math.max(0, p.health - STARVE_DAMAGE_PER_SEC * dt);
 	}
 	state.now += dt;
 }
