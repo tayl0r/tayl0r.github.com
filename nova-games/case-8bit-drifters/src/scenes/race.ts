@@ -212,12 +212,19 @@ function buildRaceScene(
 	root.addChild(hud.view);
 	hud.setBest(ctx.bests[opts.mapId] ?? null);
 
+	// Always-visible "exit to back-target" button (top-left). Goes to wherever
+	// `back` points — usually home, or the editor when the race was launched
+	// from the editor.
+	const exitBtn = pixelButton("← EXIT", () => ctx.switchTo(back), 14);
+	root.addChild(exitBtn.view);
+
 	let finished = false;
 
 	const place = (): void => {
 		hud.place(ctx.app.screen.width);
 		lightsView.position.set(ctx.app.screen.width / 2, 80);
 		goText.position.set(0, 0);
+		exitBtn.view.position.set(20, 18);
 	};
 	place();
 	const onResize = (): void => place();

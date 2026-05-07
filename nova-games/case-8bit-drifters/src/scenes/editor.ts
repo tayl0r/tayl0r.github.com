@@ -19,7 +19,7 @@ import { createGridRaceScene } from "./grid-race";
 import { createHomeScene } from "./home";
 
 type Mode = "TRACK" | "START" | "ERASE";
-const BRUSH_SIZES = [1, 2, 4, 6, 10] as const;
+const BRUSH_SIZES = [2, 4, 8, 12, 16, 24] as const;
 
 const BG_COLOR = 0x111122;
 const TRACK_COLOR = 0x4a5d7e;
@@ -107,7 +107,7 @@ export const createEditorScene: SceneFactory = (ctx) => {
 
 	// Editor state.
 	let mode: Mode = "TRACK";
-	let brushIdx = 2; // brush size 4
+	let brushIdx = 2; // brush size 8 → road width ~120-160 world units
 	let painting = false;
 	let lastPaintX = 0;
 	let lastPaintY = 0;
