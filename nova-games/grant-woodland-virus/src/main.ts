@@ -1,8 +1,7 @@
 import {
 	AmbientLight,
-	BoxGeometry,
-	Clock,
-	DirectionalLight,
+	FogExp2,
+	HemisphereLight,
 	Mesh,
 	MeshStandardMaterial,
 	PerspectiveCamera,
@@ -12,46 +11,35 @@ import {
 } from "three";
 
 const scene = new Scene();
+scene.fog = new FogExp2(0x050a08, 0.05);
+
 const camera = new PerspectiveCamera(
-	60,
+	75,
 	window.innerWidth / window.innerHeight,
 	0.1,
-	1000,
+	500,
 );
-camera.position.set(0, 4, 8);
-camera.lookAt(0, 0, 0);
+camera.position.set(0, 1.7, 0);
+camera.lookAt(0, 1.7, -1);
+scene.add(camera);
 
 const renderer = new WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setClearColor(0x1a3a1a);
+renderer.setClearColor(0x050a08);
 document.body.appendChild(renderer.domElement);
 
-const floor = new Mesh(
-	new PlaneGeometry(40, 40),
-	new MeshStandardMaterial({ color: 0x2d5a2d }),
+const ground = new Mesh(
+	new PlaneGeometry(220, 220),
+	new MeshStandardMaterial({ color: 0x0a1408 }),
 );
-floor.rotation.x = -Math.PI / 2;
-scene.add(floor);
+ground.rotation.x = -Math.PI / 2;
+scene.add(ground);
 
-const cube = new Mesh(
-	new BoxGeometry(2, 2, 2),
-	new MeshStandardMaterial({ color: 0x88cc44 }),
-);
-cube.position.y = 1;
-scene.add(cube);
-
-scene.add(new AmbientLight(0xffffff, 0.5));
-const sun = new DirectionalLight(0xffffff, 0.8);
-sun.position.set(5, 10, 5);
-scene.add(sun);
-
-const clock = new Clock();
+scene.add(new AmbientLight(0xffffff, 0.08));
+scene.add(new HemisphereLight(0x0a0a14, 0x020402, 0.05));
 
 function animate() {
 	requestAnimationFrame(animate);
-	const dt = clock.getDelta();
-	cube.rotation.y += dt * 0.8;
-	cube.rotation.x += dt * 0.4;
 	renderer.render(scene, camera);
 }
 animate();
