@@ -19,82 +19,100 @@ export type TrackData = {
 	lake?: { cx: number; cy: number; rx: number; ry: number };
 };
 
-// Hand-tuned Tokyo loop. Coordinates are arbitrary world units; lap target
-// ~60s at the car's cruise speed (~25 units/s when straight). The shape is a
-// distorted figure-eight-without-crossing: long start straight at the top,
-// hairpin right, sweeping curve through "Shibuya" intersection, second hairpin,
-// curve around the lake park, back to start.
+// Driver's-track loop. Same kidney-bean envelope as before but every corner
+// is now an actual corner — sharp enough that you have to either brake hard
+// OR drift through. Sectors, going CCW (in screen space, y-down):
+//   0–4   start/finish straight (east-bound at y=-500)
+//   5–7   NE elbow — tight ~90° right
+//   8–12  SE hairpin — long sweeper into a tight elbow at the deep east apex
+//   13–19 south sector — two distinct chicanes joined by short straights
+//   20–24 SW hairpin — long inward swing through the deep west apex
+//   25–26 NW elbow — tight ~90° back into the start straight
+// All corners share an outer ring (no segment passes near another), so the
+// road never self-intersects despite the higher waypoint count.
 export const TOKYO: TrackData = {
 	width: 160,
-	startIndex: 6, // mid-straight
+	startIndex: 2, // start/finish line sits on segment 2 → 3
 	centerline: [
-		{ x: -800, y: -400 }, // 0  start straight begin (west)
-		{ x: -600, y: -400 },
-		{ x: -400, y: -400 },
-		{ x: -200, y: -400 },
-		{ x: 0, y: -400 },
-		{ x: 200, y: -400 },
-		{ x: 400, y: -400 }, // 6  start/finish line
-		{ x: 600, y: -400 },
-		{ x: 800, y: -380 }, // 8  approach hairpin 1
-		{ x: 900, y: -300 },
-		{ x: 920, y: -180 },
-		{ x: 900, y: -60 },
-		{ x: 820, y: 40 }, // 12 exit hairpin 1
-		{ x: 680, y: 100 }, // shibuya approach
-		{ x: 500, y: 140 }, // 14 shibuya crossing center
-		{ x: 300, y: 140 },
-		{ x: 100, y: 120 },
-		{ x: -80, y: 80 },
-		{ x: -240, y: 0 }, // approach hairpin 2
-		{ x: -340, y: -100 },
-		{ x: -360, y: -240 }, // hairpin 2 inner
-		{ x: -300, y: -340 },
-		{ x: -180, y: -360 }, // park approach
-		{ x: -40, y: -300 },
-		{ x: 40, y: -200 }, // around lake (lake at ~(120, -180))
-		{ x: 80, y: -80 },
-		{ x: -20, y: 0 },
-		{ x: -200, y: 60 },
-		{ x: -400, y: 80 },
-		{ x: -600, y: 60 },
-		{ x: -780, y: 0 },
-		{ x: -880, y: -120 },
-		{ x: -900, y: -260 },
-		{ x: -860, y: -380 }, // returns to start straight
+		// === Start/finish straight (east-bound, y=-500) ===
+		{ x: -800, y: -500 }, // 0  west end of straight
+		{ x: -400, y: -500 },
+		{ x: 0, y: -500 }, // 2  start/finish line
+		{ x: 400, y: -500 },
+		{ x: 800, y: -500 }, // 4  east end, begin NE elbow
+
+		// === NE elbow — tight ~90° right ===
+		{ x: 1100, y: -440 }, // 5
+		{ x: 1300, y: -300 },
+		{ x: 1380, y: -100 }, // 7  exit, heading south
+
+		// === SE hairpin — sweep south, then tight elbow back west ===
+		{ x: 1430, y: 100 }, // 8
+		{ x: 1500, y: 280 },
+		{ x: 1500, y: 420 }, // 10  deep east apex
+		{ x: 1380, y: 510 }, // 11  tight elbow
+		{ x: 1180, y: 530 }, // 12  exit, now west-bound
+
+		// === South sector — chicane → short straight → chicane ===
+		{ x: 980, y: 470 }, // 13  chicane 1 north peak
+		{ x: 780, y: 530 }, // 14  chicane 1 south valley
+		{ x: 580, y: 480 }, // 15  recover
+		{ x: 300, y: 510 }, // 16  short connector
+		{ x: 50, y: 470 }, // 17  chicane 2 north peak
+		{ x: -200, y: 530 }, // 18  chicane 2 south valley
+		{ x: -450, y: 470 }, // 19  recover
+
+		// === SW hairpin — long inward swing through deep west apex ===
+		{ x: -700, y: 440 }, // 20  entry
+		{ x: -950, y: 350 },
+		{ x: -1200, y: 200 },
+		{ x: -1380, y: 0 }, // 23  deep west apex
+		{ x: -1380, y: -200 },
+
+		// === NW elbow — ~90° back into the straight ===
+		{ x: -1280, y: -380 }, // 25
+		{ x: -1100, y: -480 }, // 26  rejoin start straight
 	],
+
+	// Building placement: every building's ENTIRE visual footprint
+	// (roof + south-extending facade) must be clear of the road. The
+	// constraint for north-side buildings is `y + h + height ≤ road_north_edge`,
+	// not just `y + h ≤ road_north_edge` — the facade is what was previously
+	// rendering inside the asphalt. Buildings here all stay at least 10
+	// units clear of the road on the road-facing side.
 	buildings: [
-		// Buildings flanking the start straight (north + south of road)
+		// === Start straight, NORTH side (road north edge y=-580).
+		// y + h + height ≤ -590 keeps facade tip 10 units north of road. ===
 		{
 			x: -800,
-			y: -540,
+			y: -800,
 			w: 200,
 			h: 80,
-			height: 90,
+			height: 120,
 			color: 0x1a2438,
 			neon: 0xff3399,
 		},
 		{
-			x: -560,
-			y: -560,
-			w: 180,
+			x: -540,
+			y: -830,
+			w: 200,
 			h: 100,
-			height: 110,
+			height: 130,
 			color: 0x1f2c44,
 			neon: 0x00d2ff,
 		},
 		{
-			x: -340,
-			y: -540,
+			x: -280,
+			y: -790,
 			w: 220,
 			h: 80,
-			height: 80,
+			height: 110,
 			color: 0x222d44,
 			neon: 0x00ff88,
 		},
 		{
-			x: -100,
-			y: -560,
+			x: 20,
+			y: -830,
 			w: 200,
 			h: 100,
 			height: 130,
@@ -102,87 +120,113 @@ export const TOKYO: TrackData = {
 			neon: 0xff77dd,
 		},
 		{
-			x: 140,
-			y: -540,
+			x: 280,
+			y: -790,
 			w: 200,
 			h: 80,
-			height: 100,
+			height: 110,
 			color: 0x1a2438,
 			neon: 0x00d2ff,
 		},
 		{
-			x: 380,
-			y: -560,
+			x: 540,
+			y: -820,
 			w: 240,
 			h: 100,
 			height: 120,
 			color: 0x21304a,
 			neon: 0xffd900,
 		},
-		{ x: -780, y: -340, w: 100, h: 60, height: 70, color: 0x182030 },
-		{ x: -40, y: -340, w: 100, h: 60, height: 70, color: 0x182030 },
+
+		// === Start straight, SOUTH side (road south edge y=-420).
+		// Building y ≥ -380 keeps the roof 40 units clear; facade extends
+		// further south away from the road. ===
+		{ x: -780, y: -380, w: 140, h: 70, height: 80, color: 0x182030 },
 		{
-			x: 600,
-			y: -340,
-			w: 120,
-			h: 80,
-			height: 90,
+			x: -350,
+			y: -380,
+			w: 160,
+			h: 70,
+			height: 80,
 			color: 0x182030,
 			neon: 0xff3399,
 		},
-		// Hairpin 1 enclosure
+		{ x: 100, y: -380, w: 140, h: 70, height: 80, color: 0x182030 },
 		{
-			x: 900,
-			y: -200,
+			x: 500,
+			y: -380,
+			w: 160,
+			h: 70,
+			height: 80,
+			color: 0x182030,
+			neon: 0x00d2ff,
+		},
+
+		// === East side landmarks. NE elbow exit at x≈1380, y=-100;
+		// SE hairpin apex at x=1500, y=420. East edge of road ≈ apex_x + 80. ===
+		{
+			x: 1640,
+			y: -100,
 			w: 120,
 			h: 100,
-			height: 100,
+			height: 130,
 			color: 0x1c2640,
 			neon: 0x00d2ff,
 		},
-		// Shibuya block (4 corners around (500, 140))
 		{
-			x: 340,
-			y: 40,
-			w: 120,
+			x: 1640,
+			y: 380,
+			w: 140,
+			h: 110,
+			height: 130,
+			color: 0x21304a,
+			neon: 0xffd900,
+		},
+
+		// === South sector accents (south of road). Chicanes peak at y=530
+		// → road south edge y=610. Buildings y≥640 leaves 30-unit margin. ===
+		{
+			x: 280,
+			y: 640,
+			w: 140,
 			h: 80,
-			height: 110,
+			height: 90,
 			color: 0x222d44,
 			neon: 0xff77dd,
 		},
 		{
-			x: 540,
-			y: 40,
-			w: 140,
+			x: -380,
+			y: 640,
+			w: 160,
 			h: 80,
-			height: 130,
-			color: 0x1f2c44,
+			height: 100,
+			color: 0x21304a,
 			neon: 0x00ff88,
 		},
+
+		// === West side landmarks. SW hairpin apex at x=-1380, y=0;
+		// west edge of road ≈ -1460. Buildings x ≤ -1620 leaves 160-unit margin. ===
 		{
-			x: 340,
-			y: 200,
-			w: 140,
-			h: 100,
-			height: 100,
-			color: 0x1a2438,
-			neon: 0x00d2ff,
-		},
-		{
-			x: 560,
-			y: 200,
+			x: -1620,
+			y: -100,
 			w: 120,
-			h: 100,
-			height: 120,
-			color: 0x21304a,
+			h: 80,
+			height: 90,
+			color: 0x1c2640,
 			neon: 0xffd900,
 		},
-		// Around hairpin 2
-		{ x: -440, y: -140, w: 100, h: 80, height: 90, color: 0x1c2640 },
-		{ x: -440, y: -260, w: 100, h: 80, height: 90, color: 0x182030 },
-		// Outer ring (variety + occlusion candidates)
-		{ x: -1000, y: -500, w: 100, h: 80, height: 60, color: 0x121826 },
-		{ x: -100, y: 140, w: 120, h: 100, height: 80, color: 0x172131 },
+		{
+			x: -1620,
+			y: 100,
+			w: 120,
+			h: 90,
+			height: 100,
+			color: 0x21304a,
+			neon: 0xff3399,
+		},
 	],
-	lake: { cx: 120, cy: -180, rx: 110, ry: 70 },
+
+	// Park/lake in the empty interior of the loop — the kidney-bean shape
+	// leaves a big middle area that no track passes through.
+	lake: { cx: 100, cy: 0, rx: 300, ry: 180 },
 };

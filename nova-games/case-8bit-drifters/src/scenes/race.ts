@@ -44,16 +44,11 @@ export const createRaceScene: SceneFactory = (ctx) => {
 	world.root.eventMode = "none";
 	root.addChild(world.root);
 
-	// Skid into ground layer (under car/buildings)
-	const SKID_W = 2400;
-	const SKID_H = 1600;
-	const skid = createSkid(
-		ctx.app,
-		SKID_W,
-		SKID_H,
-		-SKID_W / 2 + 100,
-		-SKID_H / 2,
-	);
+	// Skid into ground layer (under car/buildings). Texture must cover the
+	// whole track footprint (~ -1740..1740 in x, -700..600 in y).
+	const SKID_W = 3600;
+	const SKID_H = 1500;
+	const skid = createSkid(ctx.app, SKID_W, SKID_H, -SKID_W / 2, -800);
 	world.groundLayer.addChild(skid.sprite);
 
 	// Smoke into entity layer (between ground and buildings)
