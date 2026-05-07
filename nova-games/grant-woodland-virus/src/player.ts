@@ -4,23 +4,29 @@ import type { TreeCollider } from "./forest";
 const PITCH_LIMIT = (85 / 180) * Math.PI;
 const MOUSE_SENSITIVITY = 0.002;
 const WALK_SPEED = 4;
+const SPRINT_SPEED = 7;
 const EYE_HEIGHT = 1.7;
 const PLAYER_RADIUS = 0.3;
+const STAMINA_MAX = 100;
+const STAMINA_DRAIN = 25;
+const STAMINA_REGEN = 15;
 
 export type PlayerState = {
 	position: Vector3;
 	yaw: number;
 	pitch: number;
+	stamina: number;
 };
 
-type Keys = { w: boolean; a: boolean; s: boolean; d: boolean };
-const keys: Keys = { w: false, a: false, s: false, d: false };
+type Keys = { w: boolean; a: boolean; s: boolean; d: boolean; q: boolean };
+const keys: Keys = { w: false, a: false, s: false, d: false, q: false };
 
 export function createPlayer(): PlayerState {
 	return {
 		position: new Vector3(0, EYE_HEIGHT, 0),
 		yaw: 0,
 		pitch: 0,
+		stamina: STAMINA_MAX,
 	};
 }
 
@@ -28,6 +34,7 @@ export function resetPlayer(player: PlayerState) {
 	player.position.set(0, EYE_HEIGHT, 0);
 	player.yaw = 0;
 	player.pitch = 0;
+	player.stamina = STAMINA_MAX;
 }
 
 export function attachPlayerInput(
@@ -40,6 +47,7 @@ export function attachPlayerInput(
 		else if (k === "a") keys.a = true;
 		else if (k === "s") keys.s = true;
 		else if (k === "d") keys.d = true;
+		else if (k === "q") keys.q = true;
 	});
 	window.addEventListener("keyup", (e) => {
 		const k = e.key.toLowerCase();
@@ -47,6 +55,7 @@ export function attachPlayerInput(
 		else if (k === "a") keys.a = false;
 		else if (k === "s") keys.s = false;
 		else if (k === "d") keys.d = false;
+		else if (k === "q") keys.q = false;
 	});
 
 	window.addEventListener("mousemove", (e) => {
@@ -120,8 +129,20 @@ export function updatePlayer(
 		if (keys.d) tmpMove.add(tmpRight);
 		if (keys.a) tmpMove.sub(tmpRight);
 
-		if (tmpMove.lengthSq() > 0) {
-			tmpMove.normalize().multiplyScalar(WALK_SPEED * dt);
+		const moving = tmpMove.lengthSq() > 0;
+		const sprinting = moving && keys.q && player.stamina > 0;
+
+		if (sprinting) {
+			player.stamina -= STAMINA_DRAIN * dt;
+			if (player.stamina < 0) player.stamina = 0;
+		} else {
+			player.stamina += STAMINA_REGEN * dt;
+			if (player.stamina > STAMINA_MAX) player.stamina = STAMINA_MAX;
+		}
+
+		if (moving) {
+			const speed = sprinting ? SPRINT_SPEED : WALK_SPEED;
+			tmpMove.normalize().multiplyScalar(speed * dt);
 			player.position.add(tmpMove);
 		}
 
