@@ -10,6 +10,7 @@ import { LapTracker } from "../race/lap";
 import { advanceLights, inputsEnabled, type LightsState } from "../race/lights";
 import { createParticles } from "../race/particles";
 import { createSkid } from "../race/skid";
+import type { TrackData } from "../race/track-data";
 import { TOKYO } from "../race/track-data";
 import {
 	defaultDriftValue,
@@ -29,10 +30,35 @@ import {
 } from "../ui/tuning-panel";
 import { createHomeScene } from "./home";
 
-const MAP_ID = "tokyo";
 const DEFAULT_TOTAL_LAPS = 5;
 
-export const createRaceScene: SceneFactory = (ctx) => {
+export type RaceSceneOpts = {
+	track: TrackData;
+	mapId: string;
+	back?: SceneFactory;
+};
+
+/** TOKYO race — the original built-in track. Wrapper around the generic
+ * factory so existing call sites keep working. */
+export const createRaceScene: SceneFactory = (ctx) =>
+	createRaceSceneFor({ track: TOKYO, mapId: "tokyo" })(ctx);
+
+/** Generic race-scene factory: pass any TrackData (built-in or generated)
+ * plus a mapId for best-time persistence and an optional `back` factory that
+ * the "BACK TO MENU" button switches to (defaults to the home scene). */
+export function createRaceSceneFor(opts: RaceSceneOpts): SceneFactory {
+	const back = opts.back ?? createHomeScene;
+	const factory: SceneFactory = (ctx) =>
+		buildRaceScene(ctx, opts, back, factory);
+	return factory;
+}
+
+function buildRaceScene(
+	ctx: Parameters<SceneFactory>[0],
+	opts: RaceSceneOpts,
+	back: SceneFactory,
+	self: SceneFactory,
+): Scene {
 	const params = new URLSearchParams(window.location.search);
 	const TOTAL_LAPS =
 		import.meta.env.DEV && params.has("laps")
@@ -40,15 +66,15 @@ export const createRaceScene: SceneFactory = (ctx) => {
 			: DEFAULT_TOTAL_LAPS;
 
 	const root = new Container();
-	const world = buildWorld(TOKYO);
+	const world = buildWorld(opts.track);
 	world.root.eventMode = "none";
 	root.addChild(world.root);
 
-	// Skid into ground layer (under car/buildings). Texture must cover the
-	// whole track footprint (~ -1740..1740 in x, -700..600 in y).
-	const SKID_W = 3600;
-	const SKID_H = 1500;
-	const skid = createSkid(ctx.app, SKID_W, SKID_H, -SKID_W / 2, -800);
+	// Skid into ground layer (under car/buildings). Texture box is computed
+	// from the centerline bounds + a margin so it always covers the track,
+	// regardless of whether this is TOKYO or a custom track.
+	const bounds = trackBounds(opts.track);
+	const skid = createSkid(ctx.app, bounds.w, bounds.h, bounds.x, bounds.y);
 	world.groundLayer.addChild(skid.sprite);
 
 	// Smoke into entity layer (between ground and buildings)
@@ -184,7 +210,7 @@ export const createRaceScene: SceneFactory = (ctx) => {
 
 	const hud = createHud();
 	root.addChild(hud.view);
-	hud.setBest(ctx.bests[MAP_ID] ?? null);
+	hud.setBest(ctx.bests[opts.mapId] ?? null);
 
 	let finished = false;
 
@@ -214,17 +240,9 @@ export const createRaceScene: SceneFactory = (ctx) => {
 			p.addChild(tx);
 		}
 
-		const again = pixelButton(
-			"RACE AGAIN",
-			() => ctx.switchTo(createRaceScene),
-			14,
-		);
+		const again = pixelButton("RACE AGAIN", () => ctx.switchTo(self), 14);
 		again.view.position.set(-90, 110);
-		const home = pixelButton(
-			"BACK TO MENU",
-			() => ctx.switchTo(createHomeScene),
-			14,
-		);
+		const home = pixelButton("BACK TO MENU", () => ctx.switchTo(back), 14);
 		home.view.position.set(90, 110);
 		p.addChild(again.view, home.view);
 		root.addChild(p);
@@ -309,9 +327,9 @@ export const createRaceScene: SceneFactory = (ctx) => {
 					const lapMs = nowMs - lapStartMs;
 					lapTimes.push(lapMs);
 					lapStartMs = nowMs;
-					const best = ctx.bests[MAP_ID];
+					const best = ctx.bests[opts.mapId];
 					if (best === undefined || lapMs < best) {
-						ctx.bests[MAP_ID] = lapMs;
+						ctx.bests[opts.mapId] = lapMs;
 						persist(ctx);
 						hud.setBest(lapMs);
 					}
@@ -340,4 +358,31 @@ export const createRaceScene: SceneFactory = (ctx) => {
 		},
 	};
 	return scene;
-};
+}
+
+/** Bounding box for the skid texture: tight fit around the centerline plus
+ * a margin big enough to cover the road edges and the start-line stripe. */
+function trackBounds(track: TrackData): {
+	x: number;
+	y: number;
+	w: number;
+	h: number;
+} {
+	let minX = Number.POSITIVE_INFINITY;
+	let maxX = Number.NEGATIVE_INFINITY;
+	let minY = Number.POSITIVE_INFINITY;
+	let maxY = Number.NEGATIVE_INFINITY;
+	for (const p of track.centerline) {
+		if (p.x < minX) minX = p.x;
+		if (p.x > maxX) maxX = p.x;
+		if (p.y < minY) minY = p.y;
+		if (p.y > maxY) maxY = p.y;
+	}
+	const margin = track.width + 100;
+	return {
+		x: minX - margin,
+		y: minY - margin,
+		w: maxX - minX + margin * 2,
+		h: maxY - minY + margin * 2,
+	};
+}

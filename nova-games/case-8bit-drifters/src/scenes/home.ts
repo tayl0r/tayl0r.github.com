@@ -1,10 +1,13 @@
 import { Container, Graphics } from "pixi.js";
 import { DEFAULT_LOOK, renderCar } from "../art/car";
 import type { Scene, SceneFactory } from "../context";
+import { hasSavedGridTrack } from "../race/grid-storage";
 import { pixelButton } from "../ui/button";
 import { panel } from "../ui/panel";
 import { pixelText } from "../ui/pixel-text";
 import { createTabs } from "../ui/tabs";
+import { createEditorScene } from "./editor";
+import { createGridRaceScene } from "./grid-race";
 import { createRaceScene } from "./race";
 import { createSettingsModal } from "./settings-modal";
 
@@ -84,7 +87,29 @@ export const createHomeScene: SceneFactory = (ctx) => {
 		24,
 	);
 
-	root.addChild(gear, tabs.view, mapPanel, carG, modeWrap, raceButton.view);
+	// Track editor + race-custom buttons
+	const editorButton = pixelButton(
+		"TRACK EDITOR",
+		() => ctx.switchTo(createEditorScene),
+		14,
+	);
+	const customRaceButton = pixelButton(
+		"RACE CUSTOM TRACK",
+		() => ctx.switchTo(createGridRaceScene),
+		14,
+	);
+	customRaceButton.setEnabled(hasSavedGridTrack());
+
+	root.addChild(
+		gear,
+		tabs.view,
+		mapPanel,
+		carG,
+		modeWrap,
+		raceButton.view,
+		editorButton.view,
+		customRaceButton.view,
+	);
 
 	// Settings modal lives on top, added/removed by gear click
 	let modalOpen = false;
@@ -110,8 +135,10 @@ export const createHomeScene: SceneFactory = (ctx) => {
 		tabs.view.position.set(baseTabsX, 18);
 		mapPanel.position.set(140, h / 2);
 		carG.position.set(w / 2, h / 2);
-		modeWrap.position.set(w - 200, h - 130);
-		raceButton.view.position.set(w - 200, h - 70);
+		modeWrap.position.set(w - 200, h - 220);
+		raceButton.view.position.set(w - 200, h - 160);
+		editorButton.view.position.set(w - 200, h - 110);
+		customRaceButton.view.position.set(w - 200, h - 70);
 	};
 	place();
 	const onResize = (): void => place();
