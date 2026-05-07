@@ -21,6 +21,19 @@ export type PlayerState = {
 type Keys = { w: boolean; a: boolean; s: boolean; d: boolean; q: boolean };
 const keys: Keys = { w: false, a: false, s: false, d: false, q: false };
 
+let inputActive = false;
+
+export function setInputActive(active: boolean) {
+	inputActive = active;
+	if (!active) {
+		keys.w = false;
+		keys.a = false;
+		keys.s = false;
+		keys.d = false;
+		keys.q = false;
+	}
+}
+
 export function createPlayer(): PlayerState {
 	return {
 		position: new Vector3(0, EYE_HEIGHT, 0),
@@ -67,6 +80,7 @@ export function attachPlayerInput(
 	});
 
 	canvas.addEventListener("click", () => {
+		if (!inputActive) return;
 		if (document.pointerLockElement !== canvas) {
 			canvas.requestPointerLock();
 		}
@@ -117,7 +131,7 @@ export function updatePlayer(
 	camera.rotation.order = "YXZ";
 	camera.rotation.set(player.pitch, player.yaw, 0);
 
-	if (document.pointerLockElement) {
+	if (document.pointerLockElement && inputActive) {
 		camera.getWorldDirection(tmpForward);
 		tmpForward.y = 0;
 		tmpForward.normalize();

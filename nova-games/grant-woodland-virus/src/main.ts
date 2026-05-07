@@ -12,8 +12,16 @@ import {
 	WebGLRenderer,
 } from "three";
 import { buildForest } from "./forest";
-import { attachPlayerInput, createPlayer, updatePlayer } from "./player";
+import {
+	attachPlayerInput,
+	createPlayer,
+	resetPlayer,
+	setInputActive,
+	updatePlayer,
+} from "./player";
 import { createUI } from "./ui";
+
+type GameState = "title" | "playing" | "win";
 
 const scene = new Scene();
 scene.fog = new FogExp2(0x050a08, 0.05);
@@ -56,22 +64,65 @@ camera.add(flashlight);
 camera.add(flashlight.target);
 
 const forest = buildForest(scene);
-
 const player = createPlayer();
 attachPlayerInput(renderer.domElement, player);
-
 const ui = createUI();
-ui.setStaminaVisible(true);
-ui.showTitle(() => {
+
+let state: GameState = "title";
+
+function enterTitle() {
+	state = "title";
+	setInputActive(false);
+	if (document.pointerLockElement) document.exitPointerLock();
+	ui.hideWin();
+	ui.setStaminaVisible(false);
+	ui.setResumeHintVisible(false);
+	ui.showTitle(() => {
+		enterPlaying();
+	});
+}
+
+function enterPlaying() {
+	state = "playing";
+	resetPlayer(player);
 	ui.hideTitle();
+	ui.setStaminaVisible(true);
+	ui.setResumeHintVisible(false);
+	setInputActive(true);
+	renderer.domElement.requestPointerLock();
+}
+
+function enterWin() {
+	state = "win";
+	setInputActive(false);
+	if (document.pointerLockElement) document.exitPointerLock();
+	ui.setStaminaVisible(false);
+	ui.setResumeHintVisible(false);
+	ui.showWin(() => {
+		enterTitle();
+	});
+}
+
+document.addEventListener("pointerlockchange", () => {
+	if (state !== "playing") return;
+	ui.setResumeHintVisible(document.pointerLockElement !== renderer.domElement);
 });
+
+enterTitle();
 
 const clock = new Clock();
 function animate() {
 	requestAnimationFrame(animate);
 	const dt = clock.getDelta();
 	updatePlayer(player, camera, dt, forest);
-	ui.setStamina(player.stamina, 100);
+	if (state === "playing") {
+		ui.setStamina(player.stamina, 100);
+		const dx = player.position.x - forest.flagPosition.x;
+		const dz = player.position.z - forest.flagPosition.z;
+		if (Math.hypot(dx, dz) < 1.5) {
+			enterWin();
+		}
+	}
 	renderer.render(scene, camera);
 }
 animate();
