@@ -1,3 +1,4 @@
+import { LEVELS } from "./levels";
 import type { GameState } from "./state";
 
 function setHearts(el: HTMLElement, filled: number, empty: number): void {
@@ -18,6 +19,12 @@ export function renderHud(state: GameState): void {
 	const empty = p.maxHealth - filled;
 	const healthEl = document.getElementById("hud-health");
 	if (healthEl) setHearts(healthEl, filled, empty);
+	const floorEl = document.getElementById("hud-floor");
+	if (floorEl) {
+		const floorIdx = Math.min(state.floor, LEVELS.length - 1);
+		const level = LEVELS[floorIdx];
+		floorEl.textContent = `Floor ${state.floor + 1} / ${LEVELS.length} — ${level.name}`;
+	}
 	const stamFillEl = document.getElementById("hud-stamina-fill");
 	if (stamFillEl) {
 		const pct = Math.max(0, Math.min(1, p.stamina / p.maxStamina)) * 100;

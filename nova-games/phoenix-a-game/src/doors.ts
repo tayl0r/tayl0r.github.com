@@ -1,6 +1,6 @@
 import { BoxGeometry, Mesh, MeshStandardMaterial } from "three";
 import type { Aabb } from "./collision";
-import { COLS, DOORWAY_WIDTH, HALLWAY_EDGES, roomCenter } from "./world";
+import { COLS, DOORWAY_WIDTH, type Edge, roomCenter } from "./world";
 
 const WALL_THICKNESS = 1;
 const DOOR_HEIGHT = 3;
@@ -22,8 +22,8 @@ interface DoorSpec {
 	horizontal: boolean;
 }
 
-function generateDoorSpecs(): DoorSpec[] {
-	return HALLWAY_EDGES.map(([a, b]) => {
+function generateDoorSpecs(edges: ReadonlyArray<Edge>): DoorSpec[] {
+	return edges.map(([a, b]) => {
 		const lo = Math.min(a, b);
 		const hi = Math.max(a, b);
 		const rA = Math.floor(lo / COLS);
@@ -43,8 +43,8 @@ function generateDoorSpecs(): DoorSpec[] {
 	});
 }
 
-export function createDoors(): Door[] {
-	return generateDoorSpecs().map(doorFromSpec);
+export function createDoors(edges: ReadonlyArray<Edge>): Door[] {
+	return generateDoorSpecs(edges).map(doorFromSpec);
 }
 
 function doorFromSpec(s: DoorSpec): Door {

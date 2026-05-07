@@ -20,6 +20,7 @@ export interface GameState {
 	player: PlayerState;
 	now: number;
 	phase: "playing" | "dead" | "won";
+	floor: number;
 }
 
 export function createInitialState(): GameState {
@@ -38,6 +39,7 @@ export function createInitialState(): GameState {
 		},
 		now: 0,
 		phase: "playing",
+		floor: 0,
 	};
 }
 
