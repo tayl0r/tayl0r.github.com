@@ -48,13 +48,6 @@ export function buildTrack(data: TrackData): Track {
 	ground
 		.poly(closedPath(data.centerline), true)
 		.stroke({ color: 0xffe680, width: 2, alpha: 0.55 });
-	// Shibuya crosswalk (a few white parallel stripes near waypoint 14)
-	const cw = data.centerline[14];
-	for (let i = -3; i <= 3; i++) {
-		ground
-			.rect(cw.x - 60 + i * 14, cw.y - 30, 8, 60)
-			.fill({ color: 0xffffff, alpha: 0.7 });
-	}
 	view.addChild(ground);
 
 	// Start/finish line (a perpendicular stripe)
