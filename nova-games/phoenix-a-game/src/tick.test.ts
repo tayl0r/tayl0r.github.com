@@ -3,11 +3,11 @@ import { consumeAttackStamina, createInitialState } from "./state";
 import { tickPlayer } from "./tick";
 
 describe("tickPlayer", () => {
-	it("regenerates stamina at 2 per second when not attacking", () => {
+	it("regenerates stamina at 1 per second when not attacking", () => {
 		const s = createInitialState();
 		s.player.stamina = 50;
 		tickPlayer(s, 5);
-		expect(s.player.stamina).toBeCloseTo(60, 5);
+		expect(s.player.stamina).toBeCloseTo(55, 5);
 	});
 	it("clamps stamina at maxStamina", () => {
 		const s = createInitialState();
@@ -29,7 +29,7 @@ describe("tickPlayer", () => {
 		consumeAttackStamina(s);
 		s.now = 1.5;
 		tickPlayer(s, 1);
-		expect(s.player.stamina).toBeCloseTo(51, 5);
+		expect(s.player.stamina).toBeCloseTo(50, 5);
 	});
 	it("does not tick the player when phase is not 'playing'", () => {
 		const s = createInitialState();

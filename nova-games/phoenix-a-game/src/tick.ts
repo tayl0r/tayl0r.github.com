@@ -1,7 +1,7 @@
 import type { Monster } from "./monsters";
 import { type GameState, STAMINA_REGEN_DELAY } from "./state";
 
-const STAMINA_REGEN_PER_SEC = 2;
+const STAMINA_REGEN_PER_SEC = 1;
 
 export function tickPlayer(state: GameState, dt: number): void {
 	if (state.phase !== "playing") {
