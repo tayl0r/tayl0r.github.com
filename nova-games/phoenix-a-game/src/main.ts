@@ -32,6 +32,7 @@ import {
 import { createDoors, type Door, openDoor } from "./doors";
 import { renderHud } from "./hud";
 import { createInput, wireInput } from "./input";
+import { LEVELS } from "./levels";
 import {
 	type Chest,
 	createChest,
@@ -64,7 +65,7 @@ import {
 	type WinSwitch,
 } from "./switches";
 import { applyContactDamage, tickPlayer } from "./tick";
-import { COLS, generateLevel1Grid, PITCH, ROWS } from "./world";
+import { COLS, generateGrid, PITCH, ROWS, type WorldGrid } from "./world";
 
 const scene = new Scene();
 const camera = new PerspectiveCamera(
@@ -106,14 +107,27 @@ scene.add(camera);
 camera.add(sword);
 camera.add(bow);
 
-const grid = generateLevel1Grid();
 const wallMaterial = new MeshStandardMaterial({ color: 0x666666 });
-for (const w of grid.walls) {
-	const width = w.maxX - w.minX;
-	const depth = w.maxZ - w.minZ;
-	const mesh = new Mesh(new BoxGeometry(width, 3, depth), wallMaterial);
-	mesh.position.set((w.minX + w.maxX) / 2, 1.5, (w.minZ + w.maxZ) / 2);
-	scene.add(mesh);
+let grid: WorldGrid = generateGrid(LEVELS[0].hallwayEdges);
+let wallMeshes: Mesh[] = [];
+
+function buildWalls(g: WorldGrid) {
+	for (const w of g.walls) {
+		const width = w.maxX - w.minX;
+		const depth = w.maxZ - w.minZ;
+		const mesh = new Mesh(new BoxGeometry(width, 3, depth), wallMaterial);
+		mesh.position.set((w.minX + w.maxX) / 2, 1.5, (w.minZ + w.maxZ) / 2);
+		scene.add(mesh);
+		wallMeshes.push(mesh);
+	}
+}
+
+function teardownWalls() {
+	for (const m of wallMeshes) {
+		scene.remove(m);
+		m.geometry.dispose();
+	}
+	wallMeshes = [];
 }
 
 scene.add(new AmbientLight(0xffffff, 0.5));
@@ -130,12 +144,9 @@ const swing = createSwing();
 let prevClick = false;
 let arrows: Arrow[] = [];
 
-const spawnRoom = grid.rooms[1];
-const bossRoom = grid.rooms[16];
-const MONSTER_GOBLIN_ROOMS = [4, 5, 7, 8, 10, 11, 13, 14];
-const MONSTER_OGRE_ROOMS = [6, 9, 12, 15];
-const SWITCH_ROOMS = [0, 2, 3, 6, 9, 12, 15, 17];
-const CHEST_ROOMS = [0, 2, 3, 5, 8, 11, 14, 17];
+let level = LEVELS[0];
+let spawnRoom = grid.rooms[level.spawn];
+let bossRoom = grid.rooms[level.boss];
 
 let monsters: Monster[] = [];
 let chests: Chest[] = [];
@@ -171,7 +182,7 @@ function spawnMonster(
 
 function spawnBoss() {
 	if (boss) return;
-	boss = createBoss(bossRoom.centerX, bossRoom.centerZ, 16);
+	boss = createBoss(bossRoom.centerX, bossRoom.centerZ, level.boss);
 	boss.mesh = createMonsterMesh(boss);
 	scene.add(boss.mesh);
 	monsters.push(boss);
@@ -197,23 +208,51 @@ function teardownDungeon() {
 }
 
 function buildDungeon() {
-	for (const ri of MONSTER_GOBLIN_ROOMS) spawnMonster(ri, createGoblin);
-	for (const ri of MONSTER_OGRE_ROOMS) spawnMonster(ri, createOgre);
-	for (const ri of CHEST_ROOMS) {
+	for (const ri of level.goblinRooms) spawnMonster(ri, createGoblin);
+	for (const ri of level.ogreRooms) spawnMonster(ri, createOgre);
+	for (const ri of level.chestRooms) {
 		const room = grid.rooms[ri];
 		const chest = createChest(room.centerX, room.centerZ);
 		chests.push(chest);
 		scene.add(chest.mesh);
 	}
-	doors = createDoors();
+	doors = createDoors(level.hallwayEdges);
 	for (const d of doors) scene.add(d.mesh);
-	for (const ri of SWITCH_ROOMS) {
+	for (const ri of level.switchRooms) {
 		const sw = createRoomSwitch(grid.rooms[ri], ri);
 		roomSwitches.push(sw);
 		scene.add(sw.mesh);
 	}
 	winSwitch = createWinSwitch(bossRoom.centerX, bossRoom.centerZ);
 	scene.add(winSwitch.mesh);
+}
+
+function loadLevel(floorIdx: number) {
+	teardownWalls();
+	level = LEVELS[floorIdx];
+	state.floor = floorIdx;
+	grid = generateGrid(level.hallwayEdges);
+	spawnRoom = grid.rooms[level.spawn];
+	bossRoom = grid.rooms[level.boss];
+	buildWalls(grid);
+	buildDungeon();
+	player.position.x = spawnRoom.centerX;
+	player.position.z = spawnRoom.centerZ;
+}
+
+function descendFloor() {
+	const next = state.floor + 1;
+	if (next >= LEVELS.length) {
+		state.phase = "won";
+		return;
+	}
+	teardownDungeon();
+	state.player.health = state.player.maxHealth;
+	state.player.stamina = state.player.maxStamina;
+	state.player.iframesUntil = 0;
+	state.player.hitFlashUntil = 0;
+	state.player.lastAttackAt = -Infinity;
+	loadLevel(next);
 }
 
 function resetPlayerStats() {
@@ -230,13 +269,12 @@ function resetPlayerStats() {
 
 function respawnPlayer() {
 	teardownDungeon();
-	buildDungeon();
 	resetPlayerStats();
-	player.position.x = spawnRoom.centerX;
-	player.position.z = spawnRoom.centerZ;
+	loadLevel(0);
 	state.phase = "playing";
 }
 
+buildWalls(grid);
 buildDungeon();
 player.position.x = spawnRoom.centerX;
 player.position.z = spawnRoom.centerZ;
@@ -332,7 +370,7 @@ function handleSwingTargets(
 			)
 		) {
 			activateWinSwitch(winSwitch);
-			state.phase = "won";
+			descendFloor();
 		}
 	}
 }
@@ -414,7 +452,7 @@ function handleArrowHit(a: Arrow) {
 	if (winSwitch.unlocked && !winSwitch.activated) {
 		if (arrowHitsCircleXZ(a, winSwitch.x, winSwitch.z, 0.6)) {
 			activateWinSwitch(winSwitch);
-			state.phase = "won";
+			descendFloor();
 			a.alive = false;
 			return;
 		}

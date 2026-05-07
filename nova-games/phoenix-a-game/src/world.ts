@@ -12,6 +12,8 @@ export interface WorldGrid {
 	walls: Aabb[];
 }
 
+export type Edge = readonly [number, number];
+
 export const ROOM_SIZE = 14;
 export const HALL_LENGTH = 8;
 export const PITCH = ROOM_SIZE + HALL_LENGTH;
@@ -19,31 +21,6 @@ export const DOORWAY_WIDTH = 4;
 export const COLS = 3;
 export const ROWS = 6;
 const WALL_THICKNESS = 1;
-
-export const HALLWAY_EDGES: ReadonlyArray<readonly [number, number]> = [
-	[0, 1],
-	[1, 2],
-	[1, 4],
-	[3, 6],
-	[4, 5],
-	[5, 8],
-	[6, 7],
-	[6, 9],
-	[7, 10],
-	[8, 11],
-	[9, 12],
-	[10, 13],
-	[11, 14],
-	[12, 15],
-	[13, 14],
-	[13, 16],
-	[14, 17],
-	[15, 16],
-	[16, 17],
-];
-
-const edgeKey = (a: number, b: number) => (a < b ? `${a}-${b}` : `${b}-${a}`);
-const EDGE_SET = new Set(HALLWAY_EDGES.map(([a, b]) => edgeKey(a, b)));
 
 export function roomIndex(row: number, col: number): number {
 	return row * COLS + col;
@@ -56,11 +33,21 @@ export function roomCenter(row: number, col: number): { x: number; z: number } {
 	};
 }
 
-export function hasHallway(a: number, b: number): boolean {
-	return EDGE_SET.has(edgeKey(a, b));
+const edgeKey = (a: number, b: number) => (a < b ? `${a}-${b}` : `${b}-${a}`);
+
+export function buildEdgeSet(edges: ReadonlyArray<Edge>): Set<string> {
+	return new Set(edges.map(([a, b]) => edgeKey(a, b)));
 }
 
-export function generateLevel1Grid(): WorldGrid {
+export function hasHallway(
+	edgeSet: ReadonlySet<string>,
+	a: number,
+	b: number,
+): boolean {
+	return edgeSet.has(edgeKey(a, b));
+}
+
+export function generateGrid(edges: ReadonlyArray<Edge>): WorldGrid {
 	const rooms: Room[] = [];
 	for (let row = 0; row < ROWS; row++) {
 		for (let col = 0; col < COLS; col++) {
@@ -69,6 +56,7 @@ export function generateLevel1Grid(): WorldGrid {
 		}
 	}
 
+	const edgeSet = buildEdgeSet(edges);
 	const walls: Aabb[] = [];
 	const half = ROOM_SIZE / 2;
 	const halfDoor = DOORWAY_WIDTH / 2;
@@ -82,12 +70,14 @@ export function generateLevel1Grid(): WorldGrid {
 			const right = x + half;
 			const top = z - half;
 			const bottom = z + half;
-			const openNorth = row > 0 && hasHallway(idx, roomIndex(row - 1, col));
+			const openNorth =
+				row > 0 && hasHallway(edgeSet, idx, roomIndex(row - 1, col));
 			const openSouth =
-				row < ROWS - 1 && hasHallway(idx, roomIndex(row + 1, col));
-			const openWest = col > 0 && hasHallway(idx, roomIndex(row, col - 1));
+				row < ROWS - 1 && hasHallway(edgeSet, idx, roomIndex(row + 1, col));
+			const openWest =
+				col > 0 && hasHallway(edgeSet, idx, roomIndex(row, col - 1));
 			const openEast =
-				col < COLS - 1 && hasHallway(idx, roomIndex(row, col + 1));
+				col < COLS - 1 && hasHallway(edgeSet, idx, roomIndex(row, col + 1));
 
 			if (openNorth) {
 				walls.push({
@@ -169,7 +159,7 @@ export function generateLevel1Grid(): WorldGrid {
 		}
 	}
 
-	for (const [a, b] of HALLWAY_EDGES) {
+	for (const [a, b] of edges) {
 		const lo = Math.min(a, b);
 		const hi = Math.max(a, b);
 		const rA = Math.floor(lo / COLS);
