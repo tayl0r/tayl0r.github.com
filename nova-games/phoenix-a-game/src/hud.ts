@@ -1,15 +1,28 @@
 import type { GameState } from "./state";
 
+function setHearts(el: HTMLElement, filled: number, empty: number): void {
+	while (el.firstChild) el.removeChild(el.firstChild);
+	const full = document.createElement("span");
+	full.style.color = "#ff3344";
+	full.textContent = "♥".repeat(filled);
+	const hollow = document.createElement("span");
+	hollow.style.color = "#ffffff";
+	hollow.textContent = "♡".repeat(empty);
+	el.appendChild(full);
+	el.appendChild(hollow);
+}
+
 export function renderHud(state: GameState): void {
 	const p = state.player;
-	const heartCount = Math.max(0, Math.ceil(p.health));
+	const filled = Math.max(0, Math.min(p.maxHealth, Math.ceil(p.health)));
+	const empty = p.maxHealth - filled;
 	const healthEl = document.getElementById("hud-health");
-	if (healthEl) healthEl.textContent = `HP ${"♥".repeat(heartCount)}`;
-	const stamEl = document.getElementById("hud-stamina");
-	if (stamEl)
-		stamEl.textContent = `STAM ${Math.round(p.stamina)}/${p.maxStamina}`;
-	const hungEl = document.getElementById("hud-hunger");
-	if (hungEl) hungEl.textContent = "🍗".repeat(Math.ceil(p.hunger));
+	if (healthEl) setHearts(healthEl, filled, empty);
+	const stamFillEl = document.getElementById("hud-stamina-fill");
+	if (stamFillEl) {
+		const pct = Math.max(0, Math.min(1, p.stamina / p.maxStamina)) * 100;
+		stamFillEl.style.width = `${pct}%`;
+	}
 	const hud = document.getElementById("hud");
 	if (hud) {
 		const flashing = state.now < p.hitFlashUntil;

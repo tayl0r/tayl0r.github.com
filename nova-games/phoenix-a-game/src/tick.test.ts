@@ -1,37 +1,42 @@
 import { describe, expect, it } from "vitest";
-import { createInitialState } from "./state";
+import { consumeAttackStamina, createInitialState } from "./state";
 import { tickPlayer } from "./tick";
 
 describe("tickPlayer", () => {
-	it("drains half a hunger per 60s of walking", () => {
+	it("regenerates stamina at 2 per second when not attacking", () => {
 		const s = createInitialState();
-		tickPlayer(s, 60, true, false);
-		expect(s.player.hunger).toBeCloseTo(9.5, 5);
+		s.player.stamina = 50;
+		tickPlayer(s, 5);
+		expect(s.player.stamina).toBeCloseTo(60, 5);
 	});
-	it("drains one hunger per 30s of sprinting", () => {
+	it("clamps stamina at maxStamina", () => {
 		const s = createInitialState();
-		tickPlayer(s, 30, true, true);
-		expect(s.player.hunger).toBeCloseTo(9, 5);
+		s.player.stamina = 99;
+		tickPlayer(s, 10);
+		expect(s.player.stamina).toBe(100);
 	});
-	it("drains stamina while sprinting and regenerates otherwise", () => {
+	it("pauses regen for 1 second after an attack", () => {
 		const s = createInitialState();
-		tickPlayer(s, 2, true, true);
-		expect(s.player.stamina).toBeLessThan(20);
-		tickPlayer(s, 5, false, false);
-		expect(s.player.stamina).toBe(20);
+		s.player.stamina = 50;
+		consumeAttackStamina(s);
+		tickPlayer(s, 0.5);
+		expect(s.player.stamina).toBe(49);
 	});
-	it("ticks health down when hunger reaches 0", () => {
+	it("resumes regen after the 1-second pause has elapsed", () => {
 		const s = createInitialState();
-		s.player.hunger = 0;
-		tickPlayer(s, 10, true, false);
-		expect(s.player.health).toBeCloseTo(2, 5);
+		s.player.stamina = 50;
+		s.now = 0;
+		consumeAttackStamina(s);
+		s.now = 1.5;
+		tickPlayer(s, 1);
+		expect(s.player.stamina).toBeCloseTo(51, 5);
 	});
 	it("does not tick the player when phase is not 'playing'", () => {
 		const s = createInitialState();
+		s.player.stamina = 50;
 		s.phase = "dead";
-		tickPlayer(s, 60, true, true);
-		expect(s.player.hunger).toBe(10);
-		expect(s.player.stamina).toBe(20);
+		tickPlayer(s, 60);
+		expect(s.player.stamina).toBe(50);
 		expect(s.player.health).toBe(3);
 		expect(s.now).toBe(60);
 	});

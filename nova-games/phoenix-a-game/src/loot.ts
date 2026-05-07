@@ -93,9 +93,9 @@ export function pickupDrop(
 	chest.dropPickedUp = true;
 	chest.pickedUpAt = now;
 	if (chest.drop === "food") {
-		state.player.hunger = Math.min(
-			state.player.maxHunger,
-			state.player.hunger + 3,
+		state.player.health = Math.min(
+			state.player.maxHealth,
+			state.player.health + 1,
 		);
 	} else if (chest.drop === "bow") {
 		state.player.bowDamage += chest.boss ? 2 : 1;
