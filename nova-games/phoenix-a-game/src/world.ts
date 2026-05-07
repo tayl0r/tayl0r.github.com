@@ -47,6 +47,16 @@ export function hasHallway(
 	return edgeSet.has(edgeKey(a, b));
 }
 
+export function roomAt(x: number, z: number): number | null {
+	const col = Math.round(x / PITCH + (COLS - 1) / 2);
+	const row = Math.round(z / PITCH + (ROWS - 1) / 2);
+	if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return null;
+	const center = roomCenter(row, col);
+	if (Math.abs(x - center.x) > ROOM_SIZE / 2) return null;
+	if (Math.abs(z - center.z) > ROOM_SIZE / 2) return null;
+	return roomIndex(row, col);
+}
+
 export function generateGrid(edges: ReadonlyArray<Edge>): WorldGrid {
 	const rooms: Room[] = [];
 	for (let row = 0; row < ROWS; row++) {

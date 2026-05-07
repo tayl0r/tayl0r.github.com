@@ -40,6 +40,7 @@ import {
 	pickupDrop,
 	updateChestDrop,
 } from "./loot";
+import { renderMinimap } from "./minimap";
 import {
 	createBoss,
 	createGoblin,
@@ -65,7 +66,14 @@ import {
 	type WinSwitch,
 } from "./switches";
 import { applyContactDamage, tickPlayer } from "./tick";
-import { COLS, generateGrid, PITCH, ROWS, type WorldGrid } from "./world";
+import {
+	COLS,
+	generateGrid,
+	PITCH,
+	ROWS,
+	roomAt,
+	type WorldGrid,
+} from "./world";
 
 const scene = new Scene();
 const camera = new PerspectiveCamera(
@@ -147,6 +155,10 @@ let arrows: Arrow[] = [];
 let level = LEVELS[0];
 let spawnRoom = grid.rooms[level.spawn];
 let bossRoom = grid.rooms[level.boss];
+let visitedRooms = new Set<number>([level.spawn]);
+const minimapCanvas = document.getElementById(
+	"hud-minimap",
+) as HTMLCanvasElement | null;
 
 let monsters: Monster[] = [];
 let chests: Chest[] = [];
@@ -234,6 +246,7 @@ function loadLevel(floorIdx: number) {
 	grid = generateGrid(level.hallwayEdges);
 	spawnRoom = grid.rooms[level.spawn];
 	bossRoom = grid.rooms[level.boss];
+	visitedRooms = new Set<number>([level.spawn]);
 	buildWalls(grid);
 	buildDungeon();
 	player.position.x = spawnRoom.centerX;
@@ -598,7 +611,12 @@ function animate() {
 			state.phase = "dead";
 		}
 	}
+	const currentRoom = roomAt(player.position.x, player.position.z);
+	if (currentRoom !== null) visitedRooms.add(currentRoom);
 	renderHud(state);
+	if (minimapCanvas) {
+		renderMinimap(minimapCanvas, level, visitedRooms, currentRoom);
+	}
 	renderer.render(scene, camera);
 }
 animate();

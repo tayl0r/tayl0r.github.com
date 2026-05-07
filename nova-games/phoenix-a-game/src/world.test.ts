@@ -7,7 +7,9 @@ import {
 	hasHallway,
 	ROOM_SIZE,
 	ROWS,
+	roomAt,
 	roomCenter,
+	roomIndex,
 } from "./world";
 
 describe("generateGrid (level 1)", () => {
@@ -47,6 +49,27 @@ describe("generateGrid (level 1)", () => {
 				(w) => x >= w.minX && x <= w.maxX && z >= w.minZ && z <= w.maxZ,
 			);
 		expect(at(r1.x, wallZ)).toBe(false);
+	});
+});
+
+describe("roomAt", () => {
+	it("returns the room index when standing in the room center", () => {
+		for (let row = 0; row < ROWS; row++) {
+			for (let col = 0; col < COLS; col++) {
+				const c = roomCenter(row, col);
+				expect(roomAt(c.x, c.z)).toBe(roomIndex(row, col));
+			}
+		}
+	});
+	it("returns null when standing in the hallway between two rooms", () => {
+		const a = roomCenter(0, 0);
+		const b = roomCenter(0, 1);
+		const midX = (a.x + b.x) / 2;
+		expect(roomAt(midX, a.z)).toBeNull();
+	});
+	it("returns null when standing outside the grid", () => {
+		expect(roomAt(1000, 0)).toBeNull();
+		expect(roomAt(0, 1000)).toBeNull();
 	});
 });
 
