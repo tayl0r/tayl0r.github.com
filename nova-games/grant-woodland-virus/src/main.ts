@@ -16,6 +16,7 @@ import { createMonster, updateMonster } from "./monster";
 import {
 	attachPlayerInput,
 	createPlayer,
+	HIDE_RADIUS,
 	resetPlayer,
 	setHideTarget,
 	setInputActive,
@@ -122,7 +123,7 @@ function animate() {
 	if (state === "playing") {
 		if (!player.hidden) {
 			let nearest: LogTransform | null = null;
-			let nearestDist = 2;
+			let nearestDist = HIDE_RADIUS;
 			for (const log of forest.logs) {
 				const ldx = log.x - player.position.x;
 				const ldz = log.z - player.position.z;

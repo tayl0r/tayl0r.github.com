@@ -10,7 +10,7 @@ const PLAYER_RADIUS = 0.3;
 const STAMINA_MAX = 100;
 const STAMINA_DRAIN = 25;
 const STAMINA_REGEN = 15;
-const _HIDE_RADIUS = 2;
+export const HIDE_RADIUS = 2;
 const HIDE_EYE_HEIGHT = 0.8;
 
 export type PlayerState = {
