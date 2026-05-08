@@ -11,6 +11,7 @@ import {
 	SpotLight,
 	WebGLRenderer,
 } from "three";
+import * as audio from "./audio";
 import { buildForest, type LogTransform } from "./forest";
 import { createMonster, updateMonster } from "./monster";
 import {
@@ -80,6 +81,7 @@ function enterTitle() {
 	state = "title";
 	setInputActive(false);
 	if (document.pointerLockElement) document.exitPointerLock();
+	audio.stopAll();
 	ui.hideWin();
 	ui.setStaminaVisible(false);
 	ui.setResumeHintVisible(false);
@@ -97,12 +99,14 @@ function enterPlaying() {
 	ui.setResumeHintVisible(false);
 	setInputActive(true);
 	renderer.domElement.requestPointerLock();
+	audio.startBreathing();
 }
 
 function enterWin() {
 	state = "win";
 	setInputActive(false);
 	if (document.pointerLockElement) document.exitPointerLock();
+	audio.stopAll();
 	ui.setStaminaVisible(false);
 	ui.setResumeHintVisible(false);
 	ui.setHidePromptVisible(false, "hide");
@@ -144,6 +148,10 @@ function animate() {
 			ui.setHidePromptVisible(getHideTarget() !== null, "hide");
 		}
 		updateMonster(monster, player, dt);
+		const mdx = monster.position.x - player.position.x;
+		const mdz = monster.position.z - player.position.z;
+		const monsterDist = Math.hypot(mdx, mdz);
+		audio.setBreathingGain(Math.max(0, Math.min(1, 1 - monsterDist / 40)));
 		ui.setStamina(player.stamina, 100);
 		const dx = player.position.x - forest.flagPosition.x;
 		const dz = player.position.z - forest.flagPosition.z;

@@ -212,6 +212,8 @@ export function updateMonster(
 		1 + BREATH_AMPLITUDE * Math.sin((elapsed * 2 * Math.PI) / BREATH_PERIOD);
 	monster.chest.scale.y = breath;
 
+	if (player.hidden) return;
+
 	const dx = player.position.x - monster.position.x;
 	const dz = player.position.z - monster.position.z;
 	const targetYaw = Math.atan2(-dx, -dz);
