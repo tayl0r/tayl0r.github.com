@@ -1,5 +1,5 @@
 import { type PerspectiveCamera, Vector3 } from "three";
-import type { TreeCollider } from "./forest";
+import type { LogTransform, TreeCollider } from "./forest";
 
 const PITCH_LIMIT = (85 / 180) * Math.PI;
 const MOUSE_SENSITIVITY = 0.002;
@@ -10,12 +10,15 @@ const PLAYER_RADIUS = 0.3;
 const STAMINA_MAX = 100;
 const STAMINA_DRAIN = 25;
 const STAMINA_REGEN = 15;
+const _HIDE_RADIUS = 2;
+const HIDE_EYE_HEIGHT = 0.8;
 
 export type PlayerState = {
 	position: Vector3;
 	yaw: number;
 	pitch: number;
 	stamina: number;
+	hidden: boolean;
 };
 
 type Keys = { w: boolean; a: boolean; s: boolean; d: boolean; q: boolean };
@@ -34,12 +37,24 @@ export function setInputActive(active: boolean) {
 	}
 }
 
+let activeLog: LogTransform | null = null;
+
+export function setHideTarget(player: PlayerState, log: LogTransform | null) {
+	if (player.hidden) return;
+	activeLog = log;
+}
+
+export function getHideTarget(): LogTransform | null {
+	return activeLog;
+}
+
 export function createPlayer(): PlayerState {
 	return {
 		position: new Vector3(0, EYE_HEIGHT, 0),
 		yaw: 0,
 		pitch: 0,
 		stamina: STAMINA_MAX,
+		hidden: false,
 	};
 }
 
@@ -48,6 +63,7 @@ export function resetPlayer(player: PlayerState) {
 	player.yaw = 0;
 	player.pitch = 0;
 	player.stamina = STAMINA_MAX;
+	player.hidden = false;
 }
 
 export function attachPlayerInput(
@@ -83,6 +99,20 @@ export function attachPlayerInput(
 		if (!inputActive) return;
 		if (document.pointerLockElement !== canvas) {
 			canvas.requestPointerLock();
+		}
+	});
+
+	window.addEventListener("keydown", (e) => {
+		if (e.repeat) return;
+		if (!inputActive) return;
+		if (e.key.toLowerCase() !== "e") return;
+
+		if (player.hidden) {
+			player.position.y = EYE_HEIGHT;
+			player.hidden = false;
+		} else if (activeLog) {
+			player.position.set(activeLog.x, HIDE_EYE_HEIGHT, activeLog.z);
+			player.hidden = true;
 		}
 	});
 }
@@ -131,7 +161,7 @@ export function updatePlayer(
 	camera.rotation.order = "YXZ";
 	camera.rotation.set(player.pitch, player.yaw, 0);
 
-	if (document.pointerLockElement && inputActive) {
+	if (document.pointerLockElement && inputActive && !player.hidden) {
 		camera.getWorldDirection(tmpForward);
 		tmpForward.y = 0;
 		tmpForward.normalize();

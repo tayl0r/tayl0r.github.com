@@ -11,12 +11,13 @@ import {
 	SpotLight,
 	WebGLRenderer,
 } from "three";
-import { buildForest } from "./forest";
+import { buildForest, type LogTransform } from "./forest";
 import { createMonster, updateMonster } from "./monster";
 import {
 	attachPlayerInput,
 	createPlayer,
 	resetPlayer,
+	setHideTarget,
 	setInputActive,
 	updatePlayer,
 } from "./player";
@@ -119,6 +120,20 @@ function animate() {
 	const dt = clock.getDelta();
 	updatePlayer(player, camera, dt, forest);
 	if (state === "playing") {
+		if (!player.hidden) {
+			let nearest: LogTransform | null = null;
+			let nearestDist = 2;
+			for (const log of forest.logs) {
+				const ldx = log.x - player.position.x;
+				const ldz = log.z - player.position.z;
+				const d = Math.hypot(ldx, ldz);
+				if (d < nearestDist) {
+					nearest = log;
+					nearestDist = d;
+				}
+			}
+			setHideTarget(player, nearest);
+		}
 		updateMonster(monster, player, dt);
 		ui.setStamina(player.stamina, 100);
 		const dx = player.position.x - forest.flagPosition.x;
