@@ -12,6 +12,7 @@ import {
 	WebGLRenderer,
 } from "three";
 import { buildForest } from "./forest";
+import { createMonster } from "./monster";
 import {
 	attachPlayerInput,
 	createPlayer,
@@ -67,6 +68,8 @@ const forest = buildForest(scene);
 const player = createPlayer();
 attachPlayerInput(renderer.domElement, player);
 const ui = createUI();
+const monster = createMonster();
+scene.add(monster.root);
 
 let state: GameState = "title";
 
