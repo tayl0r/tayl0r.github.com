@@ -11,17 +11,23 @@ import {
 	SpotLight,
 	WebGLRenderer,
 } from "three";
-import { buildForest } from "./forest";
+import * as audio from "./audio";
+import { buildForest, type LogTransform } from "./forest";
+import { createMonster, updateMonster } from "./monster";
 import {
 	attachPlayerInput,
 	createPlayer,
+	getHideTarget,
+	HIDE_RADIUS,
 	resetPlayer,
+	STAMINA_MAX,
+	setHideTarget,
 	setInputActive,
 	updatePlayer,
 } from "./player";
 import { createUI } from "./ui";
 
-type GameState = "title" | "playing" | "win";
+type GameState = "title" | "playing" | "win" | "lose";
 
 const scene = new Scene();
 scene.fog = new FogExp2(0x050a08, 0.05);
@@ -67,6 +73,8 @@ const forest = buildForest(scene);
 const player = createPlayer();
 attachPlayerInput(renderer.domElement, player);
 const ui = createUI();
+const monster = createMonster();
+scene.add(monster.root);
 
 let state: GameState = "title";
 
@@ -74,9 +82,12 @@ function enterTitle() {
 	state = "title";
 	setInputActive(false);
 	if (document.pointerLockElement) document.exitPointerLock();
+	audio.stopAll();
 	ui.hideWin();
+	ui.hideLose();
 	ui.setStaminaVisible(false);
 	ui.setResumeHintVisible(false);
+	ui.setHidePromptVisible(false, "hide");
 	ui.showTitle(() => {
 		enterPlaying();
 	});
@@ -86,21 +97,52 @@ function enterPlaying() {
 	state = "playing";
 	resetPlayer(player);
 	ui.hideTitle();
+	ui.hideLose();
 	ui.setStaminaVisible(true);
 	ui.setResumeHintVisible(false);
 	setInputActive(true);
 	renderer.domElement.requestPointerLock();
+	audio.startBreathing();
 }
 
 function enterWin() {
 	state = "win";
 	setInputActive(false);
 	if (document.pointerLockElement) document.exitPointerLock();
+	audio.stopAll();
+	ui.hideLose();
 	ui.setStaminaVisible(false);
 	ui.setResumeHintVisible(false);
+	ui.setHidePromptVisible(false, "hide");
 	ui.showWin(() => {
 		enterTitle();
 	});
+}
+
+function enterJumpscare() {
+	state = "lose";
+	setInputActive(false);
+	if (document.pointerLockElement) document.exitPointerLock();
+	ui.setStaminaVisible(false);
+	ui.setHidePromptVisible(false, "hide");
+	ui.setResumeHintVisible(false);
+
+	const jdx = monster.position.x - player.position.x;
+	const jdz = monster.position.z - player.position.z;
+	player.yaw = Math.atan2(-jdx, -jdz);
+	player.pitch = 0;
+
+	audio.stopAll();
+	audio.playScream();
+	ui.showJumpscare();
+
+	window.setTimeout(() => {
+		ui.hideJumpscare();
+		ui.showLose(
+			() => enterPlaying(),
+			() => enterTitle(),
+		);
+	}, 1500);
 }
 
 document.addEventListener("pointerlockchange", () => {
@@ -116,7 +158,34 @@ function animate() {
 	const dt = clock.getDelta();
 	updatePlayer(player, camera, dt, forest);
 	if (state === "playing") {
-		ui.setStamina(player.stamina, 100);
+		if (!player.hidden) {
+			let nearest: LogTransform | null = null;
+			let nearestDist = HIDE_RADIUS;
+			for (const log of forest.logs) {
+				const ldx = log.x - player.position.x;
+				const ldz = log.z - player.position.z;
+				const d = Math.hypot(ldx, ldz);
+				if (d < nearestDist) {
+					nearest = log;
+					nearestDist = d;
+				}
+			}
+			setHideTarget(player, nearest);
+		}
+		if (player.hidden) {
+			ui.setHidePromptVisible(true, "exit");
+		} else {
+			ui.setHidePromptVisible(getHideTarget() !== null, "hide");
+		}
+		updateMonster(monster, player, dt);
+		const mdx = monster.position.x - player.position.x;
+		const mdz = monster.position.z - player.position.z;
+		const monsterDist = Math.hypot(mdx, mdz);
+		audio.setBreathingGain(Math.max(0, Math.min(1, 1 - monsterDist / 40)));
+		if (!player.hidden && monsterDist < 1.2) {
+			enterJumpscare();
+		}
+		ui.setStamina(player.stamina, STAMINA_MAX);
 		const dx = player.position.x - forest.flagPosition.x;
 		const dz = player.position.z - forest.flagPosition.z;
 		if (Math.hypot(dx, dz) < 1.5) {
