@@ -105,6 +105,72 @@ const HIDE_PROMPT_STYLE = `
 	user-select: none;
 `;
 
+const JUMPSCARE_BG_STYLE = `
+	position: fixed;
+	inset: 0;
+	display: none;
+	align-items: center;
+	justify-content: center;
+	background: rgba(0, 0, 0, 0.92);
+	pointer-events: none;
+	z-index: 100;
+`;
+
+const JUMPSCARE_FLASH_STYLE = `
+	position: absolute;
+	inset: 0;
+	background: rgba(180, 0, 0, 0);
+	transition: background 0.15s linear;
+	pointer-events: none;
+`;
+
+const SKULL_STYLE = `
+	position: relative;
+	width: 380px;
+	height: 480px;
+`;
+
+const SKULL_DOME_STYLE = `
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 380px;
+	height: 380px;
+	background: #f0ebd8;
+	border-radius: 50% 50% 45% 45%;
+	box-shadow: 0 0 60px rgba(255, 240, 220, 0.4);
+`;
+
+const SKULL_SOCKET_STYLE = `
+	position: absolute;
+	width: 90px;
+	height: 110px;
+	background: #050505;
+	border-radius: 50%;
+	top: 130px;
+`;
+
+const SKULL_GREEN_STYLE = `
+	position: absolute;
+	width: 26px;
+	height: 26px;
+	background: #00ff44;
+	border-radius: 50%;
+	box-shadow: 0 0 30px #00ff44, 0 0 60px #00ff44;
+	top: 175px;
+	left: 110px;
+`;
+
+const SKULL_JAW_STYLE = `
+	position: absolute;
+	left: 80px;
+	top: 320px;
+	width: 220px;
+	height: 130px;
+	background: #f0ebd8;
+	clip-path: polygon(10% 0%, 90% 0%, 100% 100%, 0% 100%);
+`;
+
 export type UI = {
 	setStamina: (value: number, max: number) => void;
 	setStaminaVisible: (visible: boolean) => void;
@@ -114,6 +180,10 @@ export type UI = {
 	hideTitle: () => void;
 	showWin: (onPlayAgain: () => void) => void;
 	hideWin: () => void;
+	showJumpscare: () => void;
+	hideJumpscare: () => void;
+	showLose: (onNewGame: () => void, onTitle: () => void) => void;
+	hideLose: () => void;
 };
 
 function makeOverlay(bgStyle: string): HTMLDivElement {
@@ -175,14 +245,72 @@ export function createUI(): UI {
 	hidePrompt.setAttribute("style", HIDE_PROMPT_STYLE);
 	document.body.appendChild(hidePrompt);
 
+	// Jumpscare overlay (CSS skull + red flash)
+	const jumpscare = document.createElement("div");
+	jumpscare.setAttribute("style", JUMPSCARE_BG_STYLE);
+
+	const skull = document.createElement("div");
+	skull.setAttribute("style", SKULL_STYLE);
+
+	const skullDome = document.createElement("div");
+	skullDome.setAttribute("style", SKULL_DOME_STYLE);
+	skull.appendChild(skullDome);
+
+	const socketL = document.createElement("div");
+	socketL.setAttribute("style", `${SKULL_SOCKET_STYLE} left: 100px;`);
+	skull.appendChild(socketL);
+
+	const socketR = document.createElement("div");
+	socketR.setAttribute("style", `${SKULL_SOCKET_STYLE} right: 100px;`);
+	skull.appendChild(socketR);
+
+	const greenEye = document.createElement("div");
+	greenEye.setAttribute("style", SKULL_GREEN_STYLE);
+	skull.appendChild(greenEye);
+
+	const jaw = document.createElement("div");
+	jaw.setAttribute("style", SKULL_JAW_STYLE);
+	skull.appendChild(jaw);
+
+	jumpscare.appendChild(skull);
+
+	const flash = document.createElement("div");
+	flash.setAttribute("style", JUMPSCARE_FLASH_STYLE);
+	jumpscare.appendChild(flash);
+
+	document.body.appendChild(jumpscare);
+
+	// LOSE overlay
+	const lose = makeOverlay(WIN_BG);
+	const loseHeading = document.createElement("h1");
+	loseHeading.textContent = "You Died";
+	loseHeading.setAttribute("style", TITLE_TEXT_STYLE);
+	lose.appendChild(loseHeading);
+	const loseRow = document.createElement("div");
+	loseRow.setAttribute("style", "display: flex; gap: 20px;");
+	const newGameButton = makeButton("New Game");
+	const titleButton = makeButton("Title Screen");
+	loseRow.appendChild(newGameButton);
+	loseRow.appendChild(titleButton);
+	lose.appendChild(loseRow);
+	document.body.appendChild(lose);
+
 	let startHandler: (() => void) | null = null;
 	let playAgainHandler: (() => void) | null = null;
+	let newGameHandler: (() => void) | null = null;
+	let titleHandler: (() => void) | null = null;
 
 	startButton.addEventListener("click", () => {
 		startHandler?.();
 	});
 	playAgainButton.addEventListener("click", () => {
 		playAgainHandler?.();
+	});
+	newGameButton.addEventListener("click", () => {
+		newGameHandler?.();
+	});
+	titleButton.addEventListener("click", () => {
+		titleHandler?.();
 	});
 
 	return {
@@ -220,6 +348,25 @@ export function createUI(): UI {
 		},
 		hideWin() {
 			win.style.display = "none";
+		},
+		showJumpscare() {
+			jumpscare.style.display = "flex";
+			flash.style.background = "rgba(180, 0, 0, 0.6)";
+			window.setTimeout(() => {
+				flash.style.background = "rgba(180, 0, 0, 0)";
+			}, 150);
+		},
+		hideJumpscare() {
+			jumpscare.style.display = "none";
+			flash.style.background = "rgba(180, 0, 0, 0)";
+		},
+		showLose(onNewGame, onTitle) {
+			newGameHandler = onNewGame;
+			titleHandler = onTitle;
+			lose.style.display = "flex";
+		},
+		hideLose() {
+			lose.style.display = "none";
 		},
 	};
 }

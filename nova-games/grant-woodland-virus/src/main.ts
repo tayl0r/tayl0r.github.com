@@ -26,7 +26,7 @@ import {
 } from "./player";
 import { createUI } from "./ui";
 
-type GameState = "title" | "playing" | "win";
+type GameState = "title" | "playing" | "win" | "lose";
 
 const scene = new Scene();
 scene.fog = new FogExp2(0x050a08, 0.05);
@@ -83,6 +83,7 @@ function enterTitle() {
 	if (document.pointerLockElement) document.exitPointerLock();
 	audio.stopAll();
 	ui.hideWin();
+	ui.hideLose();
 	ui.setStaminaVisible(false);
 	ui.setResumeHintVisible(false);
 	ui.setHidePromptVisible(false, "hide");
@@ -95,6 +96,7 @@ function enterPlaying() {
 	state = "playing";
 	resetPlayer(player);
 	ui.hideTitle();
+	ui.hideLose();
 	ui.setStaminaVisible(true);
 	ui.setResumeHintVisible(false);
 	setInputActive(true);
@@ -107,12 +109,39 @@ function enterWin() {
 	setInputActive(false);
 	if (document.pointerLockElement) document.exitPointerLock();
 	audio.stopAll();
+	ui.hideLose();
 	ui.setStaminaVisible(false);
 	ui.setResumeHintVisible(false);
 	ui.setHidePromptVisible(false, "hide");
 	ui.showWin(() => {
 		enterTitle();
 	});
+}
+
+function enterJumpscare() {
+	state = "lose";
+	setInputActive(false);
+	if (document.pointerLockElement) document.exitPointerLock();
+	ui.setStaminaVisible(false);
+	ui.setHidePromptVisible(false, "hide");
+	ui.setResumeHintVisible(false);
+
+	const jdx = monster.position.x - player.position.x;
+	const jdz = monster.position.z - player.position.z;
+	player.yaw = Math.atan2(-jdx, -jdz);
+	player.pitch = 0;
+
+	audio.stopAll();
+	audio.playScream();
+	ui.showJumpscare();
+
+	window.setTimeout(() => {
+		ui.hideJumpscare();
+		ui.showLose(
+			() => enterPlaying(),
+			() => enterTitle(),
+		);
+	}, 1500);
 }
 
 document.addEventListener("pointerlockchange", () => {
@@ -152,6 +181,9 @@ function animate() {
 		const mdz = monster.position.z - player.position.z;
 		const monsterDist = Math.hypot(mdx, mdz);
 		audio.setBreathingGain(Math.max(0, Math.min(1, 1 - monsterDist / 40)));
+		if (!player.hidden && monsterDist < 1.2) {
+			enterJumpscare();
+		}
 		ui.setStamina(player.stamina, 100);
 		const dx = player.position.x - forest.flagPosition.x;
 		const dz = player.position.z - forest.flagPosition.z;
