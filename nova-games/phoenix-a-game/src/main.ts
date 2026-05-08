@@ -3,8 +3,10 @@ import {
 	BoxGeometry,
 	Clock,
 	DirectionalLight,
+	type Material,
 	Mesh,
 	MeshStandardMaterial,
+	type Object3D,
 	PerspectiveCamera,
 	PlaneGeometry,
 	Scene,
@@ -42,11 +44,10 @@ import {
 } from "./loot";
 import { renderMinimap } from "./minimap";
 import {
-	createBoss,
-	createGoblin,
-	createMonsterMesh,
-	createOgre,
+	createMonster,
+	createMonsterModel,
 	type Monster,
+	type MonsterKind,
 	moveMonsterTowards,
 } from "./monsters";
 import {
@@ -109,7 +110,10 @@ const floor = new Mesh(
 floor.rotation.x = -Math.PI / 2;
 scene.add(floor);
 
-const { root: player, sword, bow } = createPlayerMesh();
+const playerMesh = createPlayerMesh();
+const player = playerMesh.root;
+const sword = playerMesh.sword;
+const bow = playerMesh.bow;
 scene.add(player);
 scene.add(camera);
 camera.add(sword);
@@ -168,48 +172,68 @@ let winSwitch!: WinSwitch;
 let boss: Monster | undefined;
 let bossDead = false;
 
-function disposeMesh(mesh: Mesh) {
-	scene.remove(mesh);
-	mesh.geometry.dispose();
-	const mat = mesh.material;
-	if (Array.isArray(mat)) {
-		for (const sub of mat) sub.dispose();
-	} else {
-		mat.dispose();
-	}
+function disposeObject(obj: Object3D) {
+	scene.remove(obj);
+	const seen = new Set<Material>();
+	obj.traverse((child) => {
+		if (child instanceof Mesh) {
+			child.geometry.dispose();
+			const mats = Array.isArray(child.material)
+				? child.material
+				: [child.material];
+			for (const m of mats) {
+				if (!seen.has(m)) {
+					seen.add(m);
+					m.dispose();
+				}
+			}
+		}
+	});
 }
 
-function spawnMonster(
-	roomIndex: number,
-	factory: (x: number, z: number, ri: number) => Monster,
-) {
+function spawnMonster(roomIndex: number, kind: MonsterKind) {
 	const room = grid.rooms[roomIndex];
 	const jitterX = (Math.random() - 0.5) * 4;
 	const jitterZ = (Math.random() - 0.5) * 4;
-	const m = factory(room.centerX + jitterX, room.centerZ + jitterZ, roomIndex);
-	m.mesh = createMonsterMesh(m);
+	const m = createMonster(
+		kind,
+		room.centerX + jitterX,
+		room.centerZ + jitterZ,
+		roomIndex,
+	);
+	const model = createMonsterModel(kind);
+	m.mesh = model.group;
+	m.flashMaterial = model.flashMaterial;
 	scene.add(m.mesh);
 	monsters.push(m);
 }
 
 function spawnBoss() {
 	if (boss) return;
-	boss = createBoss(bossRoom.centerX, bossRoom.centerZ, level.boss);
-	boss.mesh = createMonsterMesh(boss);
-	scene.add(boss.mesh);
+	const m = createMonster(
+		level.bossEnemy,
+		bossRoom.centerX,
+		bossRoom.centerZ,
+		level.boss,
+	);
+	const model = createMonsterModel(level.bossEnemy);
+	m.mesh = model.group;
+	m.flashMaterial = model.flashMaterial;
+	scene.add(m.mesh);
+	boss = m;
 	monsters.push(boss);
 }
 
 function teardownDungeon() {
-	for (const m of monsters) if (m.mesh) disposeMesh(m.mesh);
+	for (const m of monsters) if (m.mesh) disposeObject(m.mesh);
 	for (const c of chests) {
-		disposeMesh(c.mesh);
-		if (c.dropMesh) disposeMesh(c.dropMesh);
+		disposeObject(c.mesh);
+		if (c.dropMesh) disposeObject(c.dropMesh);
 	}
-	for (const d of doors) disposeMesh(d.mesh);
-	for (const s of roomSwitches) disposeMesh(s.mesh);
-	if (winSwitch) disposeMesh(winSwitch.mesh);
-	for (const a of arrows) disposeMesh(a.mesh);
+	for (const d of doors) disposeObject(d.mesh);
+	for (const s of roomSwitches) disposeObject(s.mesh);
+	if (winSwitch) disposeObject(winSwitch.mesh);
+	for (const a of arrows) disposeObject(a.mesh);
 	monsters = [];
 	chests = [];
 	doors = [];
@@ -220,8 +244,8 @@ function teardownDungeon() {
 }
 
 function buildDungeon() {
-	for (const ri of level.goblinRooms) spawnMonster(ri, createGoblin);
-	for (const ri of level.ogreRooms) spawnMonster(ri, createOgre);
+	for (const ri of level.lightRooms) spawnMonster(ri, level.lightEnemy);
+	for (const ri of level.mediumRooms) spawnMonster(ri, level.mediumEnemy);
 	for (const ri of level.chestRooms) {
 		const room = grid.rooms[ri];
 		const chest = createChest(room.centerX, room.centerZ);
@@ -418,6 +442,7 @@ function handleArrowHit(a: Arrow) {
 		if (arrowHitsMonster(a, m)) {
 			m.hp -= a.damage;
 			m.flashUntil = state.now + 0.15;
+			m.hitSquashUntil = state.now + 0.18;
 			a.alive = false;
 			return;
 		}
@@ -479,7 +504,7 @@ function pruneArrows() {
 	const survivors: Arrow[] = [];
 	for (const a of arrows) {
 		if (!a.alive || arrowExpired(a, state.now)) {
-			disposeMesh(a.mesh);
+			disposeObject(a.mesh);
 		} else {
 			survivors.push(a);
 		}
@@ -497,10 +522,10 @@ function animate() {
 	const swordVisible = state.player.weapon === "sword";
 	sword.visible = swordVisible;
 	bow.visible = !swordVisible;
-	(sword.material as MeshStandardMaterial).color.setHex(
+	playerMesh.swordBladeMaterial.color.setHex(
 		weaponColorFor(state.player.swordDamage),
 	);
-	(bow.material as MeshStandardMaterial).color.setHex(
+	playerMesh.bowAccentMaterial.color.setHex(
 		weaponColorFor(state.player.bowDamage),
 	);
 	const v = computeVelocity(input, input.shift, follow.yaw);
@@ -521,9 +546,19 @@ function animate() {
 			if (m.mesh) {
 				m.mesh.position.x = m.x;
 				m.mesh.position.z = m.z;
-				const mat = m.mesh.material as MeshStandardMaterial;
+				if (!m.dormant) m.walkPhase += dt * 8;
+				let scaleY = 1 + Math.sin(m.walkPhase) * 0.06;
+				let scaleXZ = 1 - Math.sin(m.walkPhase) * 0.04;
+				if (m.hitSquashUntil !== undefined && state.now < m.hitSquashUntil) {
+					const k = (m.hitSquashUntil - state.now) / 0.18;
+					scaleY *= 1 - 0.35 * k;
+					scaleXZ *= 1 + 0.3 * k;
+				}
+				m.mesh.scale.set(scaleXZ, scaleY, scaleXZ);
 				const flashing = m.flashUntil !== undefined && m.flashUntil > state.now;
-				mat.emissive.setHex(flashing ? 0xff0000 : 0x000000);
+				if (m.flashMaterial) {
+					m.flashMaterial.emissive.setHex(flashing ? 0xff4444 : 0x000000);
+				}
 			}
 		}
 		applyContactDamage(
@@ -536,7 +571,7 @@ function animate() {
 		for (const chest of chests) {
 			const done = updateChestDrop(chest, state.now);
 			if (done && chest.dropMesh) {
-				disposeMesh(chest.dropMesh);
+				disposeObject(chest.dropMesh);
 				chest.dropMesh = undefined;
 			}
 		}
@@ -593,7 +628,7 @@ function animate() {
 		}
 		for (const m of monsters) {
 			if (m.hp <= 0 && m.mesh) {
-				disposeMesh(m.mesh);
+				disposeObject(m.mesh);
 				m.mesh = undefined;
 			}
 		}

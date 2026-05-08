@@ -1,10 +1,15 @@
+import type { MonsterKind } from "./monsters";
+
 export interface LevelConfig {
 	name: string;
 	hallwayEdges: ReadonlyArray<readonly [number, number]>;
 	spawn: number;
 	boss: number;
-	goblinRooms: readonly number[];
-	ogreRooms: readonly number[];
+	lightEnemy: MonsterKind;
+	mediumEnemy: MonsterKind;
+	bossEnemy: MonsterKind;
+	lightRooms: readonly number[];
+	mediumRooms: readonly number[];
 	switchRooms: readonly number[];
 	chestRooms: readonly number[];
 }
@@ -34,8 +39,11 @@ const LEVEL_1: LevelConfig = {
 	],
 	spawn: 1,
 	boss: 16,
-	goblinRooms: [4, 5, 7, 8, 10, 11, 13, 14],
-	ogreRooms: [6, 9, 12, 15],
+	lightEnemy: "skeleton",
+	mediumEnemy: "zombie",
+	bossEnemy: "grimReaper",
+	lightRooms: [4, 5, 7, 8, 10, 11, 13, 14],
+	mediumRooms: [6, 9, 12, 15],
 	switchRooms: [0, 2, 3, 6, 9, 12, 15, 17],
 	chestRooms: [0, 2, 3, 5, 8, 11, 14, 17],
 };
@@ -66,8 +74,11 @@ const LEVEL_2: LevelConfig = {
 	],
 	spawn: 0,
 	boss: 15,
-	goblinRooms: [1, 2, 4, 5, 7, 8, 10, 11, 13, 14],
-	ogreRooms: [3, 6, 9, 12],
+	lightEnemy: "goblin",
+	mediumEnemy: "orc",
+	bossEnemy: "troll",
+	lightRooms: [1, 2, 4, 5, 7, 8, 10, 11, 13, 14],
+	mediumRooms: [3, 6, 9, 12],
 	switchRooms: [2, 5, 8, 11, 14, 17],
 	chestRooms: [3, 6, 9, 12, 16, 17],
 };
@@ -95,8 +106,11 @@ const LEVEL_3: LevelConfig = {
 	],
 	spawn: 0,
 	boss: 13,
-	goblinRooms: [2, 5, 8, 11, 14, 17, 4, 7],
-	ogreRooms: [9, 12, 15, 16, 10],
+	lightEnemy: "slime",
+	mediumEnemy: "fireElemental",
+	bossEnemy: "lich",
+	lightRooms: [2, 5, 8, 11, 14, 17, 4, 7],
+	mediumRooms: [9, 12, 15, 16, 10],
 	switchRooms: [2, 5, 8, 11, 14, 17, 16, 15, 4, 6],
 	chestRooms: [3, 6, 9, 12, 11, 15, 17],
 };

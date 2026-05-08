@@ -1,36 +1,67 @@
 import { describe, expect, it } from "vitest";
-import { type Monster, moveMonsterTowards } from "./monsters";
+import {
+	createMonster,
+	createMonsterModel,
+	isBossKind,
+	type MonsterKind,
+	moveMonsterTowards,
+} from "./monsters";
 
-function makeGoblin(speed = 2): Monster {
-	return {
-		kind: "goblin",
-		roomIndex: 0,
-		x: 0,
-		z: 0,
-		hp: 2,
-		speed,
-		radius: 0.4,
-		contact: 0.5,
-		damage: 0,
-		dormant: false,
-	};
-}
+describe("createMonster", () => {
+	it("returns kind-appropriate stats", () => {
+		const sk = createMonster("skeleton", 0, 0, 0);
+		expect(sk.kind).toBe("skeleton");
+		expect(sk.dormant).toBe(true);
+		const reaper = createMonster("grimReaper", 0, 0, 0);
+		expect(reaper.dormant).toBe(false);
+	});
+	it("identifies boss kinds", () => {
+		expect(isBossKind("grimReaper")).toBe(true);
+		expect(isBossKind("troll")).toBe(true);
+		expect(isBossKind("lich")).toBe(true);
+		expect(isBossKind("skeleton")).toBe(false);
+		expect(isBossKind("slime")).toBe(false);
+	});
+});
 
 describe("moveMonsterTowards", () => {
-	it("walks toward the player at its speed", () => {
-		const m = makeGoblin(2);
+	it("walks toward the target at its speed", () => {
+		const m = createMonster("goblin", 0, 0, 0);
+		m.dormant = false;
 		moveMonsterTowards(m, 10, 0, 1);
-		expect(m.x).toBeCloseTo(2, 5);
+		expect(m.x).toBeCloseTo(m.speed, 5);
 	});
-	it("does not overshoot the player", () => {
-		const m = makeGoblin(100);
+	it("does not overshoot the target", () => {
+		const m = createMonster("goblin", 0, 0, 0);
+		m.dormant = false;
+		m.speed = 100;
 		moveMonsterTowards(m, 1, 0, 1);
 		expect(m.x).toBeLessThanOrEqual(1);
 	});
 	it("does not move when dormant", () => {
-		const m = makeGoblin(2);
-		m.dormant = true;
+		const m = createMonster("goblin", 0, 0, 0);
 		moveMonsterTowards(m, 10, 0, 1);
 		expect(m.x).toBe(0);
 	});
+});
+
+describe("createMonsterModel", () => {
+	const kinds: MonsterKind[] = [
+		"skeleton",
+		"zombie",
+		"grimReaper",
+		"goblin",
+		"orc",
+		"troll",
+		"slime",
+		"fireElemental",
+		"lich",
+	];
+	for (const kind of kinds) {
+		it(`builds a model with at least one mesh for ${kind}`, () => {
+			const { group, flashMaterial } = createMonsterModel(kind);
+			expect(group.children.length).toBeGreaterThan(0);
+			expect(flashMaterial).toBeDefined();
+		});
+	}
 });

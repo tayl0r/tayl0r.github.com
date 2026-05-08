@@ -77,6 +77,7 @@ export function updateSwing(
 		if (!inHitboxArea(facingX, facingZ, playerX, playerZ, m.x, m.z)) continue;
 		m.hp -= damage;
 		m.flashUntil = now + 0.15;
+		m.hitSquashUntil = now + 0.18;
 		swing.hitThisSwing.add(m);
 	}
 }
