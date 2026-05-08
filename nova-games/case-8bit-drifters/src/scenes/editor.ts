@@ -280,17 +280,19 @@ export const createEditorScene: SceneFactory = (ctx) => {
 
 	const place = (): void => {
 		const h = ctx.app.screen.height;
-		// Top bar buttons left-to-right. Use a generous gap so labels (which
-		// can grow to "MODE: START" / "BRUSH: 24" / hover-scale 1.1×) never
-		// overlap. Measured widths are unreliable before the pixel font has
-		// loaded, so a fixed gap is safer than `view.width + space`.
+		// Top bar buttons left-to-right. pixelText uses anchor=0.5 (centered
+		// on its position) so we have to place each button at LEFT_EDGE +
+		// HALF_WIDTH, then advance x by FULL_WIDTH + GAP. The previous
+		// implementation placed at LEFT_EDGE and advanced by FULL_WIDTH,
+		// which collapsed half of each button into the next gap.
 		let x = 20;
-		const y = 18;
+		const y = 24;
 		const GAP = 40;
 		const buttons = [menuBtn, modeBtn, brushBtn, clearBtn, playBtn];
 		for (const b of buttons) {
-			b.view.position.set(x, y);
-			x += b.view.width + GAP;
+			const w = b.view.width;
+			b.view.position.set(x + w / 2, y);
+			x += w + GAP;
 		}
 		hint.position.set(20, h - 26);
 	};
