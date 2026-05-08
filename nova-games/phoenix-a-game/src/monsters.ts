@@ -1,6 +1,108 @@
-import { BoxGeometry, Mesh, MeshStandardMaterial } from "three";
+import {
+	BoxGeometry,
+	ConeGeometry,
+	CylinderGeometry,
+	Group,
+	Mesh,
+	MeshStandardMaterial,
+	SphereGeometry,
+	TorusGeometry,
+} from "three";
 
-export type MonsterKind = "goblin" | "ogre" | "boss";
+export type MonsterKind =
+	| "skeleton"
+	| "zombie"
+	| "grimReaper"
+	| "goblin"
+	| "orc"
+	| "troll"
+	| "slime"
+	| "fireElemental"
+	| "lich";
+
+interface MonsterStats {
+	hp: number;
+	speed: number;
+	radius: number;
+	contact: number;
+	damage: number;
+	isBoss: boolean;
+}
+
+const STATS: Record<MonsterKind, MonsterStats> = {
+	skeleton: {
+		hp: 2,
+		speed: 3,
+		radius: 0.4,
+		contact: 0.9,
+		damage: 0.5,
+		isBoss: false,
+	},
+	zombie: {
+		hp: 4,
+		speed: 1.5,
+		radius: 0.6,
+		contact: 1.2,
+		damage: 1,
+		isBoss: false,
+	},
+	grimReaper: {
+		hp: 10,
+		speed: 2.5,
+		radius: 0.9,
+		contact: 1.8,
+		damage: 1.5,
+		isBoss: true,
+	},
+	goblin: {
+		hp: 2,
+		speed: 3,
+		radius: 0.4,
+		contact: 0.9,
+		damage: 0.5,
+		isBoss: false,
+	},
+	orc: {
+		hp: 4,
+		speed: 2,
+		radius: 0.6,
+		contact: 1.2,
+		damage: 1,
+		isBoss: false,
+	},
+	troll: {
+		hp: 12,
+		speed: 1.8,
+		radius: 0.9,
+		contact: 2.0,
+		damage: 1.5,
+		isBoss: true,
+	},
+	slime: {
+		hp: 2,
+		speed: 2,
+		radius: 0.5,
+		contact: 0.9,
+		damage: 0.5,
+		isBoss: false,
+	},
+	fireElemental: {
+		hp: 4,
+		speed: 2.5,
+		radius: 0.5,
+		contact: 1.0,
+		damage: 1,
+		isBoss: false,
+	},
+	lich: {
+		hp: 14,
+		speed: 2,
+		radius: 0.9,
+		contact: 1.8,
+		damage: 2,
+		isBoss: true,
+	},
+};
 
 export interface Monster {
 	kind: MonsterKind;
@@ -13,65 +115,37 @@ export interface Monster {
 	contact: number;
 	damage: number;
 	dormant: boolean;
-	mesh?: Mesh;
+	walkPhase: number;
+	hitSquashUntil?: number;
 	flashUntil?: number;
+	mesh?: Group;
+	flashMaterial?: MeshStandardMaterial;
 }
 
-export function createGoblin(x: number, z: number, roomIndex: number): Monster {
+export function isBossKind(kind: MonsterKind): boolean {
+	return STATS[kind].isBoss;
+}
+
+export function createMonster(
+	kind: MonsterKind,
+	x: number,
+	z: number,
+	roomIndex: number,
+): Monster {
+	const s = STATS[kind];
 	return {
-		kind: "goblin",
+		kind,
 		roomIndex,
 		x,
 		z,
-		hp: 2,
-		speed: 3,
-		radius: 0.4,
-		contact: 0.9,
-		damage: 0.5,
-		dormant: true,
+		hp: s.hp,
+		speed: s.speed,
+		radius: s.radius,
+		contact: s.contact,
+		damage: s.damage,
+		dormant: !s.isBoss,
+		walkPhase: 0,
 	};
-}
-
-export function createOgre(x: number, z: number, roomIndex: number): Monster {
-	return {
-		kind: "ogre",
-		roomIndex,
-		x,
-		z,
-		hp: 4,
-		speed: 1.5,
-		radius: 0.6,
-		contact: 1.2,
-		damage: 1,
-		dormant: true,
-	};
-}
-
-export function createBoss(x: number, z: number, roomIndex: number): Monster {
-	return {
-		kind: "boss",
-		roomIndex,
-		x,
-		z,
-		hp: 10,
-		speed: 2,
-		radius: 0.9,
-		contact: 1.8,
-		damage: 1,
-		dormant: false,
-	};
-}
-
-export function createMonsterMesh(m: Monster): Mesh {
-	const size = m.kind === "boss" ? 1.5 : m.kind === "ogre" ? 1 : 0.6;
-	const color =
-		m.kind === "boss" ? 0xaa0000 : m.kind === "ogre" ? 0x885500 : 0x22aa22;
-	const mesh = new Mesh(
-		new BoxGeometry(size, size, size),
-		new MeshStandardMaterial({ color }),
-	);
-	mesh.position.set(m.x, size / 2, m.z);
-	return mesh;
 }
 
 export function moveMonsterTowards(
@@ -98,4 +172,340 @@ export function overlapsPlayer(
 ): boolean {
 	const d = Math.hypot(m.x - px, m.z - pz);
 	return d < m.contact + pr;
+}
+
+export interface MonsterModel {
+	group: Group;
+	flashMaterial: MeshStandardMaterial;
+}
+
+export function createMonsterModel(kind: MonsterKind): MonsterModel {
+	switch (kind) {
+		case "skeleton":
+			return buildSkeleton();
+		case "zombie":
+			return buildZombie();
+		case "grimReaper":
+			return buildGrimReaper();
+		case "goblin":
+			return buildGoblin();
+		case "orc":
+			return buildOrc();
+		case "troll":
+			return buildTroll();
+		case "slime":
+			return buildSlime();
+		case "fireElemental":
+			return buildFireElemental();
+		case "lich":
+			return buildLich();
+	}
+}
+
+function buildSkeleton(): MonsterModel {
+	const group = new Group();
+	const bone = new MeshStandardMaterial({ color: 0xeeddc8 });
+	const torso = new Mesh(new BoxGeometry(0.4, 0.4, 0.22), bone);
+	torso.position.y = 0.7;
+	group.add(torso);
+	const head = new Mesh(new SphereGeometry(0.18, 12, 8), bone);
+	head.position.y = 1.05;
+	group.add(head);
+	const eyeMat = new MeshStandardMaterial({ color: 0x000000 });
+	for (const ex of [-0.06, 0.06]) {
+		const eye = new Mesh(new SphereGeometry(0.03, 6, 6), eyeMat);
+		eye.position.set(ex, 1.07, 0.16);
+		group.add(eye);
+	}
+	for (const ax of [-0.27, 0.27]) {
+		const arm = new Mesh(new CylinderGeometry(0.05, 0.05, 0.45, 6), bone);
+		arm.position.set(ax, 0.65, 0);
+		group.add(arm);
+	}
+	for (const lx of [-0.1, 0.1]) {
+		const leg = new Mesh(new CylinderGeometry(0.05, 0.05, 0.45, 6), bone);
+		leg.position.set(lx, 0.225, 0);
+		group.add(leg);
+	}
+	return { group, flashMaterial: bone };
+}
+
+function buildZombie(): MonsterModel {
+	const group = new Group();
+	const flesh = new MeshStandardMaterial({ color: 0x6b8a4a });
+	const cloth = new MeshStandardMaterial({ color: 0x554433 });
+	const torso = new Mesh(new BoxGeometry(0.55, 0.6, 0.35), cloth);
+	torso.position.y = 0.7;
+	group.add(torso);
+	const head = new Mesh(new SphereGeometry(0.22, 12, 8), flesh);
+	head.position.y = 1.15;
+	group.add(head);
+	const eyeMat = new MeshStandardMaterial({
+		color: 0xff3322,
+		emissive: 0x441100,
+	});
+	for (const ex of [-0.07, 0.07]) {
+		const eye = new Mesh(new SphereGeometry(0.04, 6, 6), eyeMat);
+		eye.position.set(ex, 1.18, 0.18);
+		group.add(eye);
+	}
+	for (const ax of [-0.32, 0.32]) {
+		const arm = new Mesh(new CylinderGeometry(0.08, 0.08, 0.55, 6), flesh);
+		arm.position.set(ax, 0.7, 0.15);
+		arm.rotation.x = -0.4;
+		group.add(arm);
+	}
+	for (const lx of [-0.14, 0.14]) {
+		const leg = new Mesh(new BoxGeometry(0.16, 0.4, 0.16), cloth);
+		leg.position.set(lx, 0.2, 0);
+		group.add(leg);
+	}
+	return { group, flashMaterial: flesh };
+}
+
+function buildGrimReaper(): MonsterModel {
+	const group = new Group();
+	const robe = new MeshStandardMaterial({ color: 0x14141a });
+	const robeBody = new Mesh(new ConeGeometry(0.7, 1.7, 12, 1, true), robe);
+	robeBody.position.y = 0.85;
+	group.add(robeBody);
+	const skullMat = new MeshStandardMaterial({ color: 0xeeeedd });
+	const skull = new Mesh(new SphereGeometry(0.22, 12, 10), skullMat);
+	skull.position.y = 1.6;
+	group.add(skull);
+	const eyeMat = new MeshStandardMaterial({
+		color: 0x33ccff,
+		emissive: 0x118899,
+	});
+	for (const ex of [-0.08, 0.08]) {
+		const eye = new Mesh(new SphereGeometry(0.04, 6, 6), eyeMat);
+		eye.position.set(ex, 1.62, 0.2);
+		group.add(eye);
+	}
+	const handle = new Mesh(
+		new CylinderGeometry(0.04, 0.04, 1.6, 6),
+		new MeshStandardMaterial({ color: 0x3a2810 }),
+	);
+	handle.position.set(0.4, 0.85, 0.1);
+	handle.rotation.z = -0.1;
+	group.add(handle);
+	const blade = new Mesh(
+		new TorusGeometry(0.3, 0.05, 6, 12, Math.PI),
+		new MeshStandardMaterial({ color: 0xcccccc, emissive: 0x222222 }),
+	);
+	blade.position.set(0.55, 1.55, 0.1);
+	blade.rotation.set(Math.PI / 2, 0, Math.PI / 2);
+	group.add(blade);
+	return { group, flashMaterial: robe };
+}
+
+function buildGoblin(): MonsterModel {
+	const group = new Group();
+	const skin = new MeshStandardMaterial({ color: 0x4faa44 });
+	const tunic = new MeshStandardMaterial({ color: 0x884422 });
+	const torso = new Mesh(new BoxGeometry(0.45, 0.4, 0.3), tunic);
+	torso.position.y = 0.6;
+	group.add(torso);
+	const head = new Mesh(new SphereGeometry(0.22, 12, 8), skin);
+	head.position.y = 0.95;
+	group.add(head);
+	for (const ex of [-0.22, 0.22]) {
+		const ear = new Mesh(new ConeGeometry(0.06, 0.25, 5), skin);
+		ear.position.set(ex, 1.05, 0);
+		ear.rotation.z = ex < 0 ? Math.PI / 4 : -Math.PI / 4;
+		group.add(ear);
+	}
+	const eyeMat = new MeshStandardMaterial({
+		color: 0xffee44,
+		emissive: 0x886600,
+	});
+	for (const ex of [-0.07, 0.07]) {
+		const eye = new Mesh(new SphereGeometry(0.035, 6, 6), eyeMat);
+		eye.position.set(ex, 0.97, 0.2);
+		group.add(eye);
+	}
+	for (const ax of [-0.27, 0.27]) {
+		const arm = new Mesh(new CylinderGeometry(0.06, 0.06, 0.4, 6), skin);
+		arm.position.set(ax, 0.6, 0);
+		group.add(arm);
+	}
+	for (const lx of [-0.11, 0.11]) {
+		const leg = new Mesh(new CylinderGeometry(0.07, 0.07, 0.35, 6), skin);
+		leg.position.set(lx, 0.175, 0);
+		group.add(leg);
+	}
+	return { group, flashMaterial: skin };
+}
+
+function buildOrc(): MonsterModel {
+	const group = new Group();
+	const skin = new MeshStandardMaterial({ color: 0x885a2e });
+	const armor = new MeshStandardMaterial({ color: 0x444444 });
+	const torso = new Mesh(new BoxGeometry(0.7, 0.6, 0.4), armor);
+	torso.position.y = 0.75;
+	group.add(torso);
+	const head = new Mesh(new BoxGeometry(0.4, 0.32, 0.34), skin);
+	head.position.y = 1.2;
+	group.add(head);
+	const tuskMat = new MeshStandardMaterial({ color: 0xeeeecc });
+	for (const tx of [-0.08, 0.08]) {
+		const tusk = new Mesh(new ConeGeometry(0.03, 0.12, 5), tuskMat);
+		tusk.position.set(tx, 1.13, 0.18);
+		tusk.rotation.x = Math.PI;
+		group.add(tusk);
+	}
+	const eyeMat = new MeshStandardMaterial({
+		color: 0xff3322,
+		emissive: 0x441100,
+	});
+	for (const ex of [-0.1, 0.1]) {
+		const eye = new Mesh(new SphereGeometry(0.04, 6, 6), eyeMat);
+		eye.position.set(ex, 1.24, 0.18);
+		group.add(eye);
+	}
+	for (const ax of [-0.42, 0.42]) {
+		const arm = new Mesh(new CylinderGeometry(0.1, 0.1, 0.55, 6), skin);
+		arm.position.set(ax, 0.7, 0);
+		group.add(arm);
+	}
+	for (const lx of [-0.18, 0.18]) {
+		const leg = new Mesh(new BoxGeometry(0.2, 0.42, 0.2), armor);
+		leg.position.set(lx, 0.21, 0);
+		group.add(leg);
+	}
+	return { group, flashMaterial: skin };
+}
+
+function buildTroll(): MonsterModel {
+	const group = new Group();
+	const hide = new MeshStandardMaterial({ color: 0x3a5a3a });
+	const torso = new Mesh(new BoxGeometry(1.0, 1.0, 0.6), hide);
+	torso.position.y = 1.1;
+	group.add(torso);
+	const head = new Mesh(new SphereGeometry(0.36, 14, 10), hide);
+	head.position.y = 1.85;
+	group.add(head);
+	const tuskMat = new MeshStandardMaterial({ color: 0xeeeecc });
+	for (const tx of [-0.1, 0.1]) {
+		const tusk = new Mesh(new ConeGeometry(0.05, 0.18, 6), tuskMat);
+		tusk.position.set(tx, 1.74, 0.3);
+		tusk.rotation.x = Math.PI;
+		group.add(tusk);
+	}
+	const eyeMat = new MeshStandardMaterial({
+		color: 0xffeb33,
+		emissive: 0x664400,
+	});
+	for (const ex of [-0.13, 0.13]) {
+		const eye = new Mesh(new SphereGeometry(0.06, 8, 6), eyeMat);
+		eye.position.set(ex, 1.92, 0.3);
+		group.add(eye);
+	}
+	for (const ax of [-0.65, 0.65]) {
+		const arm = new Mesh(new CylinderGeometry(0.18, 0.16, 1.0, 8), hide);
+		arm.position.set(ax, 1.0, 0);
+		group.add(arm);
+	}
+	for (const lx of [-0.27, 0.27]) {
+		const leg = new Mesh(new CylinderGeometry(0.2, 0.22, 0.7, 8), hide);
+		leg.position.set(lx, 0.35, 0);
+		group.add(leg);
+	}
+	return { group, flashMaterial: hide };
+}
+
+function buildSlime(): MonsterModel {
+	const group = new Group();
+	const slime = new MeshStandardMaterial({
+		color: 0x33dd66,
+		transparent: true,
+		opacity: 0.85,
+		emissive: 0x114422,
+	});
+	const blob = new Mesh(new SphereGeometry(0.5, 16, 12), slime);
+	blob.position.y = 0.42;
+	blob.scale.set(1, 0.7, 1);
+	group.add(blob);
+	const top = new Mesh(new SphereGeometry(0.34, 12, 10), slime);
+	top.position.y = 0.7;
+	top.scale.set(1, 0.6, 1);
+	group.add(top);
+	const eyeMat = new MeshStandardMaterial({ color: 0x111111 });
+	for (const ex of [-0.16, 0.16]) {
+		const eye = new Mesh(new SphereGeometry(0.06, 8, 6), eyeMat);
+		eye.position.set(ex, 0.5, 0.4);
+		group.add(eye);
+	}
+	return { group, flashMaterial: slime };
+}
+
+function buildFireElemental(): MonsterModel {
+	const group = new Group();
+	const core = new MeshStandardMaterial({
+		color: 0xff7722,
+		emissive: 0xcc3300,
+	});
+	const flame = new MeshStandardMaterial({
+		color: 0xffcc44,
+		emissive: 0xff7700,
+	});
+	const heart = new Mesh(new SphereGeometry(0.32, 14, 10), core);
+	heart.position.y = 0.55;
+	group.add(heart);
+	for (let i = 0; i < 4; i++) {
+		const angle = (i / 4) * Math.PI * 2;
+		const tongue = new Mesh(new ConeGeometry(0.14, 0.55, 6), flame);
+		tongue.position.set(Math.cos(angle) * 0.2, 0.85, Math.sin(angle) * 0.2);
+		tongue.rotation.set(
+			(Math.random() - 0.5) * 0.4,
+			angle,
+			(Math.random() - 0.5) * 0.4,
+		);
+		group.add(tongue);
+	}
+	const tip = new Mesh(new ConeGeometry(0.18, 0.7, 6), flame);
+	tip.position.y = 1.25;
+	group.add(tip);
+	return { group, flashMaterial: core };
+}
+
+function buildLich(): MonsterModel {
+	const group = new Group();
+	const robe = new MeshStandardMaterial({ color: 0x331a55 });
+	const robeBody = new Mesh(new ConeGeometry(0.75, 1.6, 14, 1, true), robe);
+	robeBody.position.y = 0.8;
+	group.add(robeBody);
+	const skullMat = new MeshStandardMaterial({ color: 0xeeeedd });
+	const skull = new Mesh(new SphereGeometry(0.26, 12, 10), skullMat);
+	skull.position.y = 1.55;
+	group.add(skull);
+	const crown = new Mesh(
+		new TorusGeometry(0.22, 0.04, 8, 16),
+		new MeshStandardMaterial({ color: 0xffcc33, emissive: 0x554400 }),
+	);
+	crown.position.y = 1.78;
+	crown.rotation.x = Math.PI / 2;
+	group.add(crown);
+	const eyeMat = new MeshStandardMaterial({
+		color: 0x77ff77,
+		emissive: 0x33aa33,
+	});
+	for (const ex of [-0.09, 0.09]) {
+		const eye = new Mesh(new SphereGeometry(0.05, 6, 6), eyeMat);
+		eye.position.set(ex, 1.58, 0.23);
+		group.add(eye);
+	}
+	const staff = new Mesh(
+		new CylinderGeometry(0.04, 0.04, 1.7, 6),
+		new MeshStandardMaterial({ color: 0x2a1a0a }),
+	);
+	staff.position.set(0.5, 0.85, 0.1);
+	group.add(staff);
+	const orb = new Mesh(
+		new SphereGeometry(0.12, 12, 10),
+		new MeshStandardMaterial({ color: 0x66ddff, emissive: 0x227799 }),
+	);
+	orb.position.set(0.5, 1.75, 0.1);
+	group.add(orb);
+	return { group, flashMaterial: robe };
 }
