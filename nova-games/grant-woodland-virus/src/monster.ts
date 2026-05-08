@@ -10,6 +10,7 @@ import {
 	SphereGeometry,
 	type Vector3,
 } from "three";
+import type { PlayerState } from "./player";
 
 export type MonsterState = {
 	root: Group;
@@ -20,6 +21,14 @@ export type MonsterState = {
 
 const SPAWN_X = 60;
 const SPAWN_Z = 60;
+
+const MONSTER_SPEED = 3;
+const MONSTER_YAW_RATE = 2;
+const MONSTER_BOUNDS_HALF = 100;
+const BREATH_AMPLITUDE = 0.04;
+const BREATH_PERIOD = 3;
+
+let elapsed = 0;
 
 const furMaterial = new MeshStandardMaterial({ color: 0x2a1810 });
 const torsoMaterial = new MeshStandardMaterial({ color: 0x1a0e08 });
@@ -184,4 +193,50 @@ export function createMonster(): MonsterState {
 		yaw: 0,
 		chest,
 	};
+}
+
+function wrapAngle(a: number): number {
+	let v = a;
+	while (v > Math.PI) v -= 2 * Math.PI;
+	while (v < -Math.PI) v += 2 * Math.PI;
+	return v;
+}
+
+export function updateMonster(
+	monster: MonsterState,
+	player: PlayerState,
+	dt: number,
+): void {
+	elapsed += dt;
+	const breath =
+		1 + BREATH_AMPLITUDE * Math.sin((elapsed * 2 * Math.PI) / BREATH_PERIOD);
+	monster.chest.scale.y = breath;
+
+	const dx = player.position.x - monster.position.x;
+	const dz = player.position.z - monster.position.z;
+	const targetYaw = Math.atan2(-dx, -dz);
+	const yawDelta = wrapAngle(targetYaw - monster.yaw);
+	const maxYawStep = MONSTER_YAW_RATE * dt;
+	const yawStep =
+		Math.abs(yawDelta) < maxYawStep
+			? yawDelta
+			: Math.sign(yawDelta) * maxYawStep;
+	monster.yaw += yawStep;
+	monster.root.rotation.y = monster.yaw;
+
+	const dist = Math.hypot(dx, dz);
+	if (dist > 0.0001) {
+		const step = MONSTER_SPEED * dt;
+		monster.position.x += (dx / dist) * step;
+		monster.position.z += (dz / dist) * step;
+	}
+
+	if (monster.position.x > MONSTER_BOUNDS_HALF)
+		monster.position.x = MONSTER_BOUNDS_HALF;
+	if (monster.position.x < -MONSTER_BOUNDS_HALF)
+		monster.position.x = -MONSTER_BOUNDS_HALF;
+	if (monster.position.z > MONSTER_BOUNDS_HALF)
+		monster.position.z = MONSTER_BOUNDS_HALF;
+	if (monster.position.z < -MONSTER_BOUNDS_HALF)
+		monster.position.z = -MONSTER_BOUNDS_HALF;
 }

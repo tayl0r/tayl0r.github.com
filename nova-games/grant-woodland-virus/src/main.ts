@@ -12,7 +12,7 @@ import {
 	WebGLRenderer,
 } from "three";
 import { buildForest } from "./forest";
-import { createMonster } from "./monster";
+import { createMonster, updateMonster } from "./monster";
 import {
 	attachPlayerInput,
 	createPlayer,
@@ -119,6 +119,7 @@ function animate() {
 	const dt = clock.getDelta();
 	updatePlayer(player, camera, dt, forest);
 	if (state === "playing") {
+		updateMonster(monster, player, dt);
 		ui.setStamina(player.stamina, 100);
 		const dx = player.position.x - forest.flagPosition.x;
 		const dz = player.position.z - forest.flagPosition.z;
