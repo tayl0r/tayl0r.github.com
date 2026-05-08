@@ -1,57 +1,128 @@
 import {
 	AmbientLight,
-	BoxGeometry,
 	Clock,
-	DirectionalLight,
+	FogExp2,
+	HemisphereLight,
 	Mesh,
 	MeshStandardMaterial,
 	PerspectiveCamera,
 	PlaneGeometry,
 	Scene,
+	SpotLight,
 	WebGLRenderer,
 } from "three";
+import { buildForest } from "./forest";
+import {
+	attachPlayerInput,
+	createPlayer,
+	resetPlayer,
+	setInputActive,
+	updatePlayer,
+} from "./player";
+import { createUI } from "./ui";
+
+type GameState = "title" | "playing" | "win";
 
 const scene = new Scene();
+scene.fog = new FogExp2(0x050a08, 0.05);
+
 const camera = new PerspectiveCamera(
-	60,
+	75,
 	window.innerWidth / window.innerHeight,
 	0.1,
-	1000,
+	500,
 );
-camera.position.set(0, 4, 8);
-camera.lookAt(0, 0, 0);
+camera.position.set(0, 1.7, 0);
+scene.add(camera);
 
 const renderer = new WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setClearColor(0x1a3a1a);
+renderer.setClearColor(0x050a08);
 document.body.appendChild(renderer.domElement);
 
-const floor = new Mesh(
-	new PlaneGeometry(40, 40),
-	new MeshStandardMaterial({ color: 0x2d5a2d }),
+const ground = new Mesh(
+	new PlaneGeometry(220, 220),
+	new MeshStandardMaterial({ color: 0x0a1408 }),
 );
-floor.rotation.x = -Math.PI / 2;
-scene.add(floor);
+ground.rotation.x = -Math.PI / 2;
+scene.add(ground);
 
-const cube = new Mesh(
-	new BoxGeometry(2, 2, 2),
-	new MeshStandardMaterial({ color: 0x88cc44 }),
+scene.add(new AmbientLight(0xffffff, 0.08));
+scene.add(new HemisphereLight(0x0a0a14, 0x020402, 0.05));
+
+const flashlight = new SpotLight(
+	0xfff2cc,
+	3,
+	25,
+	(25 / 180) * Math.PI,
+	0.4,
+	1.5,
 );
-cube.position.y = 1;
-scene.add(cube);
+flashlight.position.set(0, -0.3, 0);
+flashlight.target.position.set(0, -0.3, -1);
+camera.add(flashlight);
+camera.add(flashlight.target);
 
-scene.add(new AmbientLight(0xffffff, 0.5));
-const sun = new DirectionalLight(0xffffff, 0.8);
-sun.position.set(5, 10, 5);
-scene.add(sun);
+const forest = buildForest(scene);
+const player = createPlayer();
+attachPlayerInput(renderer.domElement, player);
+const ui = createUI();
+
+let state: GameState = "title";
+
+function enterTitle() {
+	state = "title";
+	setInputActive(false);
+	if (document.pointerLockElement) document.exitPointerLock();
+	ui.hideWin();
+	ui.setStaminaVisible(false);
+	ui.setResumeHintVisible(false);
+	ui.showTitle(() => {
+		enterPlaying();
+	});
+}
+
+function enterPlaying() {
+	state = "playing";
+	resetPlayer(player);
+	ui.hideTitle();
+	ui.setStaminaVisible(true);
+	ui.setResumeHintVisible(false);
+	setInputActive(true);
+	renderer.domElement.requestPointerLock();
+}
+
+function enterWin() {
+	state = "win";
+	setInputActive(false);
+	if (document.pointerLockElement) document.exitPointerLock();
+	ui.setStaminaVisible(false);
+	ui.setResumeHintVisible(false);
+	ui.showWin(() => {
+		enterTitle();
+	});
+}
+
+document.addEventListener("pointerlockchange", () => {
+	if (state !== "playing") return;
+	ui.setResumeHintVisible(document.pointerLockElement !== renderer.domElement);
+});
+
+enterTitle();
 
 const clock = new Clock();
-
 function animate() {
 	requestAnimationFrame(animate);
 	const dt = clock.getDelta();
-	cube.rotation.y += dt * 0.8;
-	cube.rotation.x += dt * 0.4;
+	updatePlayer(player, camera, dt, forest);
+	if (state === "playing") {
+		ui.setStamina(player.stamina, 100);
+		const dx = player.position.x - forest.flagPosition.x;
+		const dz = player.position.z - forest.flagPosition.z;
+		if (Math.hypot(dx, dz) < 1.5) {
+			enterWin();
+		}
+	}
 	renderer.render(scene, camera);
 }
 animate();
