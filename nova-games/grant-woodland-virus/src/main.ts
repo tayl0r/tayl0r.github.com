@@ -20,6 +20,7 @@ import {
 	getHideTarget,
 	HIDE_RADIUS,
 	resetPlayer,
+	STAMINA_MAX,
 	setHideTarget,
 	setInputActive,
 	updatePlayer,
@@ -184,7 +185,7 @@ function animate() {
 		if (!player.hidden && monsterDist < 1.2) {
 			enterJumpscare();
 		}
-		ui.setStamina(player.stamina, 100);
+		ui.setStamina(player.stamina, STAMINA_MAX);
 		const dx = player.position.x - forest.flagPosition.x;
 		const dz = player.position.z - forest.flagPosition.z;
 		if (Math.hypot(dx, dz) < 1.5) {
