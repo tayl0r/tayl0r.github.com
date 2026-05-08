@@ -224,7 +224,9 @@ function buildRaceScene(
 		hud.place(ctx.app.screen.width);
 		lightsView.position.set(ctx.app.screen.width / 2, 80);
 		goText.position.set(0, 0);
-		exitBtn.view.position.set(20, 18);
+		// pixelText uses anchor=0.5 — offset by half-width so the EXIT
+		// label sits flush against the left edge instead of half-clipped.
+		exitBtn.view.position.set(20 + exitBtn.view.width / 2, 24);
 	};
 	place();
 	const onResize = (): void => place();
