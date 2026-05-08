@@ -16,6 +16,7 @@ import { createMonster, updateMonster } from "./monster";
 import {
 	attachPlayerInput,
 	createPlayer,
+	getHideTarget,
 	HIDE_RADIUS,
 	resetPlayer,
 	setHideTarget,
@@ -82,6 +83,7 @@ function enterTitle() {
 	ui.hideWin();
 	ui.setStaminaVisible(false);
 	ui.setResumeHintVisible(false);
+	ui.setHidePromptVisible(false, "hide");
 	ui.showTitle(() => {
 		enterPlaying();
 	});
@@ -103,6 +105,7 @@ function enterWin() {
 	if (document.pointerLockElement) document.exitPointerLock();
 	ui.setStaminaVisible(false);
 	ui.setResumeHintVisible(false);
+	ui.setHidePromptVisible(false, "hide");
 	ui.showWin(() => {
 		enterTitle();
 	});
@@ -134,6 +137,11 @@ function animate() {
 				}
 			}
 			setHideTarget(player, nearest);
+		}
+		if (player.hidden) {
+			ui.setHidePromptVisible(true, "exit");
+		} else {
+			ui.setHidePromptVisible(getHideTarget() !== null, "hide");
 		}
 		updateMonster(monster, player, dt);
 		ui.setStamina(player.stamina, 100);

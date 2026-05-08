@@ -87,10 +87,29 @@ const RESUME_HINT_STYLE = `
 	user-select: none;
 `;
 
+const HIDE_PROMPT_STYLE = `
+	position: fixed;
+	bottom: 80px;
+	left: 50%;
+	transform: translateX(-50%);
+	padding: 10px 22px;
+	background: rgba(0, 0, 0, 0.7);
+	border: 1px solid #4a6450;
+	border-radius: 4px;
+	color: #d4d4cc;
+	font-family: Georgia, "Times New Roman", serif;
+	font-size: 16px;
+	letter-spacing: 0.04em;
+	display: none;
+	pointer-events: none;
+	user-select: none;
+`;
+
 export type UI = {
 	setStamina: (value: number, max: number) => void;
 	setStaminaVisible: (visible: boolean) => void;
 	setResumeHintVisible: (visible: boolean) => void;
+	setHidePromptVisible: (visible: boolean, mode: "hide" | "exit") => void;
 	showTitle: (onStart: () => void) => void;
 	hideTitle: () => void;
 	showWin: (onPlayAgain: () => void) => void;
@@ -151,6 +170,11 @@ export function createUI(): UI {
 	resumeHint.textContent = "Click to resume";
 	document.body.appendChild(resumeHint);
 
+	// Hide prompt
+	const hidePrompt = document.createElement("div");
+	hidePrompt.setAttribute("style", HIDE_PROMPT_STYLE);
+	document.body.appendChild(hidePrompt);
+
 	let startHandler: (() => void) | null = null;
 	let playAgainHandler: (() => void) | null = null;
 
@@ -177,6 +201,11 @@ export function createUI(): UI {
 		},
 		setResumeHintVisible(visible) {
 			resumeHint.style.display = visible ? "block" : "none";
+		},
+		setHidePromptVisible(visible, mode) {
+			hidePrompt.textContent =
+				mode === "hide" ? "Press E to hide" : "Press E to exit";
+			hidePrompt.style.display = visible ? "block" : "none";
 		},
 		showTitle(onStart) {
 			startHandler = onStart;
