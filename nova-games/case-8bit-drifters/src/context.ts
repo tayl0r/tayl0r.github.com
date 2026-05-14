@@ -15,5 +15,6 @@ export type GameContext = {
 	switchTo(next: SceneFactory): void;
 	profile: { name: string } | null;
 	bests: Record<string, number>;
+	carId: string | null;
 	settings: Settings;
 };

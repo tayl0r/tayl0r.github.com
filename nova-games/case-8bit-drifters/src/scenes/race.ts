@@ -1,5 +1,5 @@
 import { Container, Graphics } from "pixi.js";
-import { renderCar } from "../art/car";
+import { DEFAULT_HEADLIGHT_COLOR, makeCarView } from "../art/car";
 import { renderHeadlights } from "../art/headlights";
 import type { Scene, SceneFactory } from "../context";
 import { CAR_PHYSICS, Car } from "../race/car";
@@ -86,8 +86,8 @@ function buildRaceScene(
 	const headlights = new Graphics();
 	world.buildingLayer.addChild(headlights);
 
-	const carG = new Graphics();
-	world.buildingLayer.addChild(carG);
+	const carView = makeCarView(ctx.carId);
+	world.buildingLayer.addChild(carView.view);
 
 	const car = new Car();
 	car.x = world.track.startPos.x;
@@ -284,15 +284,15 @@ function buildRaceScene(
 					: { throttle: 0, steer: 0, drift: false, driftPressed: false },
 			);
 
-			renderHeadlights(headlights, car.look.headlightColor);
+			renderHeadlights(headlights, DEFAULT_HEADLIGHT_COLOR);
 			headlights.position.set(car.x, car.y);
 			headlights.rotation = car.facing;
 			headlights.zIndex = car.y - 0.1;
 
-			renderCar(carG, car.look, { brake: car.braking });
-			carG.position.set(car.x, car.y);
-			carG.rotation = car.facing;
-			carG.zIndex = car.y;
+			carView.setBraking(car.braking);
+			carView.view.position.set(car.x, car.y);
+			carView.view.rotation = car.facing;
+			carView.view.zIndex = car.y;
 
 			const drifting = car.state === "DRIFTING" || car.state === "SPINNING";
 			if (drifting && allowInput) {

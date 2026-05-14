@@ -1,5 +1,5 @@
-import { Container, Graphics } from "pixi.js";
-import { DEFAULT_LOOK, renderCar } from "../art/car";
+import { Container } from "pixi.js";
+import { makeCarUiSprite } from "../art/car";
 import type { Scene, SceneFactory } from "../context";
 import { hasSavedGridTrack } from "../race/grid-storage";
 import { pixelButton } from "../ui/button";
@@ -8,6 +8,7 @@ import { pixelText } from "../ui/pixel-text";
 import { createTabs } from "../ui/tabs";
 import { createEditorScene } from "./editor";
 import { createGridRaceScene } from "./grid-race";
+import { createLockerScene } from "./locker";
 import { createRaceScene } from "./race";
 import { createSettingsModal } from "./settings-modal";
 
@@ -16,34 +17,21 @@ const MODES = ["TIMED RUNS", "FREE PRACTICE", "RANKED"] as const;
 export const createHomeScene: SceneFactory = (ctx) => {
 	const root = new Container();
 
-	// Top bar: gear, tabs. Declare baseTabsX up front so the click closure
-	// below can reference it without TS strict-mode "used before declaration"
-	// errors.
-	let baseTabsX = 0;
+	// Top bar: gear, tabs.
 	const gear = pixelText("⚙", { fontSize: 28 });
 	gear.eventMode = "static";
 	gear.cursor = "pointer";
 	const tabs = createTabs(
 		[
 			{ id: "home", label: "Home", enabled: true },
-			{ id: "locker", label: "Locker", enabled: false },
+			{ id: "locker", label: "Locker", enabled: true },
 		],
 		"home",
 		(id) => {
-			if (id === "locker") {
-				// Disabled — small shake
-				const t0 = performance.now();
-				const animate = (): void => {
-					const t = (performance.now() - t0) / 1000;
-					tabs.view.x =
-						baseTabsX + Math.sin(t * 50) * 6 * Math.max(0, 1 - t * 5);
-					if (t < 0.2) requestAnimationFrame(animate);
-					else tabs.view.x = baseTabsX;
-				};
-				animate();
-			}
+			if (id === "locker") ctx.switchTo(createLockerScene);
 		},
 	);
+	let baseTabsX = 0;
 
 	// Map list (left)
 	const mapPanel = panel(180, 220);
@@ -53,9 +41,9 @@ export const createHomeScene: SceneFactory = (ctx) => {
 	mapEntry.position.set(0, -60);
 	mapPanel.addChild(mapTitle, mapEntry);
 
-	// Center: car preview
-	const carG = new Graphics();
-	renderCar(carG, DEFAULT_LOOK);
+	// Center: car preview. Use a UI-sized sprite (rotation already aligned to
+	// "looks right when facing up on screen") and scale up for visibility.
+	const carG = makeCarUiSprite(ctx.carId);
 	carG.scale.set(3);
 
 	// Mode toggle

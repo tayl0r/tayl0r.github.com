@@ -1,5 +1,5 @@
-import { Container, Graphics } from "pixi.js";
-import { DEFAULT_LOOK, renderCar } from "../art/car";
+import { Container } from "pixi.js";
+import { makeCarUiSprite } from "../art/car";
 import type { Scene, SceneFactory } from "../context";
 import { persist } from "../storage";
 import { pixelButton } from "../ui/button";
@@ -10,8 +10,7 @@ import { validateName } from "./name-filter";
 export const createNamePickerScene: SceneFactory = (ctx) => {
 	const root = new Container();
 
-	const carG = new Graphics();
-	renderCar(carG, DEFAULT_LOOK);
+	const carG = makeCarUiSprite(ctx.carId);
 	carG.scale.set(2.5);
 	const tag = pixelText(ctx.profile?.name ?? "click to name", { fontSize: 22 });
 	tag.eventMode = "static";

@@ -1,4 +1,5 @@
 import { Application } from "pixi.js";
+import { preloadCarSheets } from "./art/car";
 import type { GameContext, Scene, SceneFactory } from "./context";
 import { loadTuning } from "./race/tuning";
 import { createLoadingScene } from "./scenes/loading";
@@ -30,6 +31,11 @@ await Promise.race([
 // race uses the player's saved tuning values.
 loadTuning();
 
+// Car spritesheets must be loaded before any scene tries to instantiate a
+// Sprite for them. preloadCarSheets() also sets nearest-neighbor scaling on
+// each source so the pixel art stays crisp at any zoom.
+await preloadCarSheets();
+
 const stored = loadState();
 let current: Scene | null = null;
 
@@ -45,6 +51,7 @@ const ctx: GameContext = {
 	},
 	profile: stored.profile,
 	bests: stored.bests,
+	carId: stored.carId,
 	settings: {},
 };
 

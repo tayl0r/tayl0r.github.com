@@ -1,108 +1,96 @@
-import type { Graphics } from "pixi.js";
+import { Assets, Container, Rectangle, Sprite, Texture } from "pixi.js";
+import { type CarDef, getCar, SHEET_URLS } from "./car-catalog";
 
-export type CarLook = {
-	bodyColor: number;
-	windshieldColor: number;
-	headlightColor: number;
-	taillightColor: number;
-};
+// Target on-track car length in world units. The original procedural sprite
+// had a 45×25 bounding box, so 45 keeps the existing physics + collision
+// feel and matches the size of the headlight cones drawn in art/headlights.ts.
+export const CAR_TARGET_LENGTH = 45;
 
-export const DEFAULT_LOOK: CarLook = {
-	bodyColor: 0xe53935,
-	windshieldColor: 0x1a1f2e,
-	headlightColor: 0xfff7c2,
-	taillightColor: 0xff3344,
-};
+// Headlight tint used by all cars now that procedural per-car colors are gone.
+export const DEFAULT_HEADLIGHT_COLOR = 0xfff7c2;
 
-// 8-bit pixel-art top-down car sprite (itch.io "180 Top Down Vehicles" style).
-// 18 columns × 10 rows; each cell renders as a hard-edged 2.5×2.5 world-unit
-// square. Bounding box: 45 × 25 world units, centered at (0, 0). Faces +x.
-//
-// Layout, rear (col 0) → front (col 17):
-//   col 0     rear bumper / taillight band
-//   col 1-3   trunk (body color)
-//   col 4-5   rear windshield
-//   col 6-11  roof (lighter body shade)
-//   col 12-13 front windshield
-//   col 14-16 hood (darker body shade)
-//   col 17    front bumper / headlight band, grille in center
-//
-// Side rows 0 and 9 are mostly transparent except for wheel cells (K) at the
-// front and rear axles, which poke 1 cell beyond the main body silhouette.
-//
-// Cell legend:
-//   '.' transparent
-//   'B' body color
-//   'D' darker body (hood)
-//   'R' lighter body (roof)
-//   'W' windshield
-//   'T' taillight   'H' headlight
-//   'G' grille      'K' wheel (near-black)
-const CAR_SPRITE = [
-	"..KK.........KK...",
-	".BBBBBBBBBBBBBBBB.",
-	"TBBBWWRRRRRRWWDDDH",
-	"TBBBWWRRRRRRWWDDDH",
-	"TBBBWWRRRRRRWWDDDG",
-	"TBBBWWRRRRRRWWDDDG",
-	"TBBBWWRRRRRRWWDDDH",
-	"TBBBWWRRRRRRWWDDDH",
-	".BBBBBBBBBBBBBBBB.",
-	"..KK.........KK...",
-];
-const CELL = 2.5;
-const W_CELLS = 18;
-const H_CELLS = 10;
-const ORIGIN_X = (-W_CELLS * CELL) / 2;
-const ORIGIN_Y = (-H_CELLS * CELL) / 2;
+const sheetTextureCache = new Map<string, Texture>();
+const carTextureCache = new Map<string, Texture>();
 
-const GRILLE_COLOR = 0x1a1a1a;
-const WHEEL_COLOR = 0x101010;
-
-function shade(rgb: number, factor: number): number {
-	const r = Math.min(255, Math.round(((rgb >> 16) & 0xff) * factor));
-	const g = Math.min(255, Math.round(((rgb >> 8) & 0xff) * factor));
-	const b = Math.min(255, Math.round((rgb & 0xff) * factor));
-	return (r << 16) | (g << 8) | b;
+/** Preload all car spritesheets and force nearest-neighbor scaling so the
+ * pixel art stays crisp at any zoom. Call once at boot. */
+export async function preloadCarSheets(): Promise<void> {
+	for (const url of SHEET_URLS) {
+		const tex = (await Assets.load(url)) as Texture;
+		tex.source.scaleMode = "nearest";
+		sheetTextureCache.set(url, tex);
+	}
 }
 
-/** Draws an 8-bit pixel-art top-down car centered at (0,0) facing +x. */
-export function renderCar(
-	g: Graphics,
-	look: CarLook,
-	opts: { brake?: boolean } = {},
-): void {
-	g.clear();
-	const tailAlpha = opts.brake ? 1 : 0.65;
-	const bodyDark = shade(look.bodyColor, 0.72);
-	const bodyLight = shade(look.bodyColor, 1.18);
-	for (let row = 0; row < H_CELLS; row++) {
-		const line = CAR_SPRITE[row];
-		for (let col = 0; col < W_CELLS; col++) {
-			const ch = line[col];
-			if (ch === ".") continue;
-			const px = ORIGIN_X + col * CELL;
-			const py = ORIGIN_Y + row * CELL;
-			if (ch === "T") {
-				g.rect(px, py, CELL, CELL).fill({
-					color: look.taillightColor,
-					alpha: tailAlpha,
-				});
-			} else if (ch === "B") {
-				g.rect(px, py, CELL, CELL).fill(look.bodyColor);
-			} else if (ch === "D") {
-				g.rect(px, py, CELL, CELL).fill(bodyDark);
-			} else if (ch === "R") {
-				g.rect(px, py, CELL, CELL).fill(bodyLight);
-			} else if (ch === "W") {
-				g.rect(px, py, CELL, CELL).fill(look.windshieldColor);
-			} else if (ch === "H") {
-				g.rect(px, py, CELL, CELL).fill(look.headlightColor);
-			} else if (ch === "G") {
-				g.rect(px, py, CELL, CELL).fill(GRILLE_COLOR);
-			} else if (ch === "K") {
-				g.rect(px, py, CELL, CELL).fill(WHEEL_COLOR);
-			}
-		}
+function getCarTexture(def: CarDef): Texture {
+	const cached = carTextureCache.get(def.id);
+	if (cached) return cached;
+	const sheet = sheetTextureCache.get(def.sheet);
+	if (!sheet) {
+		throw new Error(
+			`Car sheet "${def.sheet}" not preloaded. Call preloadCarSheets() at boot.`,
+		);
 	}
+	const tex = new Texture({
+		source: sheet.source,
+		frame: new Rectangle(def.frame.x, def.frame.y, def.frame.w, def.frame.h),
+	});
+	carTextureCache.set(def.id, tex);
+	return tex;
+}
+
+/** Returns the world-unit dimensions (length along facing, width across) for
+ * a car after scaling to CAR_TARGET_LENGTH. */
+export function carWorldSize(def: CarDef): { length: number; width: number } {
+	const length = CAR_TARGET_LENGTH;
+	const width = (def.frame.w / def.frame.h) * length;
+	return { length, width };
+}
+
+export type CarView = {
+	view: Container;
+	setBraking(braking: boolean): void;
+	dispose(): void;
+};
+
+/** Build a car display object: a Container at world position (0,0) holding the
+ * sprite. The container's `rotation` should be set to `car.facing`; the inner
+ * sprite carries a +π/2 baseline rotation so facing=0 (which means +X) renders
+ * the car heading east, even though the source art faces -Y. */
+export function makeCarView(carId: string | null | undefined): CarView {
+	const def = getCar(carId);
+	const tex = getCarTexture(def);
+	const view = new Container();
+	const sprite = new Sprite(tex);
+	sprite.anchor.set(0.5);
+	sprite.rotation = Math.PI / 2;
+	const length = CAR_TARGET_LENGTH;
+	const scale = length / def.frame.h;
+	sprite.scale.set(scale);
+	view.addChild(sprite);
+	let braking = false;
+	return {
+		view,
+		setBraking(next: boolean) {
+			if (next === braking) return;
+			braking = next;
+			// Subtle red tint when braking — a wash that suggests glowing brake
+			// lights without painting the entire car red.
+			sprite.tint = braking ? 0xffaaaa : 0xffffff;
+		},
+		dispose() {
+			view.destroy({ children: true });
+		},
+	};
+}
+
+/** Make a sprite for a car at its native pixel size, with no rotation —
+ * used by UI surfaces (locker grid, home preview). The returned sprite is
+ * anchored at center, so position it at the cell center and scale to taste. */
+export function makeCarUiSprite(carId: string | null | undefined): Sprite {
+	const def = getCar(carId);
+	const tex = getCarTexture(def);
+	const sprite = new Sprite(tex);
+	sprite.anchor.set(0.5);
+	return sprite;
 }
