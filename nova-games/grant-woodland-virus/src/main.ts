@@ -140,8 +140,8 @@ function enterJumpscare() {
 	player.pitch = 0.18;
 
 	audio.stopAll();
-	audio.playScream();
 	startLunge(monster, player);
+	window.setTimeout(() => audio.playScream(), 300);
 }
 
 function enterLose() {
