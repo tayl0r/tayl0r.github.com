@@ -13,7 +13,13 @@ import {
 } from "three";
 import * as audio from "./audio";
 import { buildForest, type LogTransform } from "./forest";
-import { createMonster, updateMonster } from "./monster";
+import {
+	createMonster,
+	resetMonster,
+	startLunge,
+	updateLunge,
+	updateMonster,
+} from "./monster";
 import {
 	attachPlayerInput,
 	createPlayer,
@@ -27,7 +33,7 @@ import {
 } from "./player";
 import { createUI } from "./ui";
 
-type GameState = "title" | "playing" | "win" | "lose";
+type GameState = "title" | "playing" | "lunge" | "win" | "lose";
 
 const scene = new Scene();
 scene.fog = new FogExp2(0x050a08, 0.05);
@@ -96,6 +102,7 @@ function enterTitle() {
 function enterPlaying() {
 	state = "playing";
 	resetPlayer(player);
+	resetMonster(monster);
 	ui.hideTitle();
 	ui.hideLose();
 	ui.setStaminaVisible(true);
@@ -120,7 +127,7 @@ function enterWin() {
 }
 
 function enterJumpscare() {
-	state = "lose";
+	state = "lunge";
 	setInputActive(false);
 	if (document.pointerLockElement) document.exitPointerLock();
 	ui.setStaminaVisible(false);
@@ -130,19 +137,23 @@ function enterJumpscare() {
 	const jdx = monster.position.x - player.position.x;
 	const jdz = monster.position.z - player.position.z;
 	player.yaw = Math.atan2(-jdx, -jdz);
-	player.pitch = 0;
+	player.pitch = 0.18;
 
 	audio.stopAll();
 	audio.playScream();
-	ui.showJumpscare();
+	startLunge(monster, player);
+}
 
+function enterLose() {
+	state = "lose";
+	ui.showJumpscare();
 	window.setTimeout(() => {
 		ui.hideJumpscare();
 		ui.showLose(
 			() => enterPlaying(),
 			() => enterTitle(),
 		);
-	}, 1500);
+	}, 1200);
 }
 
 document.addEventListener("pointerlockchange", () => {
@@ -190,6 +201,10 @@ function animate() {
 		const dz = player.position.z - forest.flagPosition.z;
 		if (Math.hypot(dx, dz) < 1.5) {
 			enterWin();
+		}
+	} else if (state === "lunge") {
+		if (updateLunge(monster, dt)) {
+			enterLose();
 		}
 	}
 	renderer.render(scene, camera);
