@@ -13,7 +13,7 @@ function setHearts(el: HTMLElement, filled: number, empty: number): void {
 	el.appendChild(hollow);
 }
 
-export function renderHud(state: GameState): void {
+export function renderHud(state: GameState, godMode: boolean): void {
 	const p = state.player;
 	const filled = Math.max(0, Math.min(p.maxHealth, Math.ceil(p.health)));
 	const empty = p.maxHealth - filled;
@@ -35,6 +35,8 @@ export function renderHud(state: GameState): void {
 		const flashing = state.now < p.hitFlashUntil;
 		hud.classList.toggle("hud-flash", flashing);
 	}
+	const godEl = document.getElementById("hud-godmode");
+	if (godEl) godEl.style.display = godMode ? "block" : "none";
 	const banner = document.getElementById("hud-banner");
 	if (banner) {
 		if (state.phase === "dead") {
