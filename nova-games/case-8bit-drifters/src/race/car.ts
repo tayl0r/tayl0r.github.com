@@ -1,5 +1,3 @@
-import type { CarLook } from "../art/car";
-import { DEFAULT_LOOK } from "../art/car";
 import { DEFAULT_DRIFT_CONFIG, type DriftState, stepDriftState } from "./drift";
 import type { InputState } from "./input";
 
@@ -20,7 +18,6 @@ export class Car {
 	vx = 0;
 	vy = 0;
 	facing = 0;
-	look: CarLook = DEFAULT_LOOK;
 	state: DriftState = "GRIP";
 
 	private prevFacing = 0;

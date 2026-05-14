@@ -11,7 +11,11 @@ test("loadState returns defaults when nothing stored", () => {
 });
 
 test("saveState then loadState round-trips", () => {
-	const s: StoredState = { profile: { name: "case" }, bests: { tokyo: 61234 } };
+	const s: StoredState = {
+		profile: { name: "case" },
+		bests: { tokyo: 61234 },
+		carId: "mk2-3",
+	};
 	saveState(s);
 	expect(loadState()).toEqual(s);
 });
