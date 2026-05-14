@@ -37,6 +37,25 @@ const TITLE_TEXT_STYLE = `
 	letter-spacing: 0.12em;
 	text-shadow: 0 0 20px rgba(20, 60, 30, 0.6);
 	margin: 0;
+	animation: wv-title-shake 0.32s linear infinite;
+	transform-origin: center;
+	will-change: transform;
+`;
+
+const TITLE_KEYFRAMES = `
+@keyframes wv-title-shake {
+	0%   { transform: translate(0px, 0px) rotate(0deg); }
+	10%  { transform: translate(-1px, 1px) rotate(-0.3deg); }
+	20%  { transform: translate(1px, -1px) rotate(0.4deg); }
+	30%  { transform: translate(-2px, -1px) rotate(-0.2deg); }
+	40%  { transform: translate(2px, 0px) rotate(0.3deg); }
+	50%  { transform: translate(-2px, 2px) rotate(-0.4deg); }
+	60%  { transform: translate(1px, 2px) rotate(0.2deg); }
+	70%  { transform: translate(-1px, -2px) rotate(0.4deg); }
+	80%  { transform: translate(2px, 1px) rotate(-0.3deg); }
+	90%  { transform: translate(-1px, -1px) rotate(0.2deg); }
+	100% { transform: translate(0px, 0px) rotate(0deg); }
+}
 `;
 
 const SUBTITLE_STYLE = `
@@ -201,6 +220,10 @@ function makeButton(label: string): HTMLButtonElement {
 }
 
 export function createUI(): UI {
+	const styleTag = document.createElement("style");
+	styleTag.textContent = TITLE_KEYFRAMES;
+	document.head.appendChild(styleTag);
+
 	// Title overlay
 	const title = makeOverlay(TITLE_BG);
 	const titleHeading = document.createElement("h1");
