@@ -15,7 +15,7 @@ export type MonsterKind =
 	| "grimReaper"
 	| "goblin"
 	| "orc"
-	| "troll"
+	| "minotaur"
 	| "slime"
 	| "fireElemental"
 	| "lich";
@@ -70,9 +70,9 @@ const STATS: Record<MonsterKind, MonsterStats> = {
 		damage: 1,
 		isBoss: false,
 	},
-	troll: {
+	minotaur: {
 		hp: 12,
-		speed: 1.8,
+		speed: 2.2,
 		radius: 0.9,
 		contact: 2.0,
 		damage: 1.5,
@@ -191,8 +191,8 @@ export function createMonsterModel(kind: MonsterKind): MonsterModel {
 			return buildGoblin();
 		case "orc":
 			return buildOrc();
-		case "troll":
-			return buildTroll();
+		case "minotaur":
+			return buildMinotaur();
 		case "slime":
 			return buildSlime();
 		case "fireElemental":
@@ -204,29 +204,92 @@ export function createMonsterModel(kind: MonsterKind): MonsterModel {
 
 function buildSkeleton(): MonsterModel {
 	const group = new Group();
-	const bone = new MeshStandardMaterial({ color: 0xeeddc8 });
-	const torso = new Mesh(new BoxGeometry(0.4, 0.4, 0.22), bone);
-	torso.position.y = 0.7;
-	group.add(torso);
-	const head = new Mesh(new SphereGeometry(0.18, 12, 8), bone);
-	head.position.y = 1.05;
-	group.add(head);
-	const eyeMat = new MeshStandardMaterial({ color: 0x000000 });
-	for (const ex of [-0.06, 0.06]) {
-		const eye = new Mesh(new SphereGeometry(0.03, 6, 6), eyeMat);
-		eye.position.set(ex, 1.07, 0.16);
-		group.add(eye);
+	const bone = new MeshStandardMaterial({ color: 0xf2ead2 });
+	const dark = new MeshStandardMaterial({ color: 0x080806 });
+
+	const skull = new Mesh(new SphereGeometry(0.18, 14, 10), bone);
+	skull.position.y = 1.18;
+	skull.scale.y = 0.95;
+	group.add(skull);
+
+	for (const ex of [-0.07, 0.07]) {
+		const socket = new Mesh(new SphereGeometry(0.045, 8, 6), dark);
+		socket.position.set(ex, 1.2, 0.14);
+		group.add(socket);
 	}
-	for (const ax of [-0.27, 0.27]) {
-		const arm = new Mesh(new CylinderGeometry(0.05, 0.05, 0.45, 6), bone);
-		arm.position.set(ax, 0.65, 0);
-		group.add(arm);
+	const noseHole = new Mesh(new SphereGeometry(0.025, 6, 6), dark);
+	noseHole.position.set(0, 1.13, 0.17);
+	group.add(noseHole);
+
+	const jaw = new Mesh(new BoxGeometry(0.2, 0.06, 0.14), bone);
+	jaw.position.set(0, 1.02, 0.04);
+	group.add(jaw);
+	for (let i = 0; i < 5; i++) {
+		const tooth = new Mesh(new BoxGeometry(0.025, 0.04, 0.02), bone);
+		tooth.position.set(-0.06 + i * 0.03, 1.06, 0.11);
+		group.add(tooth);
 	}
-	for (const lx of [-0.1, 0.1]) {
-		const leg = new Mesh(new CylinderGeometry(0.05, 0.05, 0.45, 6), bone);
-		leg.position.set(lx, 0.225, 0);
-		group.add(leg);
+
+	const neck = new Mesh(new CylinderGeometry(0.04, 0.04, 0.08, 6), bone);
+	neck.position.y = 0.96;
+	group.add(neck);
+
+	const spine = new Mesh(new CylinderGeometry(0.03, 0.03, 0.4, 6), bone);
+	spine.position.y = 0.72;
+	group.add(spine);
+
+	for (const y of [0.88, 0.78, 0.68, 0.58]) {
+		const rib = new Mesh(new TorusGeometry(0.16, 0.022, 6, 16), bone);
+		rib.position.y = y;
+		rib.rotation.x = Math.PI / 2;
+		rib.scale.z = 0.7;
+		group.add(rib);
 	}
+
+	const pelvis = new Mesh(new BoxGeometry(0.28, 0.09, 0.15), bone);
+	pelvis.position.y = 0.5;
+	group.add(pelvis);
+
+	for (const sx of [-0.22, 0.22]) {
+		const shoulder = new Mesh(new SphereGeometry(0.05, 8, 6), bone);
+		shoulder.position.set(sx, 0.92, 0);
+		group.add(shoulder);
+
+		const upper = new Mesh(new CylinderGeometry(0.035, 0.035, 0.26, 6), bone);
+		upper.position.set(sx, 0.79, 0);
+		group.add(upper);
+
+		const elbow = new Mesh(new SphereGeometry(0.045, 8, 6), bone);
+		elbow.position.set(sx, 0.66, 0);
+		group.add(elbow);
+
+		const lower = new Mesh(new CylinderGeometry(0.03, 0.03, 0.26, 6), bone);
+		lower.position.set(sx, 0.53, 0);
+		group.add(lower);
+
+		const hand = new Mesh(new SphereGeometry(0.05, 8, 6), bone);
+		hand.position.set(sx, 0.4, 0);
+		group.add(hand);
+	}
+
+	for (const lx of [-0.09, 0.09]) {
+		const hip = new Mesh(new SphereGeometry(0.05, 8, 6), bone);
+		hip.position.set(lx, 0.45, 0);
+		group.add(hip);
+
+		const thigh = new Mesh(new CylinderGeometry(0.04, 0.04, 0.26, 6), bone);
+		thigh.position.set(lx, 0.32, 0);
+		group.add(thigh);
+
+		const knee = new Mesh(new SphereGeometry(0.045, 8, 6), bone);
+		knee.position.set(lx, 0.19, 0);
+		group.add(knee);
+
+		const shin = new Mesh(new CylinderGeometry(0.035, 0.035, 0.18, 6), bone);
+		shin.position.set(lx, 0.09, 0);
+		group.add(shin);
+	}
+
 	return { group, flashMaterial: bone };
 }
 
@@ -376,42 +439,115 @@ function buildOrc(): MonsterModel {
 	return { group, flashMaterial: skin };
 }
 
-function buildTroll(): MonsterModel {
+function buildMinotaur(): MonsterModel {
 	const group = new Group();
-	const hide = new MeshStandardMaterial({ color: 0x3a5a3a });
-	const torso = new Mesh(new BoxGeometry(1.0, 1.0, 0.6), hide);
+	const fur = new MeshStandardMaterial({ color: 0x5a3014 });
+	const hide = new MeshStandardMaterial({ color: 0x3a1f0a });
+	const horn = new MeshStandardMaterial({ color: 0xeee2c4 });
+	const metal = new MeshStandardMaterial({
+		color: 0x888080,
+		emissive: 0x111111,
+	});
+	const black = new MeshStandardMaterial({ color: 0x100804 });
+
+	const torso = new Mesh(new BoxGeometry(0.95, 1.0, 0.55), fur);
 	torso.position.y = 1.1;
 	group.add(torso);
-	const head = new Mesh(new SphereGeometry(0.36, 14, 10), hide);
-	head.position.y = 1.85;
+
+	const chest = new Mesh(new BoxGeometry(0.85, 0.3, 0.5), fur);
+	chest.position.y = 1.45;
+	group.add(chest);
+
+	const belt = new Mesh(new BoxGeometry(1.0, 0.14, 0.6), hide);
+	belt.position.y = 0.65;
+	group.add(belt);
+
+	const head = new Mesh(new BoxGeometry(0.55, 0.42, 0.5), fur);
+	head.position.set(0, 1.88, 0.05);
 	group.add(head);
-	const tuskMat = new MeshStandardMaterial({ color: 0xeeeecc });
-	for (const tx of [-0.1, 0.1]) {
-		const tusk = new Mesh(new ConeGeometry(0.05, 0.18, 6), tuskMat);
-		tusk.position.set(tx, 1.74, 0.3);
-		tusk.rotation.x = Math.PI;
-		group.add(tusk);
+
+	const snout = new Mesh(new BoxGeometry(0.35, 0.28, 0.3), hide);
+	snout.position.set(0, 1.78, 0.4);
+	group.add(snout);
+
+	for (const nx of [-0.07, 0.07]) {
+		const nostril = new Mesh(new SphereGeometry(0.03, 6, 6), black);
+		nostril.position.set(nx, 1.82, 0.55);
+		group.add(nostril);
 	}
+
+	const ring = new Mesh(
+		new TorusGeometry(0.06, 0.014, 6, 12),
+		new MeshStandardMaterial({ color: 0xddaa44 }),
+	);
+	ring.position.set(0, 1.7, 0.56);
+	ring.rotation.x = Math.PI / 2;
+	group.add(ring);
+
+	for (const side of [-1, 1]) {
+		const hornMesh = new Mesh(new ConeGeometry(0.07, 0.55, 8), horn);
+		hornMesh.position.set(side * 0.3, 2.05, 0.05);
+		hornMesh.rotation.z = side * (-Math.PI / 2.4);
+		hornMesh.rotation.x = -0.25;
+		group.add(hornMesh);
+	}
+
 	const eyeMat = new MeshStandardMaterial({
-		color: 0xffeb33,
-		emissive: 0x664400,
+		color: 0xff3322,
+		emissive: 0x661100,
 	});
 	for (const ex of [-0.13, 0.13]) {
-		const eye = new Mesh(new SphereGeometry(0.06, 8, 6), eyeMat);
-		eye.position.set(ex, 1.92, 0.3);
+		const eye = new Mesh(new SphereGeometry(0.05, 8, 6), eyeMat);
+		eye.position.set(ex, 1.95, 0.27);
 		group.add(eye);
 	}
-	for (const ax of [-0.65, 0.65]) {
-		const arm = new Mesh(new CylinderGeometry(0.18, 0.16, 1.0, 8), hide);
+
+	for (const sx of [-0.34, 0.34]) {
+		const ear = new Mesh(new ConeGeometry(0.08, 0.18, 5), fur);
+		ear.position.set(sx, 1.92, 0.05);
+		ear.rotation.z = sx < 0 ? Math.PI / 2 : -Math.PI / 2;
+		group.add(ear);
+	}
+
+	for (const ax of [-0.62, 0.62]) {
+		const shoulder = new Mesh(new SphereGeometry(0.2, 10, 8), fur);
+		shoulder.position.set(ax, 1.5, 0);
+		group.add(shoulder);
+		const arm = new Mesh(new CylinderGeometry(0.16, 0.14, 0.95, 8), fur);
 		arm.position.set(ax, 1.0, 0);
 		group.add(arm);
+		const fist = new Mesh(new SphereGeometry(0.18, 10, 8), fur);
+		fist.position.set(ax, 0.48, 0);
+		group.add(fist);
 	}
-	for (const lx of [-0.27, 0.27]) {
-		const leg = new Mesh(new CylinderGeometry(0.2, 0.22, 0.7, 8), hide);
-		leg.position.set(lx, 0.35, 0);
-		group.add(leg);
+
+	for (const lx of [-0.25, 0.25]) {
+		const thigh = new Mesh(new CylinderGeometry(0.2, 0.16, 0.55, 8), fur);
+		thigh.position.set(lx, 0.32, 0);
+		group.add(thigh);
+		const hoof = new Mesh(new CylinderGeometry(0.18, 0.18, 0.1, 8), black);
+		hoof.position.set(lx, 0.05, 0.05);
+		group.add(hoof);
 	}
-	return { group, flashMaterial: hide };
+
+	const axeHandle = new Mesh(
+		new CylinderGeometry(0.05, 0.05, 1.4, 8),
+		new MeshStandardMaterial({ color: 0x3a2010 }),
+	);
+	axeHandle.position.set(0.78, 1.0, 0.18);
+	axeHandle.rotation.z = -0.15;
+	group.add(axeHandle);
+
+	const axeHead = new Mesh(new BoxGeometry(0.36, 0.4, 0.06), metal);
+	axeHead.position.set(0.95, 1.55, 0.18);
+	axeHead.rotation.z = -0.15;
+	group.add(axeHead);
+	const axeEdge = new Mesh(new ConeGeometry(0.08, 0.3, 4), metal);
+	axeEdge.position.set(1.18, 1.55, 0.18);
+	axeEdge.rotation.z = -Math.PI / 2;
+	group.add(axeEdge);
+
+	return { group, flashMaterial: fur };
 }
 
 function buildSlime(): MonsterModel {

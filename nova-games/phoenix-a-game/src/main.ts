@@ -546,6 +546,11 @@ function animate() {
 			if (m.mesh) {
 				m.mesh.position.x = m.x;
 				m.mesh.position.z = m.z;
+				const dx = player.position.x - m.x;
+				const dz = player.position.z - m.z;
+				if (dx * dx + dz * dz > 1e-4) {
+					m.mesh.rotation.y = Math.atan2(dx, dz);
+				}
 				if (!m.dormant) m.walkPhase += dt * 8;
 				let scaleY = 1 + Math.sin(m.walkPhase) * 0.06;
 				let scaleXZ = 1 - Math.sin(m.walkPhase) * 0.04;

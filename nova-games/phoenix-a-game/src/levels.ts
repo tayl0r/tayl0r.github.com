@@ -76,7 +76,7 @@ const LEVEL_2: LevelConfig = {
 	boss: 15,
 	lightEnemy: "goblin",
 	mediumEnemy: "orc",
-	bossEnemy: "troll",
+	bossEnemy: "minotaur",
 	lightRooms: [1, 2, 4, 5, 7, 8, 10, 11, 13, 14],
 	mediumRooms: [3, 6, 9, 12],
 	switchRooms: [2, 5, 8, 11, 14, 17],
