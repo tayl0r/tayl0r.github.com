@@ -17,7 +17,7 @@ describe("createMonster", () => {
 	});
 	it("identifies boss kinds", () => {
 		expect(isBossKind("grimReaper")).toBe(true);
-		expect(isBossKind("troll")).toBe(true);
+		expect(isBossKind("minotaur")).toBe(true);
 		expect(isBossKind("lich")).toBe(true);
 		expect(isBossKind("skeleton")).toBe(false);
 		expect(isBossKind("slime")).toBe(false);
@@ -52,7 +52,7 @@ describe("createMonsterModel", () => {
 		"grimReaper",
 		"goblin",
 		"orc",
-		"troll",
+		"minotaur",
 		"slime",
 		"fireElemental",
 		"lich",
