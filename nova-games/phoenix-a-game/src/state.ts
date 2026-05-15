@@ -1,5 +1,3 @@
-export type Weapon = "sword" | "bow";
-
 export type ItemKind = "sword" | "bow" | "food";
 export type Quality = 1 | 2 | 3 | 4 | 5 | 6;
 
@@ -40,11 +38,6 @@ export interface PlayerState {
 	maxHealth: number;
 	stamina: number;
 	maxStamina: number;
-	// Legacy — removed in Task 14
-	swordDamage: number;
-	bowDamage: number;
-	weapon: Weapon;
-	// New
 	hotbar: (Item | null)[];
 	selectedSlot: number;
 	iframesUntil: number;
@@ -68,9 +61,6 @@ export function createInitialState(): GameState {
 			maxHealth: 3,
 			stamina: 100,
 			maxStamina: 100,
-			swordDamage: 1,
-			bowDamage: 1,
-			weapon: "sword",
 			hotbar,
 			selectedSlot: 0,
 			iframesUntil: 0,

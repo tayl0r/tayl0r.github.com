@@ -1,5 +1,3 @@
-import type { Weapon } from "./state";
-
 export interface InputState {
 	w: boolean;
 	a: boolean;
@@ -7,7 +5,6 @@ export interface InputState {
 	d: boolean;
 	shift: boolean;
 	click: boolean;
-	weapon: Weapon; // legacy — removed in Task 14
 	interact: boolean;
 	cycleLeft: boolean;
 	cycleRight: boolean;
@@ -25,7 +22,6 @@ export function createInput(): InputState {
 		d: false,
 		shift: false,
 		click: false,
-		weapon: "sword",
 		interact: false,
 		cycleLeft: false,
 		cycleRight: false,
@@ -65,16 +61,10 @@ export function wireInput(input: InputState): void {
 				if (down) input.interact = true;
 				break;
 			case "Digit1":
-				if (down) {
-					input.weapon = "sword";
-					input.slotDigit = 0;
-				}
+				if (down) input.slotDigit = 0;
 				break;
 			case "Digit2":
-				if (down) {
-					input.weapon = "bow";
-					input.slotDigit = 1;
-				}
+				if (down) input.slotDigit = 1;
 				break;
 			case "Digit3":
 				if (down) input.slotDigit = 2;

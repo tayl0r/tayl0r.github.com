@@ -45,12 +45,7 @@ import {
 	type MonsterKind,
 	moveMonsterTowards,
 } from "./monsters";
-import {
-	computeVelocity,
-	createPlayerMesh,
-	PLAYER_RADIUS,
-	weaponColorFor,
-} from "./player";
+import { computeVelocity, createPlayerMesh, PLAYER_RADIUS } from "./player";
 import {
 	canAttack,
 	consumeAttackStamina,
@@ -234,7 +229,6 @@ function teardownDungeon() {
 	for (const m of monsters) if (m.mesh) disposeObject(m.mesh);
 	for (const c of chests) {
 		disposeObject(c.mesh);
-		if (c.dropMesh) disposeObject(c.dropMesh);
 	}
 	for (const d of doors) disposeObject(d.mesh);
 	for (const s of roomSwitches) disposeObject(s.mesh);
@@ -303,13 +297,14 @@ function descendFloor() {
 function resetPlayerStats() {
 	state.player.health = state.player.maxHealth;
 	state.player.stamina = state.player.maxStamina;
-	state.player.swordDamage = 1;
-	state.player.bowDamage = 1;
-	state.player.weapon = "sword";
 	state.player.iframesUntil = 0;
 	state.player.hitFlashUntil = 0;
 	state.player.lastAttackAt = -Infinity;
-	input.weapon = "sword";
+	for (let i = 0; i < state.player.hotbar.length; i++) {
+		state.player.hotbar[i] = null;
+	}
+	state.player.hotbar[0] = { kind: "sword", quality: 1 };
+	state.player.selectedSlot = 0;
 }
 
 function respawnPlayer() {
@@ -339,6 +334,9 @@ function wakeRooms(roomIndices: readonly number[]) {
 function fireArrow() {
 	const dir = new Vector3();
 	camera.getWorldDirection(dir);
+	const equippedNow = equippedItem(state);
+	const dmg = equippedNow?.kind === "bow" ? equippedNow.quality : 1;
+	const color = QUALITY_COLORS[(equippedNow?.quality ?? 1) - 1];
 	const arrow = createArrow(
 		camera.position.x + dir.x * 0.6,
 		camera.position.y + dir.y * 0.6 - 0.1,
@@ -346,8 +344,8 @@ function fireArrow() {
 		dir.x,
 		dir.y,
 		dir.z,
-		state.player.bowDamage,
-		weaponColorFor(state.player.bowDamage),
+		dmg,
+		color,
 		state.now,
 	);
 	arrows.push(arrow);
@@ -430,15 +428,11 @@ function animate() {
 	if (showSword && equipped) {
 		const tint = QUALITY_COLORS[equipped.quality - 1];
 		playerMesh.swordBladeMaterial.color.setHex(tint);
-		state.player.swordDamage = equipped.quality;
 	}
 	if (showBow && equipped) {
 		const tint = QUALITY_COLORS[equipped.quality - 1];
 		playerMesh.bowAccentMaterial.color.setHex(tint);
-		state.player.bowDamage = equipped.quality;
 	}
-	// Keep legacy weapon field in sync — removed in cleanup task
-	state.player.weapon = showBow ? "bow" : "sword";
 	const v = computeVelocity(input, input.shift, follow.yaw);
 	tickPlayer(state, dt);
 	const walls = activeWalls();
@@ -534,10 +528,11 @@ function animate() {
 	if (state.phase === "playing") {
 		const facingX = -Math.sin(follow.yaw);
 		const facingZ = -Math.cos(follow.yaw);
+		const swingDamage = equipped?.kind === "sword" ? equipped.quality : 1;
 		updateSwing(
 			swing,
 			state.now,
-			state.player.swordDamage,
+			swingDamage,
 			facingX,
 			facingZ,
 			player.position.x,

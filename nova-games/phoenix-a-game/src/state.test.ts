@@ -23,6 +23,12 @@ describe("createInitialState", () => {
 		expect("hunger" in s.player).toBe(false);
 		expect("maxHunger" in s.player).toBe(false);
 	});
+	it("does not expose legacy damage fields", () => {
+		const s = createInitialState();
+		expect("swordDamage" in s.player).toBe(false);
+		expect("bowDamage" in s.player).toBe(false);
+		expect("weapon" in s.player).toBe(false);
+	});
 });
 
 describe("attack stamina", () => {
