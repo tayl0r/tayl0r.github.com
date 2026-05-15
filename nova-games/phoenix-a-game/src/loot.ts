@@ -8,7 +8,7 @@ import {
 	SphereGeometry,
 	TorusGeometry,
 } from "three";
-import type { GameState } from "./state";
+import type { GameState, Item, ItemKind, Quality } from "./state";
 
 export type DropKind = "food" | "sword" | "bow";
 
@@ -249,4 +249,45 @@ export function updateChestDrop(chest: Chest, now: number): boolean {
 		if (fadeT >= FADE_DURATION) return true;
 	}
 	return false;
+}
+
+const QUALITY_WEIGHTS: readonly (readonly number[])[] = [
+	[55, 30, 12, 3, 0, 0], // floor 0
+	[35, 35, 20, 8, 2, 0], // floor 1
+	[20, 30, 28, 15, 6, 1], // floor 2
+	[10, 22, 28, 22, 13, 5], // floor 3
+	[5, 15, 25, 25, 20, 10], // floor 4+
+];
+
+function rollQuality(rng: () => number, band: number): Quality {
+	const weights = QUALITY_WEIGHTS[Math.min(band, QUALITY_WEIGHTS.length - 1)];
+	const total = weights.reduce((a, b) => a + b, 0);
+	let r = rng() * total;
+	for (let i = 0; i < weights.length; i++) {
+		r -= weights[i];
+		if (r < 0) return (i + 1) as Quality;
+	}
+	return weights.length as Quality;
+}
+
+function rollKind(rng: () => number, boss: boolean): ItemKind {
+	if (boss) {
+		return rng() < 0.5 ? "sword" : "bow";
+	}
+	const r = rng();
+	if (r < 0.35) return "food";
+	if (r < 0.7) return "sword";
+	return "bow";
+}
+
+export function rollItemDrop(
+	rng: () => number,
+	floor: number,
+	boss: boolean,
+): Item {
+	const kind = rollKind(rng, boss);
+	if (kind === "food") return { kind, quality: 1 };
+	const band = Math.max(0, Math.floor(floor)) + (boss ? 1 : 0);
+	const quality = rollQuality(rng, band);
+	return { kind, quality };
 }
