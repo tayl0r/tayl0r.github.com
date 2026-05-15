@@ -41,3 +41,43 @@ describe("markPickedUp / updateWorldDrop", () => {
 		expect(typeof updateWorldDrop).toBe("function");
 	});
 });
+
+const ITEM: Item = { kind: "sword", quality: 1 };
+
+describe("updateWorldDrop physics", () => {
+	it("a stationary drop stays put and does not settle off of zero velocity", () => {
+		const d = createWorldDrop(ITEM, 5, 0.7, 5, 0, 0, 0, 0);
+		d.settled = true;
+		const done = updateWorldDrop(d, 1 / 60, 0);
+		expect(done).toBe(false);
+		expect(d.x).toBe(5);
+		expect(d.z).toBe(5);
+	});
+	it("an arced drop lands on the floor and settles", () => {
+		const d = createWorldDrop(ITEM, 0, 1.2, 0, 6, 2, 0, 0);
+		let t = 0;
+		for (let i = 0; i < 600; i++) {
+			updateWorldDrop(d, 1 / 60, t);
+			t += 1 / 60;
+			if (d.settled) break;
+		}
+		expect(d.settled).toBe(true);
+		expect(d.y).toBeCloseTo(0.3, 1);
+		expect(d.x).toBeGreaterThan(1); // moved forward
+	});
+	it("syncs mesh position to drop position each tick", () => {
+		const d = createWorldDrop(ITEM, 0, 1.2, 0, 0, 5, 0, 0);
+		updateWorldDrop(d, 0.1, 0);
+		expect(d.mesh.position.y).toBeCloseTo(d.y, 5);
+	});
+});
+
+describe("updateWorldDrop fade", () => {
+	it("returns true only after fade completes", () => {
+		const d = createWorldDrop(ITEM, 0, 0.7, 0, 0, 0, 0, 0);
+		d.settled = true;
+		markPickedUp(d, 10);
+		expect(updateWorldDrop(d, 1 / 60, 10.1)).toBe(false);
+		expect(updateWorldDrop(d, 1 / 60, 10.7)).toBe(true);
+	});
+});

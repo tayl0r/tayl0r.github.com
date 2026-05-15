@@ -148,15 +148,39 @@ export function markPickedUp(drop: WorldDrop, now: number): void {
 
 export function updateWorldDrop(
 	drop: WorldDrop,
-	_dt: number,
+	dt: number,
 	now: number,
 ): boolean {
-	// Stub until Task 5
-	if (
-		drop.pickedUpAt !== undefined &&
-		now - drop.pickedUpAt >= DROP_FADE_DURATION
-	) {
-		return true;
+	if (!drop.settled) {
+		drop.vy -= 9.8 * dt;
+		drop.x += drop.vx * dt;
+		drop.y += drop.vy * dt;
+		drop.z += drop.vz * dt;
+		if (drop.y <= DROP_FLOOR_Y) {
+			drop.y = DROP_FLOOR_Y;
+			drop.vx = 0;
+			drop.vy = 0;
+			drop.vz = 0;
+			drop.settled = true;
+		}
+	} else {
+		const hoverT = now - drop.spawnedAt;
+		drop.y = DROP_FLOOR_Y + Math.sin(hoverT * 2) * 0.05;
+		drop.mesh.rotation.y = hoverT * 1.5;
+	}
+	drop.mesh.position.set(drop.x, drop.y, drop.z);
+
+	if (drop.pickedUpAt !== undefined) {
+		const fadeT = now - drop.pickedUpAt;
+		const opacity = Math.max(0, 1 - fadeT / DROP_FADE_DURATION);
+		drop.mesh.traverse((child) => {
+			const m = (child as { material?: unknown }).material;
+			if (m instanceof MeshStandardMaterial && m.transparent) {
+				m.opacity = opacity;
+			}
+		});
+		drop.mesh.position.y += fadeT * 0.6;
+		if (fadeT >= DROP_FADE_DURATION) return true;
 	}
 	return false;
 }
