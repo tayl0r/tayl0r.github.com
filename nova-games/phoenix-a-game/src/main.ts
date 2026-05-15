@@ -503,19 +503,20 @@ function animate() {
 	}
 	if (input.click && !prevClick) {
 		if (state.phase === "playing") {
-			if (canAttack(state) && equipped) {
-				if (equipped.kind === "sword") {
+			const heldNow = equippedItem(state);
+			if (heldNow?.kind === "food") {
+				state.player.health = Math.min(
+					state.player.maxHealth,
+					state.player.health + 1,
+				);
+				removeSlot(state, state.player.selectedSlot);
+			} else if (canAttack(state) && heldNow) {
+				if (heldNow.kind === "sword") {
 					startSwing(swing, state.now);
 					consumeAttackStamina(state);
-				} else if (equipped.kind === "bow") {
+				} else if (heldNow.kind === "bow") {
 					fireArrow();
 					consumeAttackStamina(state);
-				} else if (equipped.kind === "food") {
-					state.player.health = Math.min(
-						state.player.maxHealth,
-						state.player.health + 1,
-					);
-					removeSlot(state, state.player.selectedSlot);
 				}
 			}
 		} else if (state.phase === "dead") {
@@ -528,7 +529,8 @@ function animate() {
 	if (state.phase === "playing") {
 		const facingX = -Math.sin(follow.yaw);
 		const facingZ = -Math.cos(follow.yaw);
-		const swingDamage = equipped?.kind === "sword" ? equipped.quality : 1;
+		const held = equippedItem(state);
+		const swingDamage = held?.kind === "sword" ? held.quality : 1;
 		updateSwing(
 			swing,
 			state.now,
