@@ -539,6 +539,7 @@ function animate() {
 		);
 		if (input.interact && nearest) {
 			performInteract(nearest, ctx, state.now);
+			nearest = null;
 		}
 		if (swing.active) {
 			const elapsed = state.now - swing.startedAt;
