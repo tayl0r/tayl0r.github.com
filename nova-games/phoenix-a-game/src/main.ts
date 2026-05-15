@@ -56,7 +56,13 @@ import {
 	PLAYER_RADIUS,
 	weaponColorFor,
 } from "./player";
-import { canAttack, consumeAttackStamina, createInitialState } from "./state";
+import {
+	canAttack,
+	consumeAttackStamina,
+	createInitialState,
+	equippedItem,
+	QUALITY_COLORS,
+} from "./state";
 import {
 	activateSwitch,
 	activateWinSwitch,
@@ -518,16 +524,23 @@ function animate() {
 	follow.update(player, input.mouseDX, input.mouseDY);
 	input.mouseDX = 0;
 	input.mouseDY = 0;
-	state.player.weapon = input.weapon;
-	const swordVisible = state.player.weapon === "sword";
-	sword.visible = swordVisible;
-	bow.visible = !swordVisible;
-	playerMesh.swordBladeMaterial.color.setHex(
-		weaponColorFor(state.player.swordDamage),
-	);
-	playerMesh.bowAccentMaterial.color.setHex(
-		weaponColorFor(state.player.bowDamage),
-	);
+	const equipped = equippedItem(state);
+	const showSword = equipped?.kind === "sword";
+	const showBow = equipped?.kind === "bow";
+	sword.visible = showSword;
+	bow.visible = showBow;
+	if (showSword && equipped) {
+		const tint = QUALITY_COLORS[equipped.quality - 1];
+		playerMesh.swordBladeMaterial.color.setHex(tint);
+		state.player.swordDamage = equipped.quality;
+	}
+	if (showBow && equipped) {
+		const tint = QUALITY_COLORS[equipped.quality - 1];
+		playerMesh.bowAccentMaterial.color.setHex(tint);
+		state.player.bowDamage = equipped.quality;
+	}
+	// Keep legacy weapon field in sync — removed in cleanup task
+	state.player.weapon = showBow ? "bow" : "sword";
 	const v = computeVelocity(input, input.shift, follow.yaw);
 	tickPlayer(state, dt);
 	const walls = activeWalls();
@@ -588,14 +601,15 @@ function animate() {
 	}
 	if (input.click && !prevClick) {
 		if (state.phase === "playing") {
-			if (canAttack(state)) {
-				if (state.player.weapon === "sword") {
+			if (canAttack(state) && equipped) {
+				if (equipped.kind === "sword") {
 					startSwing(swing, state.now);
 					consumeAttackStamina(state);
-				} else {
+				} else if (equipped.kind === "bow") {
 					fireArrow();
 					consumeAttackStamina(state);
 				}
+				// food handled in Task 13
 			}
 		} else if (state.phase === "dead") {
 			respawnPlayer();
