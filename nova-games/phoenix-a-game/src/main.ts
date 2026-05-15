@@ -17,31 +17,25 @@ import {
 	type Arrow,
 	arrowExpired,
 	arrowHitsAabb,
-	arrowHitsCircleXZ,
 	arrowHitsMonster,
 	createArrow,
 	updateArrow,
 } from "./arrows";
 import { createFollowCamera } from "./camera";
 import { type Aabb, resolveAll } from "./collision";
-import {
-	checkSwingHit,
-	createSwing,
-	SWING_DURATION,
-	startSwing,
-	updateSwing,
-} from "./combat";
-import { createDoors, type Door, openDoor } from "./doors";
+import { createSwing, SWING_DURATION, startSwing, updateSwing } from "./combat";
+import { createDoors, type Door } from "./doors";
 import { renderHud } from "./hud";
 import { createInput, wireInput } from "./input";
-import { LEVELS } from "./levels";
 import {
-	type Chest,
-	createChest,
-	openChest,
-	pickupDrop,
-	updateChestDrop,
-} from "./loot";
+	describeInteractable,
+	findNearestInteractable,
+	type Interactable,
+	type InteractCtx,
+	performInteract,
+} from "./interact";
+import { LEVELS } from "./levels";
+import { type Chest, createChest } from "./loot";
 import { renderMinimap } from "./minimap";
 import {
 	createMonster,
@@ -61,11 +55,10 @@ import {
 	consumeAttackStamina,
 	createInitialState,
 	equippedItem,
+	type Item,
 	QUALITY_COLORS,
 } from "./state";
 import {
-	activateSwitch,
-	activateWinSwitch,
 	createRoomSwitch,
 	createWinSwitch,
 	type RoomSwitch,
@@ -81,6 +74,11 @@ import {
 	roomAt,
 	type WorldGrid,
 } from "./world";
+import {
+	createWorldDrop,
+	updateWorldDrop,
+	type WorldDrop,
+} from "./world_drops";
 
 const scene = new Scene();
 const camera = new PerspectiveCamera(
@@ -172,6 +170,7 @@ const minimapCanvas = document.getElementById(
 
 let monsters: Monster[] = [];
 let chests: Chest[] = [];
+let drops: WorldDrop[] = [];
 let doors: Door[] = [];
 let roomSwitches: RoomSwitch[] = [];
 let winSwitch!: WinSwitch;
@@ -240,8 +239,10 @@ function teardownDungeon() {
 	for (const s of roomSwitches) disposeObject(s.mesh);
 	if (winSwitch) disposeObject(winSwitch.mesh);
 	for (const a of arrows) disposeObject(a.mesh);
+	for (const d of drops) disposeObject(d.mesh);
 	monsters = [];
 	chests = [];
+	drops = [];
 	doors = [];
 	roomSwitches = [];
 	arrows = [];
@@ -328,96 +329,6 @@ function activeWalls(): Aabb[] {
 	return walls;
 }
 
-function handleSwingTargets(
-	facingX: number,
-	facingZ: number,
-	px: number,
-	pz: number,
-) {
-	for (const door of doors) {
-		if (door.open) continue;
-		if (
-			checkSwingHit(
-				swing,
-				state.now,
-				facingX,
-				facingZ,
-				px,
-				pz,
-				door.centerX,
-				door.centerZ,
-			)
-		) {
-			openDoor(door);
-			wakeRooms(door.roomIndices);
-		}
-	}
-	for (const sw of roomSwitches) {
-		if (sw.activated) continue;
-		if (checkSwingHit(swing, state.now, facingX, facingZ, px, pz, sw.x, sw.z)) {
-			activateSwitch(sw);
-		}
-	}
-	for (const chest of chests) {
-		if (chest.opened) continue;
-		if (
-			checkSwingHit(
-				swing,
-				state.now,
-				facingX,
-				facingZ,
-				px,
-				pz,
-				chest.x,
-				chest.z,
-			)
-		) {
-			const dropMesh = openChest(chest, Math.random, state.now);
-			if (dropMesh) scene.add(dropMesh);
-		}
-	}
-	for (const chest of chests) {
-		if (
-			!chest.dropMesh ||
-			chest.dropPickedUp ||
-			chest.openedAt === undefined ||
-			state.now - chest.openedAt < SWING_DURATION
-		)
-			continue;
-		if (
-			checkSwingHit(
-				swing,
-				state.now,
-				facingX,
-				facingZ,
-				px,
-				pz,
-				chest.x,
-				chest.z,
-			)
-		) {
-			pickupDrop(chest, state, state.now);
-		}
-	}
-	if (winSwitch.unlocked && !winSwitch.activated) {
-		if (
-			checkSwingHit(
-				swing,
-				state.now,
-				facingX,
-				facingZ,
-				px,
-				pz,
-				winSwitch.x,
-				winSwitch.z,
-			)
-		) {
-			activateWinSwitch(winSwitch);
-			descendFloor();
-		}
-	}
-}
-
 function wakeRooms(roomIndices: readonly number[]) {
 	for (const m of monsters) {
 		if (roomIndices.includes(m.roomIndex)) m.dormant = false;
@@ -453,54 +364,6 @@ function handleArrowHit(a: Arrow) {
 			return;
 		}
 	}
-	for (const door of doors) {
-		if (door.open) continue;
-		if (arrowHitsCircleXZ(a, door.centerX, door.centerZ, 1.0)) {
-			openDoor(door);
-			wakeRooms(door.roomIndices);
-			a.alive = false;
-			return;
-		}
-	}
-	for (const sw of roomSwitches) {
-		if (sw.activated) continue;
-		if (arrowHitsCircleXZ(a, sw.x, sw.z, 0.6)) {
-			activateSwitch(sw);
-			a.alive = false;
-			return;
-		}
-	}
-	for (const chest of chests) {
-		if (chest.opened) continue;
-		if (arrowHitsCircleXZ(a, chest.x, chest.z, 0.6, 1.5)) {
-			const dropMesh = openChest(chest, Math.random, state.now);
-			if (dropMesh) scene.add(dropMesh);
-			a.alive = false;
-			return;
-		}
-	}
-	for (const chest of chests) {
-		if (
-			!chest.dropMesh ||
-			chest.dropPickedUp ||
-			chest.openedAt === undefined ||
-			state.now - chest.openedAt < 0.2
-		)
-			continue;
-		if (arrowHitsCircleXZ(a, chest.x, chest.z, 0.6, 2.5)) {
-			pickupDrop(chest, state, state.now);
-			a.alive = false;
-			return;
-		}
-	}
-	if (winSwitch.unlocked && !winSwitch.activated) {
-		if (arrowHitsCircleXZ(a, winSwitch.x, winSwitch.z, 0.6)) {
-			activateWinSwitch(winSwitch);
-			descendFloor();
-			a.alive = false;
-			return;
-		}
-	}
 	if (arrowHitsAabb(a, activeWalls())) {
 		a.alive = false;
 	}
@@ -518,8 +381,42 @@ function pruneArrows() {
 	arrows = survivors;
 }
 
+function throwForward(item: Item): void {
+	const facingX = -Math.sin(follow.yaw);
+	const facingZ = -Math.cos(follow.yaw);
+	const drop = createWorldDrop(
+		item,
+		player.position.x + facingX * 0.6,
+		1.2,
+		player.position.z + facingZ * 0.6,
+		facingX * 6,
+		2,
+		facingZ * 6,
+		state.now,
+	);
+	drops.push(drop);
+	scene.add(drop.mesh);
+}
+
+function buildInteractCtx(): InteractCtx {
+	return {
+		state,
+		doors,
+		roomSwitches,
+		chests,
+		winSwitch,
+		drops,
+		rng: Math.random,
+		scene,
+		wakeRooms,
+		descendFloor,
+		throwForward,
+	};
+}
+
 function animate() {
 	requestAnimationFrame(animate);
+	let nearest: Interactable | null = null;
 	const dt = clock.getDelta();
 	follow.update(player, input.mouseDX, input.mouseDY);
 	input.mouseDX = 0;
@@ -586,13 +483,16 @@ function animate() {
 			player.position.z,
 			PLAYER_RADIUS,
 		);
-		for (const chest of chests) {
-			const done = updateChestDrop(chest, state.now);
-			if (done && chest.dropMesh) {
-				disposeObject(chest.dropMesh);
-				chest.dropMesh = undefined;
+		const survivors: WorldDrop[] = [];
+		for (const d of drops) {
+			const done = updateWorldDrop(d, dt, state.now);
+			if (done) {
+				disposeObject(d.mesh);
+			} else {
+				survivors.push(d);
 			}
 		}
+		drops = survivors;
 		for (const a of arrows) {
 			updateArrow(a, dt);
 			if (a.alive) handleArrowHit(a);
@@ -631,13 +531,14 @@ function animate() {
 			player.position.z,
 			monsters,
 		);
-		if (state.player.weapon === "sword") {
-			handleSwingTargets(
-				facingX,
-				facingZ,
-				player.position.x,
-				player.position.z,
-			);
+		const ctx = buildInteractCtx();
+		nearest = findNearestInteractable(
+			player.position.x,
+			player.position.z,
+			ctx,
+		);
+		if (input.interact && nearest) {
+			performInteract(nearest, ctx, state.now);
 		}
 		if (swing.active) {
 			const elapsed = state.now - swing.startedAt;
@@ -667,11 +568,16 @@ function animate() {
 	}
 	const currentRoom = roomAt(player.position.x, player.position.z);
 	if (currentRoom !== null) visitedRooms.add(currentRoom);
-	renderHud(state);
+	renderHud(state, nearest ? describeInteractable(nearest) : null);
 	if (minimapCanvas) {
 		renderMinimap(minimapCanvas, level, visitedRooms, currentRoom);
 	}
 	renderer.render(scene, camera);
+	input.interact = false;
+	input.cycleLeft = false;
+	input.cycleRight = false;
+	input.dropSelected = false;
+	input.slotDigit = null;
 }
 animate();
 
