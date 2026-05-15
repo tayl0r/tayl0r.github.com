@@ -268,6 +268,7 @@ function makeBackSpots(): Group {
 
 export function createMonster(): MonsterState {
 	const root = new Group();
+	root.rotation.order = "YXZ";
 	root.position.set(SPAWN_X, 0, SPAWN_Z);
 
 	const torso = new Mesh(
