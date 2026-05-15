@@ -25,6 +25,7 @@ import { createFollowCamera } from "./camera";
 import { type Aabb, resolveAll } from "./collision";
 import { createSwing, SWING_DURATION, startSwing, updateSwing } from "./combat";
 import { createDoors, type Door } from "./doors";
+import { cycle, removeSlot, selectSlot } from "./hotbar";
 import { renderHud } from "./hud";
 import { createInput, wireInput } from "./input";
 import {
@@ -442,6 +443,13 @@ function animate() {
 	tickPlayer(state, dt);
 	const walls = activeWalls();
 	if (state.phase === "playing") {
+		if (input.cycleLeft) cycle(state, -1);
+		if (input.cycleRight) cycle(state, 1);
+		if (input.slotDigit !== null) selectSlot(state, input.slotDigit);
+		if (input.dropSelected) {
+			const item = removeSlot(state, state.player.selectedSlot);
+			if (item) throwForward(item);
+		}
 		const candidateX = player.position.x + v.x * dt;
 		const candidateZ = player.position.z + v.z * dt;
 		const resolved = resolveAll(candidateX, candidateZ, PLAYER_RADIUS, walls);
@@ -508,8 +516,13 @@ function animate() {
 				} else if (equipped.kind === "bow") {
 					fireArrow();
 					consumeAttackStamina(state);
+				} else if (equipped.kind === "food") {
+					state.player.health = Math.min(
+						state.player.maxHealth,
+						state.player.health + 1,
+					);
+					removeSlot(state, state.player.selectedSlot);
 				}
-				// food handled in Task 13
 			}
 		} else if (state.phase === "dead") {
 			respawnPlayer();
