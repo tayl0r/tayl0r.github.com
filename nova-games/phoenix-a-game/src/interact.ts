@@ -1,9 +1,15 @@
 import type { Scene } from "three";
-import type { Door } from "./doors";
-import type { Chest } from "./loot";
-import type { GameState, Item } from "./state";
-import type { RoomSwitch, WinSwitch } from "./switches";
-import type { WorldDrop } from "./world_drops";
+import { type Door, openDoor } from "./doors";
+import { addItem } from "./hotbar";
+import { type Chest, rollItemDrop } from "./loot";
+import { type GameState, type Item, QUALITY_NAMES } from "./state";
+import {
+	activateSwitch,
+	activateWinSwitch,
+	type RoomSwitch,
+	type WinSwitch,
+} from "./switches";
+import { createWorldDrop, markPickedUp, type WorldDrop } from "./world_drops";
 
 export const INTERACT_RANGE = 2.5;
 
@@ -73,4 +79,66 @@ export function findNearestInteractable(
 		consider(dist2(px, pz, drop.x, drop.z), { kind: "pickup", drop });
 	}
 	return best;
+}
+
+export function performInteract(
+	target: Interactable,
+	ctx: InteractCtx,
+	now: number,
+): void {
+	switch (target.kind) {
+		case "door": {
+			openDoor(target.door);
+			ctx.wakeRooms(target.door.roomIndices);
+			return;
+		}
+		case "switch": {
+			activateSwitch(target.sw);
+			return;
+		}
+		case "chest": {
+			const chest = target.chest;
+			chest.opened = true;
+			chest.bodyMaterial.color.setHex(chest.boss ? 0x665500 : 0x3a2a1a);
+			chest.lid.rotation.x = -1.0;
+			chest.lid.position.set(0, 0.5, -0.25);
+			const item = rollItemDrop(ctx.rng, ctx.state.floor, chest.boss);
+			const drop = createWorldDrop(item, chest.x, 0.7, chest.z, 0, 0, 0, now);
+			drop.settled = true;
+			ctx.drops.push(drop);
+			ctx.scene.add(drop.mesh);
+			return;
+		}
+		case "winSwitch": {
+			activateWinSwitch(target.ws);
+			ctx.descendFloor();
+			return;
+		}
+		case "pickup": {
+			const { displaced } = addItem(ctx.state, target.drop.item);
+			markPickedUp(target.drop, now);
+			if (displaced) ctx.throwForward(displaced);
+			return;
+		}
+	}
+}
+
+export function describeInteractable(target: Interactable): string {
+	switch (target.kind) {
+		case "door":
+			return "Open door";
+		case "switch":
+			return "Activate switch";
+		case "chest":
+			return target.chest.boss ? "Open boss chest" : "Open chest";
+		case "winSwitch":
+			return "Descend";
+		case "pickup": {
+			const item = target.drop.item;
+			if (item.kind === "food") return "Pick up food";
+			const tier = QUALITY_NAMES[item.quality - 1];
+			const kind = item.kind === "sword" ? "Sword" : "Bow";
+			return `Pick up ${tier.charAt(0).toUpperCase() + tier.slice(1)} ${kind}`;
+		}
+	}
 }
