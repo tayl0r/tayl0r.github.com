@@ -14,6 +14,8 @@ function makeGoblin(x: number, z: number): Monster {
 		contact: 0.9,
 		damage: 0.5,
 		dormant: false,
+		walkPhase: 0,
+		weapon: { kind: "sword", quality: 1 },
 	};
 }
 

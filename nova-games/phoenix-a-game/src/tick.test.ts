@@ -1,6 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { consumeAttackStamina, createInitialState } from "./state";
-import { tickPlayer } from "./tick";
+import type { Monster } from "./monsters";
+import { consumeAttackStamina, createInitialState, type Item } from "./state";
+import { applyContactDamage, tickPlayer } from "./tick";
+
+function makeMonster(damage: number, weapon: Item): Monster {
+	return {
+		kind: "goblin",
+		roomIndex: 0,
+		x: 0,
+		z: 0,
+		hp: 2,
+		speed: 3,
+		radius: 0.4,
+		contact: 0.9,
+		damage,
+		dormant: false,
+		walkPhase: 0,
+		weapon,
+	};
+}
 
 describe("tickPlayer", () => {
 	it("regenerates stamina at 1 per second when not attacking", () => {
@@ -39,5 +57,23 @@ describe("tickPlayer", () => {
 		expect(s.player.stamina).toBe(50);
 		expect(s.player.health).toBe(3);
 		expect(s.now).toBe(60);
+	});
+});
+
+describe("applyContactDamage sword bonus", () => {
+	it("adds sword quality to monster base damage", () => {
+		const s = createInitialState();
+		s.player.iframesUntil = -1;
+		s.player.health = 10;
+		const m = makeMonster(1, { kind: "sword", quality: 3 });
+		applyContactDamage(s, [m], 0, 0, 0.5);
+		expect(s.player.health).toBeCloseTo(10 - (1 + 3), 5);
+	});
+	it("does not add any bonus for a bow wielder", () => {
+		const s = createInitialState();
+		s.player.iframesUntil = -1;
+		const m = makeMonster(1.5, { kind: "bow", quality: 5 });
+		applyContactDamage(s, [m], 0, 0, 0.5);
+		expect(s.player.health).toBeCloseTo(3 - 1.5, 5);
 	});
 });

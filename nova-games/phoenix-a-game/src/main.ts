@@ -17,6 +17,7 @@ import {
 	type Arrow,
 	arrowExpired,
 	arrowHitsAabb,
+	arrowHitsCircleXZ,
 	arrowHitsMonster,
 	createArrow,
 	updateArrow,
@@ -36,8 +37,9 @@ import {
 	performInteract,
 } from "./interact";
 import { LEVELS } from "./levels";
-import { type Chest, createChest } from "./loot";
+import { type Chest, createChest, rollMonsterWeapon } from "./loot";
 import { renderMinimap } from "./minimap";
+import { type FireMonsterArrow, updateBowMonster } from "./monster_combat";
 import {
 	createMonster,
 	createMonsterModel,
@@ -196,13 +198,15 @@ function spawnMonster(roomIndex: number, kind: MonsterKind) {
 	const room = grid.rooms[roomIndex];
 	const jitterX = (Math.random() - 0.5) * 4;
 	const jitterZ = (Math.random() - 0.5) * 4;
+	const weapon = rollMonsterWeapon(Math.random, state.floor, false);
 	const m = createMonster(
 		kind,
 		room.centerX + jitterX,
 		room.centerZ + jitterZ,
 		roomIndex,
+		weapon,
 	);
-	const model = createMonsterModel(kind);
+	const model = createMonsterModel(kind, weapon);
 	m.mesh = model.group;
 	m.flashMaterial = model.flashMaterial;
 	scene.add(m.mesh);
@@ -211,13 +215,15 @@ function spawnMonster(roomIndex: number, kind: MonsterKind) {
 
 function spawnBoss() {
 	if (boss) return;
+	const weapon = rollMonsterWeapon(Math.random, state.floor, true);
 	const m = createMonster(
 		level.bossEnemy,
 		bossRoom.centerX,
 		bossRoom.centerZ,
 		level.boss,
+		weapon,
 	);
-	const model = createMonsterModel(level.bossEnemy);
+	const model = createMonsterModel(level.bossEnemy, weapon);
 	m.mesh = model.group;
 	m.flashMaterial = model.flashMaterial;
 	scene.add(m.mesh);
@@ -353,14 +359,34 @@ function fireArrow() {
 }
 
 function handleArrowHit(a: Arrow) {
-	for (const m of monsters) {
-		if (m.hp <= 0) continue;
-		if (arrowHitsMonster(a, m)) {
-			m.hp -= a.damage;
-			m.flashUntil = state.now + 0.15;
-			m.hitSquashUntil = state.now + 0.18;
-			a.alive = false;
-			return;
+	if (a.source === "player") {
+		for (const m of monsters) {
+			if (m.hp <= 0) continue;
+			if (arrowHitsMonster(a, m)) {
+				m.hp -= a.damage;
+				m.flashUntil = state.now + 0.15;
+				m.hitSquashUntil = state.now + 0.18;
+				a.alive = false;
+				return;
+			}
+		}
+	} else {
+		// monster arrow → hits the player
+		if (state.now >= state.player.iframesUntil) {
+			if (
+				arrowHitsCircleXZ(
+					a,
+					player.position.x,
+					player.position.z,
+					PLAYER_RADIUS,
+				)
+			) {
+				state.player.health = Math.max(0, state.player.health - a.damage);
+				state.player.iframesUntil = state.now + 1;
+				state.player.hitFlashUntil = state.now + 0.15;
+				a.alive = false;
+				return;
+			}
 		}
 	}
 	if (arrowHitsAabb(a, activeWalls())) {
@@ -413,6 +439,26 @@ function buildInteractCtx(): InteractCtx {
 	};
 }
 
+const fireMonsterArrow: FireMonsterArrow = (m, dirX, dirZ) => {
+	const damage = m.weapon.quality;
+	const color = 0x661111; // dim red — distinct from player arrows
+	const spawnY = 1.0;
+	const arrow = createArrow(
+		m.x,
+		spawnY,
+		m.z,
+		dirX,
+		0,
+		dirZ,
+		damage,
+		color,
+		state.now,
+		"monster",
+	);
+	arrows.push(arrow);
+	scene.add(arrow.mesh);
+};
+
 function animate() {
 	requestAnimationFrame(animate);
 	let nearest: Interactable | null = null;
@@ -451,7 +497,18 @@ function animate() {
 		player.position.z = resolved.z;
 		for (const m of monsters) {
 			if (m.hp <= 0) continue;
-			moveMonsterTowards(m, player.position.x, player.position.z, dt);
+			if (m.weapon.kind === "bow") {
+				updateBowMonster(
+					m,
+					player.position.x,
+					player.position.z,
+					dt,
+					state.now,
+					fireMonsterArrow,
+				);
+			} else {
+				moveMonsterTowards(m, player.position.x, player.position.z, dt);
+			}
 			const resolvedM = resolveAll(m.x, m.z, m.radius, walls);
 			m.x = resolvedM.x;
 			m.z = resolvedM.z;
@@ -559,6 +616,19 @@ function animate() {
 		}
 		for (const m of monsters) {
 			if (m.hp <= 0 && m.mesh) {
+				const drop = createWorldDrop(
+					m.weapon,
+					m.x,
+					0.7,
+					m.z,
+					0,
+					0,
+					0,
+					state.now,
+				);
+				drop.settled = true;
+				drops.push(drop);
+				scene.add(drop.mesh);
 				disposeObject(m.mesh);
 				m.mesh = undefined;
 			}
