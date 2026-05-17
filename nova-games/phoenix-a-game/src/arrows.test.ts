@@ -66,3 +66,14 @@ describe("arrowExpired", () => {
 		expect(arrowExpired(a, 5)).toBe(true);
 	});
 });
+
+describe("createArrow source", () => {
+	it("defaults to 'player'", () => {
+		const a = createArrow(0, 1, 0, 0, 0, -1, 1, 0xffffff, 0);
+		expect(a.source).toBe("player");
+	});
+	it("accepts an explicit 'monster' source", () => {
+		const a = createArrow(0, 1, 0, 0, 0, -1, 1, 0xffffff, 0, "monster");
+		expect(a.source).toBe("monster");
+	});
+});
