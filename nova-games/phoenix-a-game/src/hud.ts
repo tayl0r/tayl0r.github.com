@@ -103,6 +103,7 @@ function renderPrompt(prompt: string | null): void {
 export function renderHud(
 	state: GameState,
 	prompt: string | null = null,
+	godMode = false,
 ): void {
 	const p = state.player;
 	const filled = Math.max(0, Math.min(p.maxHealth, Math.ceil(p.health)));
@@ -125,6 +126,8 @@ export function renderHud(
 		const flashing = state.now < p.hitFlashUntil;
 		hud.classList.toggle("hud-flash", flashing);
 	}
+	const godEl = document.getElementById("hud-godmode");
+	if (godEl) godEl.style.display = godMode ? "block" : "none";
 	const banner = document.getElementById("hud-banner");
 	if (banner) {
 		if (state.phase === "dead") {

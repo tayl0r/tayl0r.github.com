@@ -12,6 +12,9 @@ export interface InputState {
 	slotDigit: number | null;
 	mouseDX: number;
 	mouseDY: number;
+	arrowUp: boolean;
+	arrowDown: boolean;
+	godMode: boolean;
 }
 
 export function createInput(): InputState {
@@ -29,6 +32,9 @@ export function createInput(): InputState {
 		slotDigit: null,
 		mouseDX: 0,
 		mouseDY: 0,
+		arrowUp: false,
+		arrowDown: false,
+		godMode: false,
 	};
 }
 
@@ -89,6 +95,15 @@ export function wireInput(input: InputState): void {
 				break;
 			case "Digit0":
 				if (down) input.slotDigit = 9;
+				break;
+			case "ArrowUp":
+				input.arrowUp = down;
+				break;
+			case "ArrowDown":
+				input.arrowDown = down;
+				break;
+			case "KeyG":
+				if (down && !e.repeat) input.godMode = !input.godMode;
 				break;
 		}
 	};

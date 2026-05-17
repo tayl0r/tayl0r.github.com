@@ -479,7 +479,8 @@ function animate() {
 		const tint = QUALITY_COLORS[equipped.quality - 1];
 		playerMesh.bowAccentMaterial.color.setHex(tint);
 	}
-	const v = computeVelocity(input, input.shift, follow.yaw);
+	const sprinting = input.shift || input.godMode;
+	const v = computeVelocity(input, sprinting, follow.yaw);
 	tickPlayer(state, dt);
 	const walls = activeWalls();
 	if (state.phase === "playing") {
@@ -492,26 +493,37 @@ function animate() {
 		}
 		const candidateX = player.position.x + v.x * dt;
 		const candidateZ = player.position.z + v.z * dt;
-		const resolved = resolveAll(candidateX, candidateZ, PLAYER_RADIUS, walls);
-		player.position.x = resolved.x;
-		player.position.z = resolved.z;
+		if (input.godMode) {
+			player.position.x = candidateX;
+			player.position.z = candidateZ;
+			const ALTITUDE_SPEED = 8;
+			if (input.arrowUp) player.position.y += ALTITUDE_SPEED * dt;
+			if (input.arrowDown) player.position.y -= ALTITUDE_SPEED * dt;
+		} else {
+			if (player.position.y !== 0) player.position.y = 0;
+			const resolved = resolveAll(candidateX, candidateZ, PLAYER_RADIUS, walls);
+			player.position.x = resolved.x;
+			player.position.z = resolved.z;
+		}
 		for (const m of monsters) {
 			if (m.hp <= 0) continue;
-			if (m.weapon.kind === "bow") {
-				updateBowMonster(
-					m,
-					player.position.x,
-					player.position.z,
-					dt,
-					state.now,
-					fireMonsterArrow,
-				);
-			} else {
-				moveMonsterTowards(m, player.position.x, player.position.z, dt);
+			if (!input.godMode) {
+				if (m.weapon.kind === "bow") {
+					updateBowMonster(
+						m,
+						player.position.x,
+						player.position.z,
+						dt,
+						state.now,
+						fireMonsterArrow,
+					);
+				} else {
+					moveMonsterTowards(m, player.position.x, player.position.z, dt);
+				}
+				const resolvedM = resolveAll(m.x, m.z, m.radius, walls);
+				m.x = resolvedM.x;
+				m.z = resolvedM.z;
 			}
-			const resolvedM = resolveAll(m.x, m.z, m.radius, walls);
-			m.x = resolvedM.x;
-			m.z = resolvedM.z;
 			if (m.mesh) {
 				m.mesh.position.x = m.x;
 				m.mesh.position.z = m.z;
@@ -535,13 +547,15 @@ function animate() {
 				}
 			}
 		}
-		applyContactDamage(
-			state,
-			monsters,
-			player.position.x,
-			player.position.z,
-			PLAYER_RADIUS,
-		);
+		if (!input.godMode) {
+			applyContactDamage(
+				state,
+				monsters,
+				player.position.x,
+				player.position.z,
+				PLAYER_RADIUS,
+			);
+		}
 		const survivors: WorldDrop[] = [];
 		for (const d of drops) {
 			const done = updateWorldDrop(d, dt, state.now);
@@ -649,7 +663,11 @@ function animate() {
 	}
 	const currentRoom = roomAt(player.position.x, player.position.z);
 	if (currentRoom !== null) visitedRooms.add(currentRoom);
-	renderHud(state, nearest ? describeInteractable(nearest) : null);
+	renderHud(
+		state,
+		nearest ? describeInteractable(nearest) : null,
+		input.godMode,
+	);
 	if (minimapCanvas) {
 		renderMinimap(minimapCanvas, level, visitedRooms, currentRoom);
 	}

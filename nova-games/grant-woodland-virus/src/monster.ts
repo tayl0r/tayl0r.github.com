@@ -21,6 +21,7 @@ export type MonsterState = {
 	legR: Group;
 	armL: Group;
 	armR: Group;
+	jaw: Group;
 };
 
 const SPAWN_X = 60;
@@ -37,9 +38,20 @@ const WANDER_MIN_DURATION = 3;
 const WANDER_MAX_DURATION = 5;
 const WANDER_YAW_SPREAD = Math.PI * 0.66;
 
+const WINDUP_DURATION = 0.32;
 const LUNGE_DURATION = 0.55;
 const LUNGE_DISTANCE = 3;
-const LUNGE_LEAN = -0.55;
+
+const WINDUP_LEAN = 0.12;
+const WINDUP_SCALE_Y = 0.78;
+const WINDUP_ARM_PULL = 0.4;
+const WINDUP_LEG_COIL = -0.1;
+const LUNGE_LEAN = 0.55;
+const LUNGE_SCALE_Y = 1.08;
+const LUNGE_ARM_REACH = -1.4;
+const LUNGE_ARM_SPREAD = 0.22;
+const LUNGE_LEG_TRAIL = 0.5;
+const JAW_OPEN = 0.75;
 
 let elapsed = 0;
 let walkPhase = 0;
@@ -153,7 +165,7 @@ function makeLeg(side: 1 | -1): Group {
 	return leg;
 }
 
-function makeHead(): Group {
+function makeHead(): { group: Group; jaw: Group } {
 	const head = new Group();
 	head.position.y = 2.5;
 
@@ -185,7 +197,22 @@ function makeHead(): Group {
 	antlerR.position.set(0.18, 0.25, 0);
 	head.add(antlerR);
 
-	return head;
+	const jaw = new Group();
+	jaw.position.set(0, -0.16, -0.04);
+	const jawBone = new Mesh(new BoxGeometry(0.32, 0.1, 0.42), boneMaterial);
+	jawBone.position.set(0, -0.03, 0.2);
+	jaw.add(jawBone);
+	const jawTip = new Mesh(new ConeGeometry(0.06, 0.1, 6), boneMaterial);
+	jawTip.position.set(0, -0.03, 0.42);
+	jawTip.rotation.x = Math.PI / 2;
+	jaw.add(jawTip);
+	head.add(jaw);
+
+	const mouthVoid = new Mesh(new BoxGeometry(0.26, 0.06, 0.32), socketMaterial);
+	mouthVoid.position.set(0, -0.12, 0.14);
+	head.add(mouthVoid);
+
+	return { group: head, jaw };
 }
 
 function makeChest(): Group {
@@ -241,6 +268,7 @@ function makeBackSpots(): Group {
 
 export function createMonster(): MonsterState {
 	const root = new Group();
+	root.rotation.order = "YXZ";
 	root.position.set(SPAWN_X, 0, SPAWN_Z);
 
 	const torso = new Mesh(
@@ -263,7 +291,8 @@ export function createMonster(): MonsterState {
 	root.add(armR);
 	root.add(legL);
 	root.add(legR);
-	root.add(makeHead());
+	const { group: head, jaw } = makeHead();
+	root.add(head);
 
 	return {
 		root,
@@ -274,6 +303,7 @@ export function createMonster(): MonsterState {
 		legR,
 		armL,
 		armR,
+		jaw,
 	};
 }
 
@@ -281,10 +311,12 @@ export function resetMonster(monster: MonsterState): void {
 	monster.position.set(SPAWN_X, 0, SPAWN_Z);
 	monster.yaw = 0;
 	monster.root.rotation.set(0, 0, 0);
+	monster.root.scale.set(1, 1, 1);
 	monster.legL.rotation.set(0, 0, 0);
 	monster.legR.rotation.set(0, 0, 0);
 	monster.armL.rotation.set(0, 0, 0);
 	monster.armR.rotation.set(0, 0, 0);
+	monster.jaw.rotation.set(0, 0, 0);
 	wanderYaw = null;
 	wanderUntil = 0;
 	lungeActive = false;
@@ -339,6 +371,10 @@ function applyBreath(monster: MonsterState): void {
 	monster.chest.scale.y = breath;
 }
 
+function lerp(a: number, b: number, t: number): number {
+	return a + (b - a) * t;
+}
+
 export function startLunge(monster: MonsterState, player: PlayerState): void {
 	const dx = monster.position.x - player.position.x;
 	const dz = monster.position.z - player.position.z;
@@ -352,6 +388,12 @@ export function startLunge(monster: MonsterState, player: PlayerState): void {
 	monster.yaw = Math.atan2(-ux, -uz);
 	monster.root.rotation.y = monster.yaw;
 	monster.root.rotation.x = 0;
+	monster.root.scale.set(1, 1, 1);
+	monster.armL.rotation.set(0, 0, 0);
+	monster.armR.rotation.set(0, 0, 0);
+	monster.legL.rotation.set(0, 0, 0);
+	monster.legR.rotation.set(0, 0, 0);
+	monster.jaw.rotation.set(0, 0, 0);
 
 	lungeStart.copy(monster.position);
 	lungeEnd.set(player.position.x, monster.position.y, player.position.z);
@@ -363,18 +405,36 @@ export function updateLunge(monster: MonsterState, dt: number): boolean {
 	if (!lungeActive) return true;
 	elapsed += dt;
 	lungeElapsed += dt;
-	const t = Math.min(1, lungeElapsed / LUNGE_DURATION);
-	const eased = t * t;
-	monster.position.x = lungeStart.x + (lungeEnd.x - lungeStart.x) * eased;
-	monster.position.z = lungeStart.z + (lungeEnd.z - lungeStart.z) * eased;
-	monster.root.rotation.x = LUNGE_LEAN * t;
-	walkPhase += dt * 18;
-	const swing = Math.sin(walkPhase) * 0.7;
-	monster.legL.rotation.x = swing;
-	monster.legR.rotation.x = -swing;
-	monster.armL.rotation.x = -swing * 1.4;
-	monster.armR.rotation.x = swing * 1.4;
 	applyBreath(monster);
+
+	if (lungeElapsed < WINDUP_DURATION) {
+		const u = lungeElapsed / WINDUP_DURATION;
+		const e = u * u; // ease-in for the coil
+		monster.root.rotation.x = lerp(0, WINDUP_LEAN, e);
+		monster.root.scale.y = lerp(1, WINDUP_SCALE_Y, e);
+		monster.armL.rotation.x = lerp(0, WINDUP_ARM_PULL, e);
+		monster.armR.rotation.x = lerp(0, WINDUP_ARM_PULL, e);
+		monster.legL.rotation.x = lerp(0, WINDUP_LEG_COIL, e);
+		monster.legR.rotation.x = lerp(0, WINDUP_LEG_COIL, e);
+		monster.jaw.rotation.x = 0;
+		return false;
+	}
+
+	const u = (lungeElapsed - WINDUP_DURATION) / LUNGE_DURATION;
+	const t = Math.min(1, u);
+	const eased = t * t;
+	monster.position.x = lerp(lungeStart.x, lungeEnd.x, eased);
+	monster.position.z = lerp(lungeStart.z, lungeEnd.z, eased);
+	monster.root.rotation.x = lerp(WINDUP_LEAN, LUNGE_LEAN, t);
+	monster.root.scale.y = lerp(WINDUP_SCALE_Y, LUNGE_SCALE_Y, t);
+	monster.armL.rotation.x = lerp(WINDUP_ARM_PULL, LUNGE_ARM_REACH, t);
+	monster.armR.rotation.x = lerp(WINDUP_ARM_PULL, LUNGE_ARM_REACH, t);
+	monster.armL.rotation.z = lerp(0, -LUNGE_ARM_SPREAD, t);
+	monster.armR.rotation.z = lerp(0, LUNGE_ARM_SPREAD, t);
+	monster.legL.rotation.x = lerp(WINDUP_LEG_COIL, LUNGE_LEG_TRAIL, t);
+	monster.legR.rotation.x = lerp(WINDUP_LEG_COIL, LUNGE_LEG_TRAIL, t);
+	monster.jaw.rotation.x = lerp(0, JAW_OPEN, t);
+
 	if (t >= 1) {
 		lungeActive = false;
 		return true;
