@@ -91,24 +91,16 @@ describe("rollItemDrop quality curve", () => {
 	});
 });
 
-function deterministicRngFor(seed: number): () => number {
-	let x = seed;
-	return () => {
-		x = (x * 1103515245 + 12345) & 0x7fffffff;
-		return (x / 0x80000000) % 1;
-	};
-}
-
 describe("rollMonsterWeapon kind distribution", () => {
 	it("never produces food", () => {
-		const rng = deterministicRngFor(11);
+		const rng = deterministicRng(11);
 		for (let i = 0; i < 500; i++) {
 			const item = rollMonsterWeapon(rng, 0, false);
 			expect(item.kind === "food").toBe(false);
 		}
 	});
 	it("rolls ~65% sword / ~35% bow", () => {
-		const rng = deterministicRngFor(12);
+		const rng = deterministicRng(12);
 		let swords = 0;
 		let bows = 0;
 		for (let i = 0; i < 5000; i++) {
@@ -124,7 +116,7 @@ describe("rollMonsterWeapon kind distribution", () => {
 
 describe("rollMonsterWeapon quality curve", () => {
 	it("floor 0 produces mostly common", () => {
-		const rng = deterministicRngFor(13);
+		const rng = deterministicRng(13);
 		let common = 0;
 		let total = 0;
 		for (let i = 0; i < 2000; i++) {
@@ -135,7 +127,7 @@ describe("rollMonsterWeapon quality curve", () => {
 		expect(common / total).toBeGreaterThan(0.4);
 	});
 	it("floor 4+ produces meaningful rare/epic/legendary", () => {
-		const rng = deterministicRngFor(14);
+		const rng = deterministicRng(14);
 		let highTier = 0;
 		let total = 0;
 		for (let i = 0; i < 2000; i++) {
@@ -146,7 +138,7 @@ describe("rollMonsterWeapon quality curve", () => {
 		expect(highTier / total).toBeGreaterThan(0.5);
 	});
 	it("boss shift gives floor-0 boss a chance at legendary+", () => {
-		const rng = deterministicRngFor(15);
+		const rng = deterministicRng(15);
 		let legendaryOrAbove = 0;
 		for (let i = 0; i < 3000; i++) {
 			const item = rollMonsterWeapon(rng, 0, true);
@@ -155,7 +147,7 @@ describe("rollMonsterWeapon quality curve", () => {
 		expect(legendaryOrAbove).toBeGreaterThan(0);
 	});
 	it("returns valid Item shape", () => {
-		const rng = deterministicRngFor(16);
+		const rng = deterministicRng(16);
 		for (let i = 0; i < 200; i++) {
 			const item = rollMonsterWeapon(rng, 2, false);
 			expect(["sword", "bow"]).toContain(item.kind);
