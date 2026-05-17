@@ -18,6 +18,7 @@ export interface Arrow {
 	alive: boolean;
 	bornAt: number;
 	mesh: Mesh;
+	source: "player" | "monster";
 }
 
 export function createArrow(
@@ -30,6 +31,7 @@ export function createArrow(
 	damage: number,
 	color: number,
 	now: number,
+	source: "player" | "monster" = "player",
 ): Arrow {
 	const len = Math.hypot(dx, dy, dz) || 1;
 	const ux = dx / len;
@@ -52,6 +54,7 @@ export function createArrow(
 		alive: true,
 		bornAt: now,
 		mesh,
+		source,
 	};
 }
 

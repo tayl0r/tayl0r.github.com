@@ -8,6 +8,7 @@ import {
 	SphereGeometry,
 	TorusGeometry,
 } from "three";
+import { type Item, QUALITY_COLORS } from "./state";
 
 export type MonsterKind =
 	| "skeleton"
@@ -104,6 +105,18 @@ const STATS: Record<MonsterKind, MonsterStats> = {
 	},
 };
 
+const WEAPON_ANCHOR: Record<MonsterKind, [number, number, number]> = {
+	skeleton: [0.35, 1.1, 0.0],
+	zombie: [0.4, 1.0, 0.0],
+	grimReaper: [0.45, 1.4, 0.0],
+	goblin: [0.3, 0.8, 0.0],
+	orc: [0.45, 1.1, 0.0],
+	minotaur: [0.5, 1.5, 0.0],
+	slime: [0.25, 0.5, 0.0],
+	fireElemental: [0.35, 0.9, 0.0],
+	lich: [0.4, 1.3, 0.0],
+};
+
 export interface Monster {
 	kind: MonsterKind;
 	roomIndex: number;
@@ -120,6 +133,8 @@ export interface Monster {
 	flashUntil?: number;
 	mesh?: Group;
 	flashMaterial?: MeshStandardMaterial;
+	weapon: Item;
+	nextShotAt?: number;
 }
 
 export function isBossKind(kind: MonsterKind): boolean {
@@ -131,9 +146,10 @@ export function createMonster(
 	x: number,
 	z: number,
 	roomIndex: number,
+	weapon: Item,
 ): Monster {
 	const s = STATS[kind];
-	return {
+	const monster: Monster = {
 		kind,
 		roomIndex,
 		x,
@@ -145,7 +161,10 @@ export function createMonster(
 		damage: s.damage,
 		dormant: !s.isBoss,
 		walkPhase: 0,
+		weapon,
 	};
+	if (weapon.kind === "bow") monster.nextShotAt = 0;
+	return monster;
 }
 
 export function moveMonsterTowards(
@@ -177,29 +196,40 @@ export function overlapsPlayer(
 export interface MonsterModel {
 	group: Group;
 	flashMaterial: MeshStandardMaterial;
+	weaponAnchor: Group;
 }
 
-export function createMonsterModel(kind: MonsterKind): MonsterModel {
-	switch (kind) {
-		case "skeleton":
-			return buildSkeleton();
-		case "zombie":
-			return buildZombie();
-		case "grimReaper":
-			return buildGrimReaper();
-		case "goblin":
-			return buildGoblin();
-		case "orc":
-			return buildOrc();
-		case "minotaur":
-			return buildMinotaur();
-		case "slime":
-			return buildSlime();
-		case "fireElemental":
-			return buildFireElemental();
-		case "lich":
-			return buildLich();
-	}
+export function createMonsterModel(
+	kind: MonsterKind,
+	item: Item,
+): MonsterModel {
+	const model = ((): MonsterModel => {
+		switch (kind) {
+			case "skeleton":
+				return buildSkeleton();
+			case "zombie":
+				return buildZombie();
+			case "grimReaper":
+				return buildGrimReaper();
+			case "goblin":
+				return buildGoblin();
+			case "orc":
+				return buildOrc();
+			case "minotaur":
+				return buildMinotaur();
+			case "slime":
+				return buildSlime();
+			case "fireElemental":
+				return buildFireElemental();
+			case "lich":
+				return buildLich();
+		}
+	})();
+	const [ax, ay, az] = WEAPON_ANCHOR[kind];
+	model.weaponAnchor.position.set(ax, ay, az);
+	const held = buildHeldWeaponMesh(item);
+	model.weaponAnchor.add(held);
+	return model;
 }
 
 function buildSkeleton(): MonsterModel {
@@ -290,7 +320,9 @@ function buildSkeleton(): MonsterModel {
 		group.add(shin);
 	}
 
-	return { group, flashMaterial: bone };
+	const weaponAnchor = new Group();
+	group.add(weaponAnchor);
+	return { group, flashMaterial: bone, weaponAnchor };
 }
 
 function buildZombie(): MonsterModel {
@@ -323,7 +355,9 @@ function buildZombie(): MonsterModel {
 		leg.position.set(lx, 0.2, 0);
 		group.add(leg);
 	}
-	return { group, flashMaterial: flesh };
+	const weaponAnchor = new Group();
+	group.add(weaponAnchor);
+	return { group, flashMaterial: flesh, weaponAnchor };
 }
 
 function buildGrimReaper(): MonsterModel {
@@ -359,7 +393,9 @@ function buildGrimReaper(): MonsterModel {
 	blade.position.set(0.55, 1.55, 0.1);
 	blade.rotation.set(Math.PI / 2, 0, Math.PI / 2);
 	group.add(blade);
-	return { group, flashMaterial: robe };
+	const weaponAnchor = new Group();
+	group.add(weaponAnchor);
+	return { group, flashMaterial: robe, weaponAnchor };
 }
 
 function buildGoblin(): MonsterModel {
@@ -397,7 +433,9 @@ function buildGoblin(): MonsterModel {
 		leg.position.set(lx, 0.175, 0);
 		group.add(leg);
 	}
-	return { group, flashMaterial: skin };
+	const weaponAnchor = new Group();
+	group.add(weaponAnchor);
+	return { group, flashMaterial: skin, weaponAnchor };
 }
 
 function buildOrc(): MonsterModel {
@@ -436,7 +474,9 @@ function buildOrc(): MonsterModel {
 		leg.position.set(lx, 0.21, 0);
 		group.add(leg);
 	}
-	return { group, flashMaterial: skin };
+	const weaponAnchor = new Group();
+	group.add(weaponAnchor);
+	return { group, flashMaterial: skin, weaponAnchor };
 }
 
 function buildMinotaur(): MonsterModel {
@@ -547,7 +587,9 @@ function buildMinotaur(): MonsterModel {
 	axeEdge.rotation.z = -Math.PI / 2;
 	group.add(axeEdge);
 
-	return { group, flashMaterial: fur };
+	const weaponAnchor = new Group();
+	group.add(weaponAnchor);
+	return { group, flashMaterial: fur, weaponAnchor };
 }
 
 function buildSlime(): MonsterModel {
@@ -572,7 +614,9 @@ function buildSlime(): MonsterModel {
 		eye.position.set(ex, 0.5, 0.4);
 		group.add(eye);
 	}
-	return { group, flashMaterial: slime };
+	const weaponAnchor = new Group();
+	group.add(weaponAnchor);
+	return { group, flashMaterial: slime, weaponAnchor };
 }
 
 function buildFireElemental(): MonsterModel {
@@ -602,7 +646,9 @@ function buildFireElemental(): MonsterModel {
 	const tip = new Mesh(new ConeGeometry(0.18, 0.7, 6), flame);
 	tip.position.y = 1.25;
 	group.add(tip);
-	return { group, flashMaterial: core };
+	const weaponAnchor = new Group();
+	group.add(weaponAnchor);
+	return { group, flashMaterial: core, weaponAnchor };
 }
 
 function buildLich(): MonsterModel {
@@ -643,5 +689,46 @@ function buildLich(): MonsterModel {
 	);
 	orb.position.set(0.5, 1.75, 0.1);
 	group.add(orb);
-	return { group, flashMaterial: robe };
+	const weaponAnchor = new Group();
+	group.add(weaponAnchor);
+	return { group, flashMaterial: robe, weaponAnchor };
+}
+
+function buildHeldWeaponMesh(item: Item): Group {
+	const group = new Group();
+	const tint = QUALITY_COLORS[item.quality - 1];
+	if (item.kind === "sword") {
+		const blade = new Mesh(
+			new BoxGeometry(0.05, 0.4, 0.02),
+			new MeshStandardMaterial({ color: tint, emissive: 0x222222 }),
+		);
+		blade.position.y = 0.2;
+		group.add(blade);
+		const guard = new Mesh(
+			new BoxGeometry(0.16, 0.04, 0.04),
+			new MeshStandardMaterial({ color: 0xddaa44 }),
+		);
+		group.add(guard);
+		const grip = new Mesh(
+			new CylinderGeometry(0.02, 0.02, 0.12, 6),
+			new MeshStandardMaterial({ color: 0x442211 }),
+		);
+		grip.position.y = -0.08;
+		group.add(grip);
+		return group;
+	}
+	// bow
+	const limb = new Mesh(
+		new TorusGeometry(0.18, 0.02, 6, 12, Math.PI),
+		new MeshStandardMaterial({ color: tint, emissive: 0x331a0d }),
+	);
+	limb.rotation.x = Math.PI / 2;
+	group.add(limb);
+	const string = new Mesh(
+		new CylinderGeometry(0.004, 0.004, 0.36, 4),
+		new MeshStandardMaterial({ color: 0xeeeeee }),
+	);
+	string.rotation.z = Math.PI / 2;
+	group.add(string);
+	return group;
 }

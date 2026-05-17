@@ -27,7 +27,11 @@ export function applyContactDamage(
 		if (m.hp <= 0) continue;
 		const d = Math.hypot(m.x - playerX, m.z - playerZ);
 		if (d < m.contact + playerRadius) {
-			state.player.health = Math.max(0, state.player.health - m.damage);
+			const swordBonus = m.weapon.kind === "sword" ? m.weapon.quality : 0;
+			state.player.health = Math.max(
+				0,
+				state.player.health - (m.damage + swordBonus),
+			);
 			state.player.iframesUntil = state.now + 1;
 			state.player.hitFlashUntil = state.now + 0.15;
 			break;

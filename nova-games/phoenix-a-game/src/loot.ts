@@ -1,26 +1,5 @@
-import {
-	BoxGeometry,
-	ConeGeometry,
-	CylinderGeometry,
-	Group,
-	Mesh,
-	MeshStandardMaterial,
-	SphereGeometry,
-	TorusGeometry,
-} from "three";
-import type { GameState } from "./state";
-
-export type DropKind = "food" | "sword" | "bow";
-
-const FADE_DURATION = 0.6;
-
-export function rollDrop(rng: () => number, boss = false): DropKind {
-	if (boss) return "sword";
-	const r = rng();
-	if (r < 0.4) return "food";
-	if (r < 0.7) return "sword";
-	return "bow";
-}
+import { BoxGeometry, Group, Mesh, MeshStandardMaterial } from "three";
+import type { Item, ItemKind, Quality } from "./state";
 
 export interface Chest {
 	x: number;
@@ -30,11 +9,6 @@ export interface Chest {
 	mesh: Group;
 	bodyMaterial: MeshStandardMaterial;
 	lid: Group;
-	drop?: DropKind;
-	dropMesh?: Group;
-	openedAt?: number;
-	dropPickedUp: boolean;
-	pickedUpAt?: number;
 }
 
 export function createChest(x: number, z: number, boss = false): Chest {
@@ -84,169 +58,57 @@ export function createChest(x: number, z: number, boss = false): Chest {
 		mesh,
 		bodyMaterial,
 		lid,
-		dropPickedUp: false,
 	};
 }
 
-function createDropMesh(drop: DropKind): Group {
-	const group = new Group();
-	if (drop === "food") {
-		const apple = new Mesh(
-			new SphereGeometry(0.18, 14, 10),
-			new MeshStandardMaterial({
-				color: 0xcc2222,
-				emissive: 0x441111,
-				transparent: true,
-			}),
-		);
-		apple.position.y = 0;
-		group.add(apple);
-		const stem = new Mesh(
-			new CylinderGeometry(0.015, 0.015, 0.08, 4),
-			new MeshStandardMaterial({
-				color: 0x553311,
-				transparent: true,
-			}),
-		);
-		stem.position.y = 0.2;
-		group.add(stem);
-		const leaf = new Mesh(
-			new ConeGeometry(0.05, 0.08, 4),
-			new MeshStandardMaterial({
-				color: 0x44aa44,
-				transparent: true,
-			}),
-		);
-		leaf.position.set(0.06, 0.22, 0);
-		leaf.rotation.z = Math.PI / 4;
-		group.add(leaf);
-		return group;
+const QUALITY_WEIGHTS: readonly (readonly number[])[] = [
+	[55, 30, 12, 3, 0, 0], // floor 0
+	[35, 35, 20, 8, 2, 0], // floor 1
+	[20, 30, 28, 15, 6, 1], // floor 2
+	[10, 22, 28, 22, 13, 5], // floor 3
+	[5, 15, 25, 25, 20, 10], // floor 4+
+];
+
+function rollQuality(rng: () => number, band: number): Quality {
+	const weights = QUALITY_WEIGHTS[Math.min(band, QUALITY_WEIGHTS.length - 1)];
+	const total = weights.reduce((a, b) => a + b, 0);
+	let r = rng() * total;
+	for (let i = 0; i < weights.length; i++) {
+		r -= weights[i];
+		if (r < 0) return (i + 1) as Quality;
 	}
-	if (drop === "bow") {
-		const limb = new Mesh(
-			new TorusGeometry(0.22, 0.025, 6, 12, Math.PI),
-			new MeshStandardMaterial({
-				color: 0x8b5a2b,
-				emissive: 0x331a0d,
-				transparent: true,
-			}),
-		);
-		limb.rotation.x = Math.PI / 2;
-		group.add(limb);
-		const string = new Mesh(
-			new CylinderGeometry(0.005, 0.005, 0.44, 4),
-			new MeshStandardMaterial({ color: 0xeeeeee, transparent: true }),
-		);
-		string.position.x = 0.22;
-		string.rotation.z = Math.PI / 2;
-		group.add(string);
-		return group;
-	}
-	const blade = new Mesh(
-		new BoxGeometry(0.06, 0.55, 0.025),
-		new MeshStandardMaterial({
-			color: 0xdddddd,
-			emissive: 0x333333,
-			transparent: true,
-		}),
-	);
-	blade.position.y = 0.05;
-	group.add(blade);
-	const guard = new Mesh(
-		new BoxGeometry(0.22, 0.05, 0.05),
-		new MeshStandardMaterial({
-			color: 0xddaa44,
-			emissive: 0x442200,
-			transparent: true,
-		}),
-	);
-	guard.position.y = -0.22;
-	group.add(guard);
-	const grip = new Mesh(
-		new CylinderGeometry(0.025, 0.025, 0.16, 6),
-		new MeshStandardMaterial({
-			color: 0x442211,
-			transparent: true,
-		}),
-	);
-	grip.position.y = -0.32;
-	group.add(grip);
-	const pommel = new Mesh(
-		new SphereGeometry(0.04, 8, 6),
-		new MeshStandardMaterial({
-			color: 0xddaa44,
-			emissive: 0x442200,
-			transparent: true,
-		}),
-	);
-	pommel.position.y = -0.42;
-	group.add(pommel);
-	return group;
+	return weights.length as Quality;
 }
 
-export function openChest(
-	chest: Chest,
+function rollKind(rng: () => number, boss: boolean): ItemKind {
+	if (boss) {
+		return rng() < 0.5 ? "sword" : "bow";
+	}
+	const r = rng();
+	if (r < 0.35) return "food";
+	if (r < 0.7) return "sword";
+	return "bow";
+}
+
+export function rollItemDrop(
 	rng: () => number,
-	now: number,
-): Group | undefined {
-	if (chest.opened) return undefined;
-	chest.opened = true;
-	chest.openedAt = now;
-	const drop = rollDrop(rng, chest.boss);
-	chest.drop = drop;
-	chest.bodyMaterial.color.setHex(chest.boss ? 0x665500 : 0x3a2a1a);
-	chest.lid.rotation.x = -1.0;
-	chest.lid.position.set(0, 0.5, -0.25);
-	const dropMesh = createDropMesh(drop);
-	dropMesh.position.set(chest.x, 0.7, chest.z);
-	chest.dropMesh = dropMesh;
-	return dropMesh;
+	floor: number,
+	boss: boolean,
+): Item {
+	const kind = rollKind(rng, boss);
+	if (kind === "food") return { kind, quality: 1 };
+	const band = Math.max(0, Math.floor(floor)) + (boss ? 1 : 0);
+	const quality = rollQuality(rng, band);
+	return { kind, quality };
 }
 
-export function pickupDrop(
-	chest: Chest,
-	state: GameState,
-	now: number,
-): boolean {
-	if (chest.dropPickedUp || !chest.drop || !chest.dropMesh) return false;
-	chest.dropPickedUp = true;
-	chest.pickedUpAt = now;
-	if (chest.drop === "food") {
-		state.player.health = Math.min(
-			state.player.maxHealth,
-			state.player.health + 1,
-		);
-	} else if (chest.drop === "bow") {
-		state.player.bowDamage += chest.boss ? 2 : 1;
-	} else {
-		state.player.swordDamage += chest.boss ? 2 : 1;
-	}
-	return true;
-}
-
-export function updateChestDrop(chest: Chest, now: number): boolean {
-	if (!chest.dropMesh || chest.openedAt === undefined) return false;
-	const t = now - chest.openedAt;
-	const rise = Math.min(t * 4, 1.0);
-	chest.dropMesh.position.y = 0.7 + rise + Math.sin(t * 2) * 0.05;
-	chest.dropMesh.rotation.y = t * 1.5;
-	if (chest.dropPickedUp && chest.pickedUpAt !== undefined) {
-		const fadeT = now - chest.pickedUpAt;
-		const opacity = Math.max(0, 1 - fadeT / FADE_DURATION);
-		chest.dropMesh.traverse((child) => {
-			if (child instanceof Mesh) {
-				const mats = Array.isArray(child.material)
-					? child.material
-					: [child.material];
-				for (const m of mats) {
-					if (m instanceof MeshStandardMaterial && m.transparent) {
-						m.opacity = opacity;
-					}
-				}
-			}
-		});
-		chest.dropMesh.position.y += fadeT * 0.6;
-		if (fadeT >= FADE_DURATION) return true;
-	}
-	return false;
+export function rollMonsterWeapon(
+	rng: () => number,
+	floor: number,
+	boss: boolean,
+): Item {
+	const kind: ItemKind = rng() < 0.65 ? "sword" : "bow";
+	const band = Math.max(0, Math.floor(floor)) + (boss ? 1 : 0);
+	const quality = rollQuality(rng, band);
+	return { kind, quality };
 }
