@@ -101,3 +101,14 @@ export function rollItemDrop(
 	const quality = rollQuality(rng, band);
 	return { kind, quality };
 }
+
+export function rollMonsterWeapon(
+	rng: () => number,
+	floor: number,
+	boss: boolean,
+): Item {
+	const kind: ItemKind = rng() < 0.65 ? "sword" : "bow";
+	const band = Math.max(0, Math.floor(floor)) + (boss ? 1 : 0);
+	const quality = rollQuality(rng, band);
+	return { kind, quality };
+}

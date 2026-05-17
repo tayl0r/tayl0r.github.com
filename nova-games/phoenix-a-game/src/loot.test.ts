@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { rollItemDrop } from "./loot";
+import { rollItemDrop, rollMonsterWeapon } from "./loot";
 
 function deterministicRng(seed = 0): () => number {
 	let x = seed;
@@ -88,5 +88,79 @@ describe("rollItemDrop quality curve", () => {
 			if (item.quality >= 5) legendaryOrAbove++;
 		}
 		expect(legendaryOrAbove).toBeGreaterThan(0);
+	});
+});
+
+function deterministicRngFor(seed: number): () => number {
+	let x = seed;
+	return () => {
+		x = (x * 1103515245 + 12345) & 0x7fffffff;
+		return (x / 0x80000000) % 1;
+	};
+}
+
+describe("rollMonsterWeapon kind distribution", () => {
+	it("never produces food", () => {
+		const rng = deterministicRngFor(11);
+		for (let i = 0; i < 500; i++) {
+			const item = rollMonsterWeapon(rng, 0, false);
+			expect(item.kind === "food").toBe(false);
+		}
+	});
+	it("rolls ~65% sword / ~35% bow", () => {
+		const rng = deterministicRngFor(12);
+		let swords = 0;
+		let bows = 0;
+		for (let i = 0; i < 5000; i++) {
+			const item = rollMonsterWeapon(rng, 2, false);
+			if (item.kind === "sword") swords++;
+			else if (item.kind === "bow") bows++;
+		}
+		const swordRatio = swords / (swords + bows);
+		expect(swordRatio).toBeGreaterThan(0.55);
+		expect(swordRatio).toBeLessThan(0.75);
+	});
+});
+
+describe("rollMonsterWeapon quality curve", () => {
+	it("floor 0 produces mostly common", () => {
+		const rng = deterministicRngFor(13);
+		let common = 0;
+		let total = 0;
+		for (let i = 0; i < 2000; i++) {
+			const item = rollMonsterWeapon(rng, 0, false);
+			total++;
+			if (item.quality === 1) common++;
+		}
+		expect(common / total).toBeGreaterThan(0.4);
+	});
+	it("floor 4+ produces meaningful rare/epic/legendary", () => {
+		const rng = deterministicRngFor(14);
+		let highTier = 0;
+		let total = 0;
+		for (let i = 0; i < 2000; i++) {
+			const item = rollMonsterWeapon(rng, 4, false);
+			total++;
+			if (item.quality >= 3) highTier++;
+		}
+		expect(highTier / total).toBeGreaterThan(0.5);
+	});
+	it("boss shift gives floor-0 boss a chance at legendary+", () => {
+		const rng = deterministicRngFor(15);
+		let legendaryOrAbove = 0;
+		for (let i = 0; i < 3000; i++) {
+			const item = rollMonsterWeapon(rng, 0, true);
+			if (item.quality >= 5) legendaryOrAbove++;
+		}
+		expect(legendaryOrAbove).toBeGreaterThan(0);
+	});
+	it("returns valid Item shape", () => {
+		const rng = deterministicRngFor(16);
+		for (let i = 0; i < 200; i++) {
+			const item = rollMonsterWeapon(rng, 2, false);
+			expect(["sword", "bow"]).toContain(item.kind);
+			expect(item.quality).toBeGreaterThanOrEqual(1);
+			expect(item.quality).toBeLessThanOrEqual(6);
+		}
 	});
 });
